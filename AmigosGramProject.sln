@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AmigosGramProject.Server", "AmigosGramProject.Server\AmigosGramProject.Server.csproj", "{11F09427-88F3-4117-BDA6-39D10E8E0041}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "amigosgramproject.client", "amigosgramproject.client\amigosgramproject.client.esproj", "{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{11F09427-88F3-4117-BDA6-39D10E8E0041}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{11F09427-88F3-4117-BDA6-39D10E8E0041}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{11F09427-88F3-4117-BDA6-39D10E8E0041}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{11F09427-88F3-4117-BDA6-39D10E8E0041}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F4FA59CF-DC9B-4CA2-9E2A-121C06C97623}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3C99DA53-2192-4108-BA86-FBBF8BCC59D7}
+	EndGlobalSection
+EndGlobal

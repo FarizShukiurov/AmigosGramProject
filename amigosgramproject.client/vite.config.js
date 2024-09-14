@@ -43,8 +43,20 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/weatherforecast': {
-                target,
+            '^/pingauth': {
+                target: 'https://localhost:7015/',
+                secure: false
+            },
+            '^/register': {
+                target: 'https://localhost:7015/',
+                secure: false
+            },
+            '^/login': {
+                target: 'https://localhost:7015/',
+                secure: false
+            },
+            '^/logout': {
+                target: 'https://localhost:7015/',
                 secure: false
             }
         },

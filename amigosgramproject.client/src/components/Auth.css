@@ -1,0 +1,108 @@
+body {
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: url('/path-to-your-gif.gif') no-repeat center center fixed;
+    background-size: cover;
+}
+
+.auth-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.auth-logo {
+    font-size: 2rem;
+    color: white;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-family: 'Poppins', sans-serif;
+    font-weight: bold;
+}
+
+.auth-box {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 30px;
+    border-radius: 10px;
+    width: 350px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    animation: fadeIn 1.2s ease-in-out;
+}
+
+h2 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+p {
+    color: #b9bbbe;
+    font-size: 0.9rem;
+}
+
+.input-field {
+    margin-bottom: 15px;
+}
+
+    .input-field label {
+        color: #8e9297;
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 5px;
+    }
+
+input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: none;
+    background: #202225;
+    color: white;
+    transition: background-color 0.3s ease;
+}
+
+    input:focus {
+        background: #292b2f;
+    }
+
+.auth-button {
+    width: 100%;
+    padding: 12px;
+    background-color: #f55000;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    .auth-button:hover {
+        background-color: #ff6700;
+    }
+
+.forgot-link, .register-link a, .login-link a {
+    color: #ff6700;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+    .forgot-link:hover, .register-link a:hover, .login-link a:hover {
+        color: #ff8500;
+    }
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

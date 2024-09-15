@@ -1,20 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import './Register.css';
+
 function Register() {
-    // state variables for email and passwords
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [error, setError] = useState("");
     const navigate = useNavigate();
 
-    // state variable for error messages
-    const [error, setError] = useState("");
-
-    const handleLoginClick = () => {
-        navigate("/login");
-    }
-
-    // handle change events for input fields
     const handleChange = (e) => {
         const { name, value } = e.target;
         if (name === "email") setEmail(value);
@@ -22,10 +16,8 @@ function Register() {
         if (name === "confirmPassword") setConfirmPassword(value);
     };
 
-    // handle submit event for the form
     const handleSubmit = (e) => {
         e.preventDefault();
-        // validate email and passwords
         if (!email || !password || !confirmPassword) {
             setError("Please fill in all fields.");
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -33,84 +25,70 @@ function Register() {
         } else if (password !== confirmPassword) {
             setError("Passwords do not match.");
         } else {
-            // clear error message
             setError("");
-            // post data to the /register api
             fetch("/register", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password,
-                }),
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
             })
-                .then((data) => {
-                    // handle success or error from the server
-                    console.log(data);
-                    if (data.ok)
+                .then((response) => {
+                    if (response.ok) {
                         setError("Successful register.");
-                    else
+                    } else {
                         setError("Error registering.");
+                    }
                 })
-                .catch((error) => {
-                    // handle network error
-                    console.error(error);
-                    setError("Error registering.");
-                });
+                .catch(() => setError("Error registering."));
         }
+    };
+
+    const handleLoginClick = () => {
+        navigate("/login");
     };
 
     return (
         <div className="containerbox">
-            <h3>Register</h3>
-
-            <form onSubmit={handleSubmit}>
-                <div>
-                    <label htmlFor="email">Email:</label>
-                </div>
-                <div>
+            <h3 className="title">Create an account</h3>
+            <p className="subtitle">It's quick and easy!</p>
+            <form onSubmit={handleSubmit} className="form">
+                <div className="form-group">
+                    <label htmlFor="email">Email <span className="required">*</span></label>
                     <input
                         type="email"
                         id="email"
                         name="email"
                         value={email}
                         onChange={handleChange}
+                        className="input-field"
                     />
                 </div>
-                <div>
-                    <label htmlFor="password">Password:</label>
-                </div>
-                <div>
+                <div className="form-group">
+                    <label htmlFor="password">Password <span className="required">*</span></label>
                     <input
                         type="password"
                         id="password"
                         name="password"
                         value={password}
                         onChange={handleChange}
+                        className="input-field"
                     />
                 </div>
-                <div>
-                    <label htmlFor="confirmPassword">Confirm Password:</label>
-                </div>
-                <div>
+                <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirm Password <span className="required">*</span></label>
                     <input
                         type="password"
                         id="confirmPassword"
                         name="confirmPassword"
                         value={confirmPassword}
                         onChange={handleChange}
+                        className="input-field"
                     />
                 </div>
-                <div>
-                    <button type="submit">Register</button>
-                </div>
-                <div>
-                    <button onClick={handleLoginClick}>Go to Login</button>
-                </div>
+                <button type="submit" className="submit-button">Register</button>
             </form>
-
+            <div className="login">
+                Already have an account? <span className="login-link" onClick={handleLoginClick}>Login</span>
+            </div>
             {error && <p className="error">{error}</p>}
         </div>
     );

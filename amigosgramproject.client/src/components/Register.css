@@ -1,0 +1,102 @@
+/* General body styling */
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to bottom, #1a1a1a, #121212);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* Styling for container box */
+.containerbox {
+    background-color: #23272a;
+    border-radius: 8px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+
+/* Titles and subtitles */
+.title {
+    margin-bottom: 0.5rem;
+    color: #fff;
+    font-size: 1.5rem;
+    text-align: center;
+}
+
+.subtitle {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: #b9bbbe;
+}
+
+/* Form styling */
+.form {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.label, label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.required {
+    color: red;
+}
+
+.input-field {
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    background: #40444b;
+    color: white;
+    width: 100%;
+}
+
+/* Button styling */
+.submit-button {
+    padding: 10px;
+    width: 100%;
+    border-radius: 4px;
+    border: none;
+    background-color: #5865f2;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+    .submit-button:hover {
+        background-color: #4e5d94;
+    }
+
+/* Login link */
+.login {
+    margin-top: 15px;
+    text-align: center;
+    color: #b9bbbe;
+}
+
+.login-link {
+    color: #00aff4;
+    cursor: pointer;
+}
+
+    .login-link:hover {
+        text-decoration: underline;
+    }
+
+/* Error message */
+.error {
+    color: #ff5555;
+    text-align: center;
+    margin-top: 1rem;
+}

@@ -33,7 +33,7 @@ function Register() {
             })
                 .then((response) => {
                     if (response.ok) {
-                        setError("Successful register.");
+                        setError("Successfully registered");
                     } else {
                         setError("Error registering.");
                     }
@@ -49,7 +49,7 @@ function Register() {
     return (
         <div className="containerbox">
             <h3 className="title">Create an account</h3>
-            <p className="subtitle">It's quick and easy!</p>
+            <p className="subtitle">It is quick and easy!</p>
             <form onSubmit={handleSubmit} className="form">
                 <div className="form-group">
                     <label htmlFor="email">Email <span className="required">*</span></label>
@@ -84,12 +84,28 @@ function Register() {
                         className="input-field"
                     />
                 </div>
-                <button type="submit" className="submit-button">Register</button>
+                {codeSent && (
+                    <div className="form-group">
+                        <label htmlFor="confirmationCode">Confirmation Code <span className="required">*</span></label>
+                        <input
+                            type="text"
+                            id="confirmationCode"
+                            name="confirmationCode"
+                            value={confirmationCode}
+                            onChange={handleChange}
+                            className="input-field"
+                        />
+                    </div>
+                )}
+                <button type="submit" className="submit-button">
+                    {codeSent ? "Verify Code" : "Register"}
+                </button>
             </form>
             <div className="login">
-                Already have an account? <span className="login-link" onClick={handleLoginClick}>Login</span>
+                Already have an account? <span className="login-link" onClick={() => handleLoginClick()}>Login</span>
             </div>
             {error && <p className="error">{error}</p>}
+            {success && <p className="success">{success}</p>}
         </div>
     );
 }

@@ -84,28 +84,10 @@ function Register() {
                         className="input-field"
                     />
                 </div>
-                {codeSent && (
-                    <div className="form-group">
-                        <label htmlFor="confirmationCode">Confirmation Code <span className="required">*</span></label>
-                        <input
-                            type="text"
-                            id="confirmationCode"
-                            name="confirmationCode"
-                            value={confirmationCode}
-                            onChange={handleChange}
-                            className="input-field"
-                        />
-                    </div>
-                )}
-                <button type="submit" className="submit-button">
-                    {codeSent ? "Verify Code" : "Register"}
-                </button>
             </form>
             <div className="login">
                 Already have an account? <span className="login-link" onClick={() => handleLoginClick()}>Login</span>
             </div>
-            {error && <p className="error">{error}</p>}
-            {success && <p className="success">{success}</p>}
         </div>
     );
 }

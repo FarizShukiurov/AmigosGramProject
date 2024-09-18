@@ -51,7 +51,7 @@ function Login() {
     return (
         <div className="containerbox">
             <h3 className="title">Welcome back!</h3>
-            <p className="subtitle">We're so excited to see you again!</p>
+            <p className="subtitle">Were so excited to see you again!</p>
             <form onSubmit={handleSubmit} className="form">
                 <div className="form-group">
                     <label htmlFor="email">Email<span className="required">*</span></label>

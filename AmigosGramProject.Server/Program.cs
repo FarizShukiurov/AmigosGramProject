@@ -8,6 +8,7 @@ namespace AmigosGramProject.Server
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -22,12 +23,45 @@ namespace AmigosGramProject.Server
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddTransient<IEmailSender, EmailSender>();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder => builder
+                        .WithOrigins("http://localhost:5173") // URL вашего фронтенда
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+            });
+            builder.Services.AddControllers();
+            var requireEmailConfirmed = builder.Configuration.GetValue<bool>("RequireConfirmedEmail");
+            builder.Services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequireDigit = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequiredLength = 6;
+                options.Password.RequiredUniqueChars = 1;
+
+                options.SignIn.RequireConfirmedEmail = requireEmailConfirmed;
+
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.AllowedForNewUsers = true;
+
+                options.User.AllowedUserNameCharacters =
+                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+                options.User.RequireUniqueEmail = true;
+            });
 
             var app = builder.Build();
 
             app.UseDefaultFiles();
+            app.UseRouting();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
+
+
 
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
             {
@@ -50,12 +84,12 @@ namespace AmigosGramProject.Server
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 
-            app.MapFallbackToFile("/index.html");
+            app.MapFallbackToFile("index.html");
 
             app.Run();
         }

@@ -1,4 +1,3 @@
-/* General body styling */
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(to bottom, #1a1a1a, #121212);
@@ -10,7 +9,6 @@ body {
     margin: 0;
 }
 
-/* Styling for container box */
 .containerbox {
     background-color: #23272a;
     border-radius: 8px;
@@ -20,7 +18,6 @@ body {
     box-shadow: 0 4px 8px rgba(0,0,0,0.5);
 }
 
-/* Titles and subtitles */
 .title {
     margin-bottom: 0.5rem;
     color: #fff;
@@ -34,7 +31,6 @@ body {
     color: #b9bbbe;
 }
 
-/* Form styling */
 .form {
     display: flex;
     flex-direction: column;
@@ -62,7 +58,6 @@ body {
     width: 100%;
 }
 
-/* Button styling */
 .submit-button {
     padding: 10px;
     width: 100%;
@@ -78,7 +73,6 @@ body {
         background-color: #4e5d94;
     }
 
-/* Login link */
 .login {
     margin-top: 15px;
     text-align: center;
@@ -94,7 +88,6 @@ body {
         text-decoration: underline;
     }
 
-/* Error message */
 .error {
     color: #ff5555;
     text-align: center;

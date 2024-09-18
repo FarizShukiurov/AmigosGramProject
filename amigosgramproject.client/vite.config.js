@@ -58,6 +58,14 @@ export default defineConfig({
             '^/logout': {
                 target: 'https://localhost:7015/',
                 secure: false
+            },
+            '^/Account/SendEmailConfirmation': {
+                target: 'https://localhost:7015/',
+                secure: false
+            },
+            '^/Account/ConfirmEmail': {
+                target: 'https://localhost:7015/',
+                secure: false
             }
         },
         port: 5173,

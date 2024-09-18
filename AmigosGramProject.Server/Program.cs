@@ -76,7 +76,7 @@ namespace AmigosGramProject.Server
 
 
             app.MapControllers();
-
+            
             app.MapFallbackToFile("/index.html");
 
             app.Run();

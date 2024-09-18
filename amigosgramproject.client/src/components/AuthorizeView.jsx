@@ -69,7 +69,6 @@ function AuthorizeView(props) {
     }
 }
 
-// Добавляем валидацию пропсов
 AuthorizeView.propTypes = {
     children: PropTypes.node.isRequired,
 };

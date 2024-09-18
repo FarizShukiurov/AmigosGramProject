@@ -10,6 +10,7 @@ namespace AmigosGramProject.Server
 {
     public class Program
     {
+
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -44,13 +45,23 @@ namespace AmigosGramProject.Server
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddTransient<IEmailSender, EmailSender>();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder => builder
+                        .WithOrigins("http://localhost:5173") // URL ������ ���������
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+            });
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
             app.UseDefaultFiles();
+            app.UseRouting();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
-
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
             {
                 await signInManager.SignOutAsync();
@@ -72,11 +83,11 @@ namespace AmigosGramProject.Server
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
-
             app.MapControllers();
-            
+
             app.MapFallbackToFile("index.html");
 
             app.Run();

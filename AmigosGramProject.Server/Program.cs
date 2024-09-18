@@ -2,6 +2,8 @@
 using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Mail;
+using System.Net;
 using System.Security.Claims;
 
 namespace AmigosGramProject.Server
@@ -16,23 +18,8 @@ namespace AmigosGramProject.Server
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddAuthorization();
-            builder.Services.AddIdentityApiEndpoints<User>()
+            builder.Services.AddIdentityApiEndpoints<User>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ChatDbContext>();
-            // Add services to the container.
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
-            builder.Services.AddTransient<IEmailSender, EmailSender>();
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowSpecificOrigin",
-                    builder => builder
-                        .WithOrigins("http://localhost:5173") // URL вашего фронтенда
-                        .AllowAnyHeader()
-                        .AllowAnyMethod());
-            });
-            builder.Services.AddControllers();
             var requireEmailConfirmed = builder.Configuration.GetValue<bool>("RequireConfirmedEmail");
             builder.Services.Configure<IdentityOptions>(options =>
             {
@@ -53,6 +40,21 @@ namespace AmigosGramProject.Server
                     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
                 options.User.RequireUniqueEmail = true;
             });
+            // Add services to the container.
+            builder.Services.AddControllers();
+            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen();
+            builder.Services.AddTransient<IEmailSender, EmailSender>();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowSpecificOrigin",
+                    builder => builder
+                        .WithOrigins("http://localhost:5173") // URL пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+                        .AllowAnyHeader()
+                        .AllowAnyMethod());
+            });
+            builder.Services.AddControllers();
 
             var app = builder.Build();
 
@@ -60,9 +62,6 @@ namespace AmigosGramProject.Server
             app.UseRouting();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
-
-
-
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
             {
                 await signInManager.SignOutAsync();

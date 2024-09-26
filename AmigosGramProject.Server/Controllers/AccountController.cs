@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using AmigosGramProject.Server.Models;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -16,6 +17,28 @@ namespace AmigosGramProject.Server.Controllers
         {
             _userManager = userManager;
             _emailSender = emailSender;
+        }
+
+        [HttpGet("Search")]
+        public async Task<ActionResult<IEnumerable<UserDto>>> SearchUsers([FromQuery] string nickname)
+        {
+            if (string.IsNullOrEmpty(nickname))
+            {
+                return BadRequest("Nickname parameter is required.");
+            }
+            var users = _userManager.Users
+                .Where(u => u.UserName.Contains(nickname))
+                .Select(u => new UserDto
+                {
+                    Id = u.Id,
+                    UserName = u.UserName,
+                    Email = u.Email
+                })
+                .ToList();
+            var maxResults = 10;
+            var filteredUsers = users.Take(maxResults);
+
+            return Ok(filteredUsers);
         }
 
         [HttpPost("SendEmailConfirmation")]

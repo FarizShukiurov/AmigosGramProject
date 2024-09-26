@@ -1,5 +1,4 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import './Contacts.css';
 
 const Contacts = () => {
@@ -8,22 +7,31 @@ const Contacts = () => {
     const [showModal, setShowModal] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
 
-    // Функция для получения пользователей через fetch
     const fetchContacts = async (searchText) => {
+        if (!searchText || searchText.trim() === "") {
+            console.error("Search text is empty or invalid.");
+            return;
+        }
+
         try {
-            const response = await fetch(`https://your-api-url.com/api/users?search=${searchText}`);
-            if (response.ok) {
-                const users = await response.json();
-                setContacts(users); // dto
-            } else {
-                console.error('Failed to fetch users');
+            const response = await fetch(`/Account/SearchAccount?nickname=${encodeURIComponent(searchText)}`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch users: ${response.statusText}`);
             }
+
+            const users = await response.json();
+            setContacts(users);
         } catch (error) {
             console.error('Error fetching contacts:', error);
         }
     };
 
-   
     useEffect(() => {
         if (searchText.length > 0) {
             fetchContacts(searchText);
@@ -34,7 +42,7 @@ const Contacts = () => {
 
     const handleAddContact = (contact) => {
         setSelectedUser(contact);
-        setShowModal(true); 
+        setShowModal(true);
     };
 
     const closeModal = () => {
@@ -61,10 +69,9 @@ const Contacts = () => {
             <div className="contacts-list">
                 {contacts.map(contact => (
                     <div key={contact.id} className="contact-item">
-                        <svg className="contact-icon" /* Your SVG here */ />
+                        <svg className="contact-icon"/>
                         <div>
-                            <h4>{contact.name}</h4>
-                            <p>{contact.subhead}</p>
+                            <h4>{contact.userName}</h4>
                         </div>
                         <button className="add-contact" onClick={() => handleAddContact(contact)}>Add Contact</button>
                     </div>

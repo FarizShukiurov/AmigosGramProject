@@ -44,29 +44,34 @@ export default defineConfig({
     server: {
         proxy: {
             '^/pingauth': {
-                target: 'https://localhost:7015/',
+                target,
                 secure: false
             },
             '^/register': {
-                target: 'https://localhost:7015/',
+                target,
                 secure: false
             },
             '^/login': {
-                target: 'https://localhost:7015/',
+                target,
                 secure: false
             },
             '^/logout': {
-                target: 'https://localhost:7015/',
+                target,
                 secure: false
             },
             '^/Account/SendEmailConfirmation': {
-                target: 'https://localhost:7015/',
+                target,
                 secure: false
             },
             '^/Account/ConfirmEmail': {
-                target: 'https://localhost:7015/',
+                target,
+                secure: false
+            },
+            '^/Account/SearchAccount': {
+                target,
                 secure: false
             }
+            
         },
         port: 5173,
         https: {

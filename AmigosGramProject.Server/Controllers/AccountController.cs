@@ -19,7 +19,7 @@ namespace AmigosGramProject.Server.Controllers
             _emailSender = emailSender;
         }
 
-        [HttpGet("Search")]
+        [HttpGet("SearchAccount")]
         public async Task<ActionResult<IEnumerable<UserDto>>> SearchUsers([FromQuery] string nickname)
         {
             if (string.IsNullOrEmpty(nickname))

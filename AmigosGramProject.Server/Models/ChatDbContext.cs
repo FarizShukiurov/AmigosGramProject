@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace AmigosGramProject.Server.Models
 {
@@ -10,6 +11,21 @@ namespace AmigosGramProject.Server.Models
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<UserContact>()
+                .HasKey(uc => new { uc.UserId, uc.ContactId });
+
+            builder.Entity<UserContact>()
+                .HasOne(uc => uc.User)
+                .WithMany(u => u.Contacts)
+                .HasForeignKey(uc => uc.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<UserContact>()
+                .HasOne(uc => uc.Contact)
+                .WithMany()
+                .HasForeignKey(uc => uc.ContactId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

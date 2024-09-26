@@ -10,7 +10,6 @@ namespace AmigosGramProject.Server
 {
     public class Program
     {
-
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +19,7 @@ namespace AmigosGramProject.Server
             builder.Services.AddAuthorization();
             builder.Services.AddIdentityApiEndpoints<User>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ChatDbContext>();
+            builder.Services.AddScoped<IEmailSender, EmailSender>();
             var requireEmailConfirmed = builder.Configuration.GetValue<bool>("RequireConfirmedEmail");
             builder.Services.Configure<IdentityOptions>(options =>
             {
@@ -45,21 +45,10 @@ namespace AmigosGramProject.Server
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.Services.AddTransient<IEmailSender, EmailSender>();
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowSpecificOrigin",
-                    builder => builder
-                        .WithOrigins("http://localhost:5173") // URL ������ ���������
-                        .AllowAnyHeader()
-                        .AllowAnyMethod());
-            });
-            builder.Services.AddControllers();
 
             var app = builder.Build();
 
             app.UseDefaultFiles();
-            app.UseRouting();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
@@ -67,7 +56,6 @@ namespace AmigosGramProject.Server
                 await signInManager.SignOutAsync();
                 return Results.Ok();
             }).RequireAuthorization();
-
             app.MapGet("/pingauth", (ClaimsPrincipal user) =>
             {
                 var email = user.FindFirstValue(ClaimTypes.Email);
@@ -80,16 +68,10 @@ namespace AmigosGramProject.Server
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
             app.UseHttpsRedirection();
-
-            app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.MapFallbackToFile("index.html");
-
             app.Run();
         }
     }

@@ -8,7 +8,7 @@ function Register() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
     const [isBlocked, setIsBlocked] = useState(false);
-    const [timer, setTimer] = useState(0);    
+    const [timer, setTimer] = useState(0);
     const [isResendVisible, setIsResendVisible] = useState(false);
     const navigate = useNavigate();
 

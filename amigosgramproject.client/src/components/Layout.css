@@ -1,0 +1,83 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+}
+
+.app-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    background-color: #1a1a1a;
+}
+
+.navbar {
+    background-color: #201c4f;
+    width: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    color: white;
+    padding: 20px;
+    height: 100%;
+}
+
+.app-layout .logo {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+.app-layout .logo-img {
+    width: 50px;
+    height: auto;
+    margin-left: 0;
+}
+
+.profile {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+}
+
+.separator {
+    border: 1px solid white;
+    width: 80%;
+    margin-bottom: 20px;
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.menu-item {
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding: 15px;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+
+    .menu-item a {
+        color: white;
+        text-decoration: none;
+        width: 100%;
+    }
+
+.content {
+    flex: 1;
+    padding: 20px;
+    background-color: #f4f4f9;
+    overflow-y: auto;
+}
+svg {
+    color: #201c4f;
+}

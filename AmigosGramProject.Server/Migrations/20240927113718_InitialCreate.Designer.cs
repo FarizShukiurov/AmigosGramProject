@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20240921110406_Contacts")]
-    partial class Contacts
+    [Migration("20240927113718_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

@@ -70,7 +70,20 @@ export default defineConfig({
             '^/Account/SearchAccount': {
                 target,
                 secure: false
-            }
+            },
+            '^/contacts/GetContacts': {
+                target,
+                secure: false
+            },
+            '^/contacts/AddContact': {
+                target,
+                secure: false
+            },
+            '^/contacts/DeleteContact': {
+                target,
+                secure: false
+            },
+
             
         },
         port: 5173,

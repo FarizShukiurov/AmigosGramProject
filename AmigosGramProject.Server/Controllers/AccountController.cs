@@ -3,8 +3,10 @@ using Microsoft.AspNetCore.Identity;
 using AmigosGramProject.Server.Models;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore; // Добавьте это пространство имен
 namespace AmigosGramProject.Server.Controllers
+
 {
     [ApiController]
     [Route("[controller]")]
@@ -26,20 +28,26 @@ namespace AmigosGramProject.Server.Controllers
             {
                 return BadRequest("Nickname parameter is required.");
             }
-            var users = _userManager.Users
-                .Where(u => u.UserName.Contains(nickname))
+
+            // Получаем текущего пользователя
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Предполагаем, что ID хранится в ClaimTypes.NameIdentifier
+
+            var users = await _userManager.Users
+                .Where(u => u.UserName.Contains(nickname) && u.Id != currentUserId) // Исключаем текущего пользователя
                 .Select(u => new UserDto
                 {
                     Id = u.Id,
                     UserName = u.UserName,
                     Email = u.Email
                 })
-                .ToList();
+                .ToListAsync(); // Используем ToListAsync для асинхронного выполнения
+
             var maxResults = 10;
             var filteredUsers = users.Take(maxResults);
 
             return Ok(filteredUsers);
         }
+
 
         [HttpPost("SendEmailConfirmation")]
         public async Task<IActionResult> SendEmailConfirmation([FromBody] string email)

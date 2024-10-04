@@ -8,7 +8,7 @@ function Login() {
     const [password, setPassword] = useState("");
     const [rememberme, setRememberme] = useState(false);
     const [error, setError] = useState("");
-    const [isRegistering, setIsRegistering] = useState(false); // New state for registration
+    const [isRegistering, setIsRegistering] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState("");
     const [isBlocked, setIsBlocked] = useState(false);
     const [timer, setTimer] = useState(0);

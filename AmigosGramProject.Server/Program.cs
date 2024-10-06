@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Mail;
 using System.Net;
 using System.Security.Claims;
+using Azure.Storage.Blobs;
 
 namespace AmigosGramProject.Server
 {
@@ -40,6 +41,8 @@ namespace AmigosGramProject.Server
                     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
                 options.User.RequireUniqueEmail = true;
             });
+            builder.Services.AddSingleton(x =>
+            new BlobServiceClient(builder.Configuration.GetSection("Azure:BlobStorage:ConnectionString").Value));
             // Add services to the container.
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

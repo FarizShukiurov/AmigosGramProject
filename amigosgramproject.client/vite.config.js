@@ -83,7 +83,18 @@ export default defineConfig({
                 target,
                 secure: false
             },
-
+            '^/api/Profile/upload-avatar': {
+                target,
+                secure: false
+            },
+            '^/api/Profile/get-user-data': {
+                target,
+                secure: false
+            },
+            '^/api/Profile/change-username': {
+                target,
+                secure: false
+            },
             
         },
         port: 5173,

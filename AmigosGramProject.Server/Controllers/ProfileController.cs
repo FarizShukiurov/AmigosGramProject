@@ -54,8 +54,13 @@ namespace AmigosGramProject.Server.Controllers
             if (user == null)
                 return Unauthorized();
 
-            return Ok(new { avatarUrl = user.AvatarUrl });
+            return Ok(new
+            {
+                avatarUrl = user.AvatarUrl,
+                username = user.UserName
+            });
         }
+
         [HttpPost("change-username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
         {

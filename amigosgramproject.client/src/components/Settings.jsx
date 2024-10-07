@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import "./Settings.css"; // Ensure you import the CSS file
 
 const Settings = () => {
     const [file, setFile] = useState(null);
@@ -6,6 +7,24 @@ const Settings = () => {
     const [newUsername, setNewUsername] = useState("");
     const [usernameMessage, setUsernameMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [currentUsername, setCurrentUsername] = useState("");
+
+    useEffect(() => {
+        // Fetch user data on component load
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch("/api/Profile/get-user-data");
+                const data = await response.json();
+                setAvatarUrl(data.avatarUrl);
+                setCurrentUsername(data.username); // Assuming the backend sends the username
+                setNewUsername(data.username);
+            } catch (error) {
+                console.error("Error fetching user data", error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
 
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
@@ -14,6 +33,7 @@ const Settings = () => {
     const handleUsernameChange = (e) => {
         setNewUsername(e.target.value);
     };
+
     const handleSubmitAvatar = async (e) => {
         e.preventDefault();
         if (!file) return;
@@ -31,6 +51,7 @@ const Settings = () => {
             setAvatarUrl(data.avatarUrl);
         } catch (error) {
             console.error("Error uploading avatar", error);
+            setErrorMessage("Failed to upload avatar.");
         }
     };
 
@@ -62,28 +83,32 @@ const Settings = () => {
     };
 
     return (
-        <div>
-            <form onSubmit={handleSubmitAvatar}>
-                <input type="file" onChange={handleFileChange} />
-                <button type="submit">Upload Avatar</button>
-            </form>
-            {avatarUrl && (
-                <div>
-                    <p>Avatar uploaded successfully!</p>
-                    <img src={avatarUrl} alt="User Avatar" />
+        <div className="profile-settings-container">
+            <div className="profile-box">
+                <div className="avatar-section">
+                    {avatarUrl && <img className="avatar" src={avatarUrl} alt="User Avatar" />}
                 </div>
-            )}
-            <form onSubmit={handleSubmitUsername}>
-                <input
-                    type="text"
-                    placeholder="Enter new username"
-                    value={newUsername}
-                    onChange={handleUsernameChange}
-                />
-                <button type="submit">Change Username</button>
-            </form>
-            {usernameMessage && <p>{usernameMessage}</p>}
-            {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
+                <div className="user-info-section">
+                    {/* Replace "User Profile" with dynamic username */}
+                    <h2 className="profile-title">{currentUsername ? `${currentUsername}'s Profile` : "User Profile"}</h2>
+                    <form onSubmit={handleSubmitUsername}>
+                        <input
+                            type="text"
+                            placeholder="Enter new username"
+                            value={newUsername}
+                            onChange={handleUsernameChange}
+                            className="username-input"
+                        />
+                        <button type="submit" className="change-btn">Change</button>
+                    </form>
+                    {usernameMessage && <p className="success-message">{usernameMessage}</p>}
+                    {errorMessage && <p className="error-message">{errorMessage}</p>}
+                    <form onSubmit={handleSubmitAvatar}>
+                        <input type="file" onChange={handleFileChange} />
+                        <button type="submit" className="upload-btn">Upload Avatar</button>
+                    </form>
+                </div>
+            </div>
         </div>
     );
 };

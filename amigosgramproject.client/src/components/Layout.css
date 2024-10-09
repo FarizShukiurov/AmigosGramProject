@@ -7,7 +7,7 @@
 }
 
 .navbar {
-    background-color: #201c4f;
+    background-color: #141226;
     width: 70px;
     display: flex;
     flex-direction: column;
@@ -84,12 +84,21 @@
 
 .logout {
     margin-top: auto; /* Кнопка в самом низу */
-    text-align: center;
+    background-color: transparent;
+    color: white;
+    border: none;
+    padding: 15px;
+    text-align: center; /* Центрируем текст */
+    width: 100%; /* Устанавливаем ширину 100%, как у других элементов */
+    cursor: pointer;
+    display: flex; /* Делаем её флекс-контейнером */
+    justify-content: center; /* Центрируем иконку по горизонтали */
+    align-items: center; /* Центрируем иконку по вертикали */
 }
+
 
 .content {
     flex: 1;
-    padding: 20px;
     background-color: #f4f4f9;
     overflow-y: auto;
 }

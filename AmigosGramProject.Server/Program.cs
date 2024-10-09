@@ -14,7 +14,6 @@ namespace AmigosGramProject.Server
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            //Adding Database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddAuthorization();
@@ -43,7 +42,6 @@ namespace AmigosGramProject.Server
             });
             builder.Services.AddSingleton(x =>
             new BlobServiceClient(builder.Configuration.GetSection("Azure:BlobStorage:ConnectionString").Value));
-            // Add services to the container.
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -65,7 +63,6 @@ namespace AmigosGramProject.Server
                 return Results.Json(new { Email = email });
             }).RequireAuthorization();
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

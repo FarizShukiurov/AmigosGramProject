@@ -4,7 +4,8 @@ using AmigosGramProject.Server.Models;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using Microsoft.EntityFrameworkCore; // Добавьте это пространство имен
+using Microsoft.EntityFrameworkCore;
+using AmigosGramProject.Server.DTOs; // Добавьте это пространство имен
 namespace AmigosGramProject.Server.Controllers
 
 {
@@ -22,7 +23,7 @@ namespace AmigosGramProject.Server.Controllers
         }
 
         [HttpGet("SearchAccount")]
-        public async Task<ActionResult<IEnumerable<UserDto>>> SearchUsers([FromQuery] string nickname)
+        public async Task<ActionResult<IEnumerable<UserDTO>>> SearchUsers([FromQuery] string nickname)
         {
             if (string.IsNullOrEmpty(nickname))
             {
@@ -34,7 +35,7 @@ namespace AmigosGramProject.Server.Controllers
 
             var users = await _userManager.Users
                 .Where(u => u.UserName.Contains(nickname) && u.Id != currentUserId) // Исключаем текущего пользователя
-                .Select(u => new UserDto
+                .Select(u => new UserDTO
                 {
                     Id = u.Id,
                     UserName = u.UserName,

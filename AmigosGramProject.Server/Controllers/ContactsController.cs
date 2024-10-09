@@ -1,4 +1,5 @@
-﻿using AmigosGramProject.Server.Models;
+﻿using AmigosGramProject.Server.DTOs;
+using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -20,7 +21,7 @@ namespace AmigosGramProject.Server.Controllers
         }
 
         [HttpGet("GetContacts")]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetContacts()
+        public async Task<ActionResult<IEnumerable<UserDTO>>> GetContacts()
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _userManager.Users
@@ -36,17 +37,18 @@ namespace AmigosGramProject.Server.Controllers
 
             if (contacts == null || !contacts.Any())
             {
-                return Ok(new List<UserDto>());
+                return Ok(new List<UserDTO>());
             }
 
             var contactIds = contacts.Select(c => c.ContactId).ToList();
             var users = await _context.Users
                 .Where(u => contactIds.Contains(u.Id) && u.Id != userId)
-                .Select(u => new UserDto
+                .Select(u => new UserDTO
                 {
                     Id = u.Id,
                     UserName = u.UserName,
-                    Email = u.Email
+                    Email = u.Email,
+                    AvatarUrl = u.AvatarUrl
                 })
                 .ToListAsync();
 
@@ -57,14 +59,12 @@ namespace AmigosGramProject.Server.Controllers
         public async Task<ActionResult> AddContact([FromBody] string contactEmail)
         {
             var user = await _userManager.GetUserAsync(User);
-
             if (user == null)
             {
                 return Unauthorized();
             }
 
             var contact = await _userManager.FindByEmailAsync(contactEmail);
-
             if (contact == null)
             {
                 return NotFound("Contact not found.");
@@ -76,7 +76,6 @@ namespace AmigosGramProject.Server.Controllers
             }
 
             var existingContact = user.Contacts.FirstOrDefault(c => c.ContactId == contact.Id);
-
             if (existingContact != null)
             {
                 return Conflict("This contact is already added.");
@@ -87,7 +86,6 @@ namespace AmigosGramProject.Server.Controllers
                 UserId = user.Id,
                 ContactId = contact.Id
             };
-
             user.Contacts.Add(userContact);
             await _context.SaveChangesAsync();
 

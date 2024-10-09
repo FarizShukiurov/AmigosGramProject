@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Contacts from './components/Contacts';
 import Settings from './components/Settings';
+import ChatPage from './components/ChatPage/ChatPage';
 function App() {
     return (
         <Router>
@@ -12,7 +13,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/" element={<Layout />}>
                     <Route path="contacts" element={<Contacts />} />
-                    <Route path="settings" element={<Settings/>} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="chats" element={<ChatPage/> } />
                 </Route>
                 <Route path="*" element={"Not found" }></Route>
             </Routes>

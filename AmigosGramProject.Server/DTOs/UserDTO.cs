@@ -1,10 +1,11 @@
-﻿namespace AmigosGramProject.Server.Models
+﻿namespace AmigosGramProject.Server.DTOs
 {
-    public class UserDto
+    public class UserDTO
     {
         public string Id { get; set; }
         public string UserName { get; set; }
         public string Email { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 
 }

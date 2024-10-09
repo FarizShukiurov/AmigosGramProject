@@ -14,10 +14,19 @@ namespace AmigosGramProject.Server
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
-            //Adding Database
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddAuthorization();
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowAll",
+                    builder =>
+                    {
+                        builder.AllowAnyOrigin()
+                               .AllowAnyMethod()
+                               .AllowAnyHeader();
+                    });
+            });
             builder.Services.AddIdentityApiEndpoints<User>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ChatDbContext>();
             builder.Services.AddScoped<IEmailSender, EmailSender>();
@@ -43,9 +52,7 @@ namespace AmigosGramProject.Server
             });
             builder.Services.AddSingleton(x =>
             new BlobServiceClient(builder.Configuration.GetSection("Azure:BlobStorage:ConnectionString").Value));
-            // Add services to the container.
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -54,6 +61,7 @@ namespace AmigosGramProject.Server
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
+            app.UseCors("AllowAll");
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
             {
                 await signInManager.SignOutAsync();
@@ -64,8 +72,6 @@ namespace AmigosGramProject.Server
                 var email = user.FindFirstValue(ClaimTypes.Email);
                 return Results.Json(new { Email = email });
             }).RequireAuthorization();
-
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();

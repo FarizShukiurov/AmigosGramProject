@@ -5,7 +5,6 @@ import "./Layout.css";
 
 function Layout() {
     const [avatarUrl, setAvatarUrl] = useState("/default-avatar.jpg");
-
     useEffect(() => {
         const fetchUserData = async () => {
             try {

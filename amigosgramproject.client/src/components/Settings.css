@@ -1,80 +1,158 @@
-.profile-settings-container {
-    background-color: #f2eedc;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.profile-box {
-    background-color: #f7f4e2;
-    border-radius: 15px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    width: 700px;
-    display: flex;
-    padding: 40px;
+.settings-title {
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-align: left;
 }
 
 .avatar-section {
-    flex: 1;
     display: flex;
-    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.avatar-img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-right: 20px;
+}
+
+.avatar-popup {
+    display: flex;
+    flex-direction: column;
+}
+
+.change-avatar-btn {
+    background-color: #141226;
+    color: white;
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+
+.default-avatar-text {
+    font-size: 14px;
+    color: #666;
+}
+
+.field-section {
+    margin-bottom: 20px;
+}
+
+.field-label {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.field-content {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
 }
 
-.avatar {
-    width: 150px;
-    height: 150px;
-    border-radius: 50%;
-    border: 4px solid #201c4f;
-    object-fit: cover;
+.edit-btn {
+    background-color: #141226;
+    color: white;
+    padding: 8px 12px; /* Увеличиваем отступы */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
 }
 
-.user-info-section {
-    flex: 2;
-    margin-left: 30px;
-}
-
-.profile-title {
-    font-size: 24px;
-    font-weight: bold;
-    color: #201c4f;
-    border-bottom: 2px solid #201c4f;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
+.username-form {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
 }
 
 .username-input {
-    width: 100%;
-    padding: 10px;
+    padding: 10px; /* Увеличиваем отступы */
     font-size: 16px;
-    border-radius: 8px;
+    margin-bottom: 10px;
     border: 1px solid #ccc;
-    margin-bottom: 20px;
+    border-radius: 5px;
 }
 
-.change-btn, .upload-btn {
-    background-color: #6655c3;
+.submit-btn {
+    background-color: #141226;
     color: white;
+    padding: 10px; /* Увеличиваем отступы */
     border: none;
-    padding: 10px 20px;
-    font-size: 16px;
-    border-radius: 8px;
+    border-radius: 5px;
     cursor: pointer;
-    margin-bottom: 20px;
-    transition: background-color 0.3s ease;
 }
 
-    .change-btn:hover, .upload-btn:hover {
-        background-color: #4a3b9c;
+.password-section {
+    margin-bottom: 20px;
+}
+
+.change-password-btn {
+    background-color: #141226;
+    color: white;
+    padding: 10px; /* Увеличиваем отступы */
+    border: none;
+    border-radius: 5px;
+}
+
+.profile-settings-container {
+    display: flex;
+    justify-content: center; /* Центрирование контейнера */
+    padding: 20px;
+    background-color: #f0f0f0; /* Установить светлый фон для всей страницы */
+    height: 100vh; /* Полная высота окна */
+}
+
+.profile-box {
+    width: 100%; /* Полная ширина контейнера */
+    max-width: 800px; /* Ограничение максимальной ширины */
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.faq-section, .about-section {
+    margin-top: 20px;
+    padding: 20px; /* Увеличиваем внутренние отступы */
+    background-color: #fafafa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.faq-label, .about-label {
+    font-size: 16px;
+    color: #141226;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+    .faq-label:hover, .about-label:hover {
+        color: #d94300; /* Цвет при наведении */
+    }
+
+.faq-content, .about-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.5s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+    .faq-content.active, .about-content.active {
+        max-height: 500px;
+        opacity: 1;
     }
 
 .success-message {
     color: green;
-    margin-bottom: 10px;
+    margin-top: 10px;
 }
 
 .error-message {
     color: red;
-    margin-bottom: 10px;
+    margin-top: 10px;
 }

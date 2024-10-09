@@ -1,12 +1,12 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection.Emit;
 
 namespace AmigosGramProject.Server.Models
 {
     public class ChatDbContext : IdentityDbContext<User>
     {
-        public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options) {}
+        public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options) { }
+        public DbSet<UserContact> UserContacts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

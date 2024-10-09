@@ -95,6 +95,14 @@ export default defineConfig({
                 target,
                 secure: false
             },
+            '^/Chat/GetChats': {
+                target,
+                secure: false
+            },
+            '^/Message/SendMessage': {
+                target,
+                secure: false
+            }
             
         },
         port: 5173,

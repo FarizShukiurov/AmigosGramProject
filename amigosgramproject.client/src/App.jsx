@@ -6,6 +6,7 @@ import Layout from './components/Layout';
 import Contacts from './components/Contacts';
 import Settings from './components/Settings';
 import ChatPage from './components/ChatPage/ChatPage';
+
 function App() {
     return (
         <Router>

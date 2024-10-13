@@ -26,7 +26,7 @@ html, body {
     background-color: #201c4f;
 }
 
-.logo {
+.login-container .info-section .logo {
     width: 150px;
     margin-bottom: -40px;
 }

@@ -20,7 +20,7 @@ const Settings = () => {
                 const data = await response.json();
                 setAvatarUrl(data.avatarUrl);
                 setCurrentUsername(data.username);
-                setEmail(data.email);
+                setEmail(data.email); // Ensure this is being set correctly
             } catch (error) {
                 console.error("Error fetching user data", error);
             }
@@ -29,13 +29,23 @@ const Settings = () => {
         fetchUserData();
     }, []);
 
+    // Function to mask the email for display
+    const maskEmail = (email) => {
+        if (!email) return ""; // Check if email is defined
+        const parts = email.split("@");
+        const maskedLocalPart = parts[0].length > 2
+            ? parts[0].slice(0, 2) + "***"
+            : parts[0];
+        return `${maskedLocalPart}@${parts[1]}`;
+    };
+
     const handleFileChange = (e) => {
         setFile(e.target.files[0]);
     };
 
     const toggleUsernameInput = () => {
         setShowUsernameInput((prev) => !prev);
-        if (showUsernameInput) setNewUsername(""); // —брос пол€ при закрытии
+        if (showUsernameInput) setNewUsername(""); // Reset field on close
     };
 
     const handleSubmitAvatar = async (e) => {
@@ -135,7 +145,7 @@ const Settings = () => {
             <div className="field-section">
                 <label className="field-label">Email</label>
                 <div className="field-content">
-                    <span>{email}</span>
+                    <span>{maskEmail(email)}</span> {/* Masked email display */}
                 </div>
             </div>
 

@@ -1,17 +1,19 @@
 import { useState, useEffect } from 'react';
 import './Contacts.css';
-import AddContactIcon from '/src/assets/AddContact.svg';  // Путь к иконке добавления контакта
-import DeleteIcon from '/src/assets/Delete.svg';  // Путь к иконке удаления контакта
-import ContactIcon from '/src/assets/ContactsDark.svg';  // Путь к иконке контакта (по желанию)
+import AddContactIcon from '/src/assets/AddContact.svg';
+import DeleteIcon from '/src/assets/Delete.svg';
+import ContactIcon from '/src/assets/ContactsDark.svg';
 
 const Contacts = () => {
-    const [contacts, setContacts] = useState([]);        // Для результатов поиска
-    const [ownContacts, setOwnContacts] = useState([]);  // Для собственных контактов
+    const [contacts, setContacts] = useState([]);
+    const [ownContacts, setOwnContacts] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [showModal, setShowModal] = useState(false);
+    const [showDetailCard, setShowDetailCard] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
+    const [contactDetails, setContactDetails] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(false); // State to manage confirmation for deletion
 
-    // Функция для получения собственных контактов
     const fetchOwnContacts = async () => {
         try {
             const response = await fetch(`/contacts/GetContacts`, {
@@ -26,18 +28,16 @@ const Contacts = () => {
             }
 
             const ownUsers = await response.json();
-            console.log('Fetched own contacts:', ownUsers);  // Для отладки
             setOwnContacts(ownUsers);
-            setContacts(ownUsers); // Установите контакты на собственные контакты
+            setContacts(ownUsers);
         } catch (error) {
             console.error('Error fetching own contacts:', error);
         }
     };
 
-    // Функция для поиска контактов
     const fetchContacts = async (searchText) => {
         if (!searchText || searchText.trim() === "") {
-            setContacts(ownContacts);  // Если пусто, показать собственные контакты
+            setContacts(ownContacts);
             return;
         }
 
@@ -54,18 +54,16 @@ const Contacts = () => {
             }
 
             const users = await response.json();
-            console.log('Fetched search contacts:', users);  // Для отладки
             setContacts(users);
         } catch (error) {
             console.error('Error fetching contacts:', error);
         }
     };
 
-    // Добавление контакта
     const handleSubmitContact = async (e) => {
         e.preventDefault();
 
-        const emailToSend = selectedUser.email; // Отправляем строку email
+        const emailToSend = selectedUser.email;
 
         try {
             const response = await fetch(`/contacts/AddContact`, {
@@ -73,7 +71,7 @@ const Contacts = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(emailToSend), // Отправляем только строку
+                body: JSON.stringify(emailToSend),
             });
 
             if (!response.ok) {
@@ -81,14 +79,13 @@ const Contacts = () => {
                 throw new Error(`Failed to add contact: ${errorMessage}`);
             }
 
-            await fetchOwnContacts(); // Обновляем список собственных контактов
-            closeModal(); // Закрываем модал после успешного добавления
+            await fetchOwnContacts();
+            closeModal();
         } catch (error) {
             console.error('Error adding contact:', error);
         }
     };
 
-    // Удаление контакта
     const handleDeleteContact = async (contactId) => {
         try {
             const response = await fetch('/contacts/DeleteContact', {
@@ -96,7 +93,7 @@ const Contacts = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ contactId }) // Передаем contactId в теле запроса
+                body: JSON.stringify({ contactId })
             });
 
             if (!response.ok) {
@@ -104,38 +101,56 @@ const Contacts = () => {
                 throw new Error(`Failed to delete contact: ${errorMessage}`);
             }
 
-            // Обновите список контактов после удаления
             await fetchOwnContacts();
+            closeDetailCard(); // Close the detail card after deletion
         } catch (error) {
             console.error('Error deleting contact:', error);
         }
     };
 
-    // Загружаем собственные контакты при монтировании
     useEffect(() => {
         fetchOwnContacts();
     }, []);
 
-    // Следим за строкой поиска и вызываем функцию поиска при изменении
     useEffect(() => {
         fetchContacts(searchText);
     }, [searchText]);
 
-    // Функция для отображения модального окна добавления контакта
     const handleAddContact = (contact) => {
         setSelectedUser(contact);
         setShowModal(true);
     };
 
-    // Закрытие модального окна
     const closeModal = () => {
         setShowModal(false);
         setSelectedUser(null);
     };
 
-    // Проверка, добавлен ли контакт в собственные
     const isContactAdded = (contact) => {
         return ownContacts.some((ownContact) => ownContact.id === contact.id);
+    };
+
+    const handleAvatarClick = (contact) => {
+        setContactDetails(contact);
+        setShowDetailCard(true);
+    };
+
+    const closeDetailCard = () => {
+        setShowDetailCard(false);
+        setContactDetails(null);
+        setConfirmDelete(false); // Reset confirmation state
+    };
+
+    const confirmDeleteContact = (contact) => {
+        setContactDetails(contact);
+        setConfirmDelete(true); // Show confirmation for deletion
+    };
+
+    const handleConfirmDelete = () => {
+        if (contactDetails) {
+            handleDeleteContact(contactDetails.id);
+        }
+        closeDetailCard(); // Close the detail card after deletion
     };
 
     return (
@@ -156,11 +171,16 @@ const Contacts = () => {
                     contacts.map((contact) => (
                         <div key={contact.id} className="contact-item">
                             <div className="contact-info">
-                                <img src={ContactIcon} alt="Contact" className="contact-icon" />
+                                <img
+                                    src={contact.avatarUrl || ContactIcon}
+                                    alt="Contact"
+                                    className="contact-icon"
+                                    onClick={() => handleAvatarClick(contact)} // Click to show detail card
+                                />
                                 <h4>{contact.userName}</h4>
                             </div>
                             {isContactAdded(contact) ? (
-                                <button className="delete-contact" onClick={() => handleDeleteContact(contact.id)}>
+                                <button className="delete-contact" onClick={() => confirmDeleteContact(contact)}>
                                     <img src={DeleteIcon} alt="Delete" className="delete-icon" />
                                 </button>
                             ) : (
@@ -176,10 +196,33 @@ const Contacts = () => {
             {showModal && selectedUser && (
                 <div className="modal">
                     <div className="modal-content">
-                        <h2>Add Contact for {selectedUser.userName}</h2>
-                        <p>Email: {selectedUser.email}</p>
-                        <button onClick={handleSubmitContact}>Add Contact</button>
-                        <button onClick={closeModal}>Close</button>
+                        <h2 className="modal-title">Add Contact for {selectedUser.userName}</h2>
+                        <img src={selectedUser.avatarUrl || ContactIcon} alt="Selected User" className="modal-avatar" />
+                        <p className="modal-email">Email: {selectedUser.email}</p>
+                        <button className="modal-button" onClick={handleSubmitContact}>Add Contact</button>
+                        <button className="modal-button close-button" onClick={closeModal}>Close</button>
+                    </div>
+                </div>
+            )}
+
+            {showDetailCard && contactDetails && !confirmDelete && (
+                <div className="detail-card">
+                    <div className="detail-card-content">
+                        <img src={contactDetails.avatarUrl || ContactIcon} alt="Contact" className="detail-avatar" />
+                        <h4>{contactDetails.userName}</h4>
+                        <p>Email: {contactDetails.email}</p>
+                        {/* Add any additional details you want to display */}
+                        <button className="detail-card-button close-detail" onClick={closeDetailCard}>Close</button>
+                    </div>
+                </div>
+            )}
+
+            {confirmDelete && contactDetails && (
+                <div className="confirmation-dialog">
+                    <div className="confirmation-content">
+                        <h3>Are you sure you want to delete {contactDetails.userName}?</h3>
+                        <button className="confirmation-button confirm" onClick={handleConfirmDelete}>Yes, Delete</button>
+                        <button className="confirmation-button cancel" onClick={closeDetailCard}>Cancel</button>
                     </div>
                 </div>
             )}

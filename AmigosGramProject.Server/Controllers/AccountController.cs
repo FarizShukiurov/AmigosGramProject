@@ -39,7 +39,8 @@ namespace AmigosGramProject.Server.Controllers
                 {
                     Id = u.Id,
                     UserName = u.UserName,
-                    Email = u.Email
+                    Email = u.Email,
+                    AvatarUrl = u.AvatarUrl // Ensure this property exists in your User model
                 })
                 .ToListAsync(); // Используем ToListAsync для асинхронного выполнения
 

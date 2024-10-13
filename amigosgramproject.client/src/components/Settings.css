@@ -1,158 +1,245 @@
-.settings-title {
-    font-size: 28px;
-    margin-bottom: 20px;
-    text-align: left;
+/* General container styling */
+.settings-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background-color: #f1f2f6;
+    border-radius: 15px;
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+/* Title */
+.settings-title {
+    font-size: 2.5rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 40px;
+    color: #141226;
+    letter-spacing: 1px;
+}
+
+/* Avatar Section */
 .avatar-section {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    margin-bottom: 20px;
+    text-align: center;
+    margin-bottom: 40px;
 }
 
 .avatar-img {
-    width: 100px;
-    height: 100px;
+    width: 160px;
+    height: 160px;
     border-radius: 50%;
-    margin-right: 20px;
+    object-fit: cover;
+    border: 3px solid #141226;
+    transition: transform 0.3s ease-in-out;
 }
 
+    .avatar-img:hover {
+        transform: scale(1.05);
+    }
+
 .avatar-popup {
+    margin-top: 20px;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .change-avatar-btn {
     background-color: #141226;
     color: white;
-    padding: 10px;
+    padding: 12px 25px;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    margin-bottom: 10px;
+    font-size: 15px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
 }
+
+    .change-avatar-btn:hover {
+        background-color: #1d1a2f;
+    }
 
 .default-avatar-text {
+    margin-bottom: 20px;
+    color: #888;
     font-size: 14px;
-    color: #666;
+    cursor: pointer;
 }
 
+.submit-btn {
+    background-color: #141226;
+    color: white;
+    padding: 10px 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+    .submit-btn:hover {
+        background-color: #1d1a2f;
+    }
+
+/* Field Sections */
 .field-section {
-    margin-bottom: 20px;
+    margin-bottom: 35px;
 }
 
 .field-label {
     font-size: 16px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
+    color: #555;
+    margin-bottom: 10px;
+    display: block;
+    font-weight: 500;
 }
 
 .field-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background-color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    transition: box-shadow 0.3s ease;
 }
+
+    .field-content:hover {
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    }
+
+    .field-content span {
+        font-size: 16px;
+        color: #141226;
+        font-weight: 500;
+    }
 
 .edit-btn {
-    background-color: #141226;
-    color: white;
-    padding: 8px 12px; /* Увеличиваем отступы */
+    background-color: transparent;
+    color: #141226;
     border: none;
-    border-radius: 5px;
+    font-size: 15px;
     cursor: pointer;
+    transition: color 0.3s ease;
 }
 
+    .edit-btn:hover {
+        color: #1d1a2f;
+    }
+
+/* Username form */
 .username-form {
+    margin-top: 15px;
     display: flex;
-    flex-direction: column;
-    margin-top: 10px;
+    gap: 12px;
 }
 
 .username-input {
-    padding: 10px; /* Увеличиваем отступы */
-    font-size: 16px;
-    margin-bottom: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    flex: 1;
+    font-size: 15px;
+    background-color: #f1f2f6;
+    transition: border-color 0.3s ease;
 }
 
-.submit-btn {
-    background-color: #141226;
-    color: white;
-    padding: 10px; /* Увеличиваем отступы */
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
+    .username-input:focus {
+        border-color: #141226;
+    }
+
+.success-message, .error-message {
+    font-size: 14px;
+    margin-top: 12px;
 }
 
+.success-message {
+    color: green;
+}
+
+.error-message {
+    color: red;
+}
+
+/* Password Section */
 .password-section {
-    margin-bottom: 20px;
+    margin-bottom: 40px;
 }
 
 .change-password-btn {
     background-color: #141226;
     color: white;
-    padding: 10px; /* Увеличиваем отступы */
+    padding: 12px 30px;
     border: none;
-    border-radius: 5px;
-}
-
-.profile-settings-container {
-    display: flex;
-    justify-content: center; /* Центрирование контейнера */
-    padding: 20px;
-    background-color: #f0f0f0; /* Установить светлый фон для всей страницы */
-    height: 100vh; /* Полная высота окна */
-}
-
-.profile-box {
-    width: 100%; /* Полная ширина контейнера */
-    max-width: 800px; /* Ограничение максимальной ширины */
-    background-color: #fff;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.faq-section, .about-section {
-    margin-top: 20px;
-    padding: 20px; /* Увеличиваем внутренние отступы */
-    background-color: #fafafa;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+    .change-password-btn:hover {
+        background-color: #1d1a2f;
+    }
+
+/* FAQ and About Section */
+.faq-section, .about-section {
+    margin-bottom: 25px;
 }
 
 .faq-label, .about-label {
-    font-size: 16px;
+    font-size: 18px;
     color: #141226;
     cursor: pointer;
-    transition: color 0.3s ease;
+    padding: 12px;
+    background-color: #141226;
+    border-radius: 8px;
+    color: white;
+    text-align: center;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
     .faq-label:hover, .about-label:hover {
-        color: #d94300; /* Цвет при наведении */
+        background-color: #1d1a2f;
+    }
+
+    .faq-label.active, .about-label.active {
+        background-color: #1d1a2f;
     }
 
 .faq-content, .about-content {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.5s ease, opacity 0.3s ease;
-    opacity: 0;
+    margin-top: 12px;
+    background-color: white;
+    padding: 18px;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    color: #333;
 }
 
-    .faq-content.active, .about-content.active {
-        max-height: 500px;
-        opacity: 1;
+    .faq-content p, .about-content p {
+        margin: 10px 0;
+        font-size: 15px;
+        color: #555;
     }
 
-.success-message {
-    color: green;
-    margin-top: 10px;
-}
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+    .settings-container {
+        padding: 15px;
+    }
 
-.error-message {
-    color: red;
-    margin-top: 10px;
+    .field-content, .avatar-popup {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .change-password-btn, .submit-btn {
+        width: 100%;
+        padding: 12px;
+    }
 }

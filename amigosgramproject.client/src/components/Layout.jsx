@@ -5,6 +5,7 @@ import "./Layout.css";
 
 function Layout() {
     const [avatarUrl, setAvatarUrl] = useState("/default-avatar.jpg");
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -34,39 +35,38 @@ function Layout() {
 
     return (
         <AuthorizeView>
-            <div className="app-layout">
-                <aside className="navbar">
+            <div className="app-layout animated-layout">
+                <aside className="navbar animated-sidebar">
                     <div className="logo">
                         <img src="\src\assets\Amigos-logo.png" alt="App Logo" className="logo-img" />
                     </div>
                     <div className="profile">
-                        <img src={avatarUrl} alt="Profile Avatar" className="sidebar-avatar" />
+                        <img src={avatarUrl} alt="Profile Avatar" className="sidebar-avatar animated-avatar" />
                         <hr className="separator" />
                     </div>
                     <nav className="menu">
-                        <button className="menu-item">
+                        <button className="menu-item animated-item">
                             <Link to="/contacts">
                                 <img src="src/assets/Contacts.svg" alt="Contacts" />
                             </Link>
                         </button>
-                        <button className="menu-item">
+                        <button className="menu-item animated-item">
                             <Link to="/chats">
                                 <img src="src/assets/Chats.svg" alt="Chats" />
                             </Link>
                         </button>
                         <div className="menu-spacer" />
-                        <button className="menu-item">
+                        <button className="menu-item animated-item">
                             <Link to="/settings">
                                 <img src="src/assets/Settings.svg" alt="Settings" />
                             </Link>
                         </button>
-                        <button className="logout menu-item">
+                        <button className="logout menu-item animated-item">
                             <img src="src/assets/LogOut.svg" alt="Logout" />
                         </button>
                     </nav>
-
                 </aside>
-                <main className="content">
+                <main className="content animated-content">
                     <Outlet />
                 </main>
             </div>

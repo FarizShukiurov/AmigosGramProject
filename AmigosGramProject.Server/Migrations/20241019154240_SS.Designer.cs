@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20241010110126_SS")]
+    [Migration("20241019154240_SS")]
     partial class SS
     {
         /// <inheritdoc />

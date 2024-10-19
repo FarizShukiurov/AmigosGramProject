@@ -5,7 +5,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Contacts from './components/Contacts';
 import Settings from './components/Settings';
-import ChatPage from './components/ChatPage/ChatPage';
+import ChatPage from './components/ChatPage';
 
 function App() {
     return (

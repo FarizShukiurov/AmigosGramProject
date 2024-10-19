@@ -7,6 +7,7 @@ namespace AmigosGramProject.Server.Models
     {
         public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options) { }
         public DbSet<UserContact> UserContacts { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

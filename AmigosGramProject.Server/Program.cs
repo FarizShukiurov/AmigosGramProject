@@ -6,6 +6,7 @@ using System.Net.Mail;
 using System.Net;
 using System.Security.Claims;
 using Azure.Storage.Blobs;
+using AmigosGramProject.Server.Hubs;
 
 namespace AmigosGramProject.Server
 {
@@ -17,16 +18,17 @@ namespace AmigosGramProject.Server
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
             builder.Services.AddAuthorization();
-            builder.Services.AddCors(options =>
-            {
-                options.AddPolicy("AllowAll",
-                    builder =>
-                    {
-                        builder.AllowAnyOrigin()
-                               .AllowAnyMethod()
-                               .AllowAnyHeader();
-                    });
+            builder.Services.AddCors(options => {
+                options.AddDefaultPolicy(policy =>
+                {
+                    policy.WithOrigins("https://localhost:5173/")
+                    .AllowAnyHeader()
+                    .AllowAnyMethod()
+                    .SetIsOriginAllowed((host) => true)
+                    .AllowCredentials();
+                });
             });
+            builder.Services.AddSignalR();
             builder.Services.AddIdentityApiEndpoints<User>(options => options.SignIn.RequireConfirmedAccount = true)
                 .AddEntityFrameworkStores<ChatDbContext>();
             builder.Services.AddScoped<IEmailSender, EmailSender>();
@@ -78,6 +80,7 @@ namespace AmigosGramProject.Server
                 app.UseSwaggerUI();
             }
             app.UseHttpsRedirection();
+            app.MapHub<ChatHub>("/chat");
             app.UseAuthorization();
             app.MapControllers();
             app.MapFallbackToFile("index.html");

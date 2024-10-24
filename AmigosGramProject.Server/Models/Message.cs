@@ -14,7 +14,7 @@
         public string Content { get; set; }        
         public DateTime Timestamp { get; set; }     
         public MessageType MessageType { get; set; }
-        public string MediaUrl { get; set; } = null;      
+        public string? MediaUrl { get; set; } = null;      
     }
 
 }

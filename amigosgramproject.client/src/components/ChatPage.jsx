@@ -1,87 +1,205 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect} from "react";
+import * as signalR from '@microsoft/signalr';
 import "./ChatPage.css";
 
 function ChatPage() {
     const [search, setSearch] = useState("");
     const [chats, setChats] = useState([]);
     const [selectedChatId, setSelectedChatId] = useState(null);
+    const [lastMessages, setLastMessages] = useState({}); 
+    const [hubConnection, setHubConnection] = useState(null);
+    const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState("");
+    const [currentUserId, setCurrentUserId] = useState();
 
-    // Заглушка для чатов
-    const dummyChats = [
-        { id: 1, name: "John Doe", avatarUrl: "https://via.placeholder.com/50", lastMessage: "Hey, how are you?" },
-        { id: 2, name: "Jane Smith", avatarUrl: "https://via.placeholder.com/50", lastMessage: "See you tomorrow!" },
-        { id: 3, name: "Alex Johnson", avatarUrl: "https://via.placeholder.com/50", lastMessage: "What's up?" },
-    ];
-
-    // Заглушка для сообщений
-    const dummyMessages = [
-        { content: "Hi there!", sentByCurrentUser: false },
-        { content: "Hello!", sentByCurrentUser: true },
-        { content: "How's it going?", sentByCurrentUser: false },
-    ];
-
-    // Имитируем загрузку чатов
     useEffect(() => {
-        const fetchChats = async () => {
-            try {
-                // Здесь можно заменить на реальный запрос, как только будет готов API
-                // const response = await fetch("/api/Chats", { credentials: "include" });
-                // const data = await response.json();
-                setTimeout(() => {
-                    setChats(dummyChats); // Используем заглушку
-                }, 1000); // Имитируем задержку
-            } catch (error) {
-                console.error("Error fetching chats:", error);
+        const newConnection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7015/chat")
+            .build();
+
+        newConnection.on("ReceiveMessage", (receivedMessage) => {
+            const newMessage = receivedMessage;
+
+            setMessages(prevMessages => [...prevMessages, newMessage]);
+
+            setLastMessages(prevLastMessages => ({
+                ...prevLastMessages,
+                [newMessage.senderId === currentUserId ? newMessage.receiverId : newMessage.senderId]: newMessage.content
+            }));
+        });
+
+        newConnection.start()
+            .then(() => {
+                console.log("Connection completed");
+                setHubConnection(newConnection);
+            })
+            .catch(err => console.error("Error connection: ", err));
+
+        return () => {
+            if (newConnection) {
+                newConnection.stop();
             }
         };
-
-        fetchChats();
     }, []);
 
-    // Имитируем загрузку сообщений для выбранного чата
+    const fetchContacts = async () => {
+        try {
+            const response = await fetch('/contacts/GetContacts', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const contactData = await response.json();
+                setChats(contactData);
+                
+                contactData.forEach(chat => {
+                    fetchLastMessage(chat.id, currentUserId)
+                        .then(lastMessage => {
+                            console.log(chat.id);
+                            console.log(currentUserId);
+                            setLastMessages(prev => ({ ...prev, [chat.id]: lastMessage.content }));
+                        });
+                });
+            } else if (response.status === 401) {
+                console.error('User is not authorized');
+            } else {
+                console.error('Error fetching contacts:', response.status);
+            }
+        } catch (error) {
+            console.error('An error occurred:', error);
+        }
+    };
+
+    const fetchLastMessage = async (userId1, userId2) => {
+        try {
+            const response = await fetch(`/api/Message/getLastMessageBetweenUsers?userId1=${userId1}&userId2=${userId2}`, {
+                method: 'GET'
+            });
+
+            if (response.ok) {
+                const lastMessage = await response.json();
+                return lastMessage;
+            } else {
+                console.error('Error fetching the last message:', response.status);
+                return null; // Возвращаем null, если ошибка
+            }
+        } catch (error) {
+            console.error('An error occurred while fetching the last message:', error);
+            return null; // Возвращаем null в случае ошибки
+        }
+    };
+
+
     const fetchMessages = async (chatId) => {
         try {
-            // Здесь также можно заменить на реальный запрос
-            // const response = await fetch(`/api/Chats/${chatId}/Messages`, { credentials: "include" });
-            // const data = await response.json();
-            setTimeout(() => {
-                setMessages(dummyMessages); // Используем заглушку
-                setSelectedChatId(chatId);
-            }, 1000); // Имитируем задержку
+            const response = await fetch(`/api/Message/getMessagesBetweenUsers?userId1=${currentUserId}&userId2=${chatId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const messagesData = await response.json();
+                setMessages(messagesData || []);
+            } else {
+                console.error('Error fetching messages:', response.status);
+            }
         } catch (error) {
-            console.error("Error fetching messages:", error);
+            console.error('An error occurred:', error);
         }
     };
 
-    // Обработка отправки нового сообщения
+    const fetchCurrentUserId = async () => {
+        try {
+            const response = await fetch('/Account/GetCurrentUserId', {
+                method: 'GET',
+                headers: {
+                    'Accept': '*/*'
+                }
+            });
+
+            if (response.ok) {
+                const userId = await response.text(); // Получаем текстовый ответ
+                setCurrentUserId(userId); // Устанавливаем ID пользователя
+            } else {
+                console.error('Error fetching user ID:', response.status);
+            }
+        } catch (error) {
+            console.error('An error occurred:', error);
+        }
+    };
+
+
+    const handleChatClick = (chatId) => {
+        setSelectedChatId(chatId);
+        fetchMessages(chatId); // Загружаем сообщения для выбранного чата
+    };
+
+    const renderMessage = (msg) => {
+        const isCurrentUserSender = msg.senderId === currentUserId;
+
+        return (
+            <div key={msg.id} className={`message ${isCurrentUserSender ? "message-sent" : "message-received"}`}>
+                {msg.messageType === "Image" && msg.mediaUrl ? (
+                    <div>
+                        <img src={msg.mediaUrl} alt="Sent media" className="message-image" />
+                        {msg.content && <p>{msg.content}</p>}
+                    </div>
+                ) : (
+                    <p>{msg.content}</p>
+                )}
+            </div>
+        );
+    };
+
     const sendMessage = async () => {
-        if (!newMessage.trim()) return;
+        if (!message || !selectedChatId) {
+            return;
+        }
+
+        const messageDto = {
+            senderId: currentUserId,
+            receiverId: selectedChatId,
+            content: message,
+            messageType: 0, 
+            imageUrl: null 
+        };
 
         try {
-            // Здесь можно сделать POST-запрос для отправки сообщения
-            // const response = await fetch(`/api/Chats/${selectedChatId}/Messages`, {
-            //     method: "POST",
-            //     headers: {
-            //         "Content-Type": "application/json",
-            //     },
-            //     body: JSON.stringify({ content: newMessage }),
-            //     credentials: "include",
-            // });
+            const response = await fetch('/api/Message/createMessage', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(messageDto)
+            });
 
-            // Очищаем поле ввода сообщения и обновляем сообщения
-            setNewMessage("");
-            fetchMessages(selectedChatId);
+            if (response.ok) {
+                const createdMessage = await response.json();
+                setMessages(prevMessages => [...prevMessages, createdMessage]);
+                setLastMessages(prevLastMessages => ({
+                    ...prevLastMessages,
+                    [createdMessage.senderId === currentUserId ? createdMessage.receiverId : createdMessage.senderId]: createdMessage.content
+                }));
+                setMessage(""); // Очистка поля ввода после отправки
+            } else {
+                console.error('Error message:', response.status);
+            }
         } catch (error) {
-            console.error("Error sending message:", error);
+            console.error('Error message:', error);
         }
     };
 
-    // Фильтрация чатов на основе поискового запроса
-    const filteredChats = chats.filter(chat =>
-        chat.name.toLowerCase().includes(search.toLowerCase())
-    );
+    useEffect(() => {
+        fetchCurrentUserId();
+        if (currentUserId) {
+            fetchContacts();
+        }
+    }, [currentUserId]);
 
     return (
         <div className="chat-page">
@@ -95,16 +213,18 @@ function ChatPage() {
                     />
                 </div>
                 <div className="chat-list">
-                    {filteredChats.map(chat => (
+                    {chats.map(chat => (
                         <div
                             key={chat.id}
                             className={`chat-item ${chat.id === selectedChatId ? "active" : ""}`}
-                            onClick={() => fetchMessages(chat.id)}
+                            onClick={() => handleChatClick(chat.id)}
                         >
-                            <img src={chat.avatarUrl} alt={`${chat.name}'s Avatar`} className="chat-avatar" />
+                            <img src={chat.avatarUrl} alt={`${chat.userName}'s Avatar`} className="chat-avatar" />
                             <div className="chat-info">
-                                <h4 className="chat-name">{chat.name}</h4>
-                                <p className="chat-last-message">{chat.lastMessage}</p>
+                                <h4 className="chat-name">{chat.userName}</h4>
+                                <p className="chat-last-message">
+                                    {lastMessages[chat.id] ? lastMessages[chat.id] : "Loading..."}
+                                </p>
                             </div>
                         </div>
                     ))}
@@ -116,18 +236,14 @@ function ChatPage() {
                     <h2>Chat</h2>
                 </header>
                 <div className="chat-messages">
-                    {messages.map((msg, index) => (
-                        <p key={index} className={`message ${msg.sentByCurrentUser ? "message-sent" : "message-received"}`}>
-                            {msg.content}
-                        </p>
-                    ))}
+                    {messages.map((msg) => renderMessage(msg))}
                 </div>
                 <div className="chat-input">
                     <input
                         type="text"
                         placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                     />
                     <button className="send-button" onClick={sendMessage}>Send</button>
                 </div>

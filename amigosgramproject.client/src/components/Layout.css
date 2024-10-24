@@ -9,7 +9,7 @@
 
 .navbar {
     background: linear-gradient(135deg, #181833, #1f1f56);
-    width: 120px; /* Make the sidebar wider */
+    width: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -45,7 +45,9 @@
 .separator {
     border: 1px solid rgba(255, 255, 255, 0.2);
     width: 80%;
+    margin-left:10%;
     margin-bottom: 20px;
+
 }
 
 /* Menu Items */

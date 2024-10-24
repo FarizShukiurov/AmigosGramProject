@@ -63,7 +63,7 @@ namespace AmigosGramProject.Server
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.MapIdentityApi<User>();
-            app.UseCors("AllowAll");
+            app.UseCors();
             app.MapPost("/logout", async (SignInManager<User> signInManager) =>
             {
                 await signInManager.SignOutAsync();

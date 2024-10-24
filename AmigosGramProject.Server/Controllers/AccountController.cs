@@ -85,5 +85,16 @@ namespace AmigosGramProject.Server.Controllers
 
             return BadRequest("Error confirming email.");
         }
+        [HttpGet("GetCurrentUserId")]
+        public IActionResult GetCurrentUserId()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId != null)
+            {
+                return Ok(userId);
+            }
+            return Unauthorized();
+        }
+
     }
 }

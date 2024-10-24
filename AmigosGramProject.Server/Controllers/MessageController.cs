@@ -4,6 +4,7 @@ using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -40,9 +41,58 @@ namespace AmigosGramProject.Server.Controllers
             await _context.SaveChangesAsync();
 
             // Отправляем сообщение получателю через SignalR
-            await _hubContext.Clients.User(message.ReceiverId).SendAsync("ReceiveMessage", message);
+            try
+            {
+                await _hubContext.Clients.User(message.ReceiverId).SendAsync("ReceiveMessage", message);
+            }catch (Exception ex) 
+            {
+                Console.WriteLine($"SignalR error: {ex.Message}");
+                return StatusCode(500, $"SignalR error: {ex.Message}");
+            }
 
             return Ok(message);
         }
+
+        [HttpGet("getAllMessages")]
+        public async Task<IActionResult> GetAllMessages()
+        {
+            var messages = await _context.Messages.ToListAsync();
+            return Ok(messages);
+        }
+
+        [HttpGet("getMessagesBetweenUsers")]
+        public async Task<IActionResult> GetMessagesBetweenUsers(string userId1, string userId2)
+        {
+            var messages = await _context.Messages
+                .Where(m => (m.SenderId == userId1 && m.ReceiverId == userId2) ||
+                            (m.SenderId == userId2 && m.ReceiverId == userId1))
+                .OrderBy(m => m.Timestamp)
+                .ToListAsync();
+
+            if (messages.Count == 0)
+            {
+                return Ok(null);
+            }
+
+            return Ok(messages);
+        }
+
+        [HttpGet("getLastMessageBetweenUsers")]
+        public async Task<IActionResult> GetLastMessageBetweenUsers(string userId1, string userId2)
+        {
+            var lastMessage = await _context.Messages
+                .Where(m => (m.SenderId == userId1 && m.ReceiverId == userId2) ||
+                            (m.SenderId == userId2 && m.ReceiverId == userId1))
+                .OrderByDescending(m => m.Timestamp)
+                .FirstOrDefaultAsync();
+
+            if (lastMessage == null)
+            {
+                return Ok(new { content = "No messages yet :)" });
+            }
+
+            return Ok(lastMessage);
+        }
+
     }
 }

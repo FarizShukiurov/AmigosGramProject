@@ -8,6 +8,6 @@ namespace AmigosGramProject.Server.DTOs
         public string ReceiverId { get; set; }
         public string Content { get; set; }
         public MessageType MessageType { get; set; }
-        public string ImageUrl { get; set; } = null;
+        public string? ImageUrl { get; set; } = null;
     }
 }

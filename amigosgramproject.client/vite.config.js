@@ -102,6 +102,22 @@ export default defineConfig({
             '^/Message/SendMessage': {
                 target,
                 secure: false
+            },
+            '^/api/Message/getLastMessageBetweenUsers': {
+                target,
+                secure: false
+            },
+            '^/api/Message/getMessagesBetweenUsers': {
+                target,
+                secure: false
+            },
+            '^/Account/GetCurrentUserId': {
+                target,
+                secure: false
+            },
+            '^/api/Message/createMessage': {
+                target,
+                secure: false
             }
             
         },

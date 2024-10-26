@@ -1,148 +1,221 @@
-/* General Layout */
+/* ChatPage.css */
 .chat-page {
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    height: 100vh;
-    background-color: #f5f5f5;
-    font-family: 'Arial', sans-serif;
-}
-
-/* Sidebar */
-.sidebar {
-    background-color: #141226;
-    color: white;
-    padding: 20px;
     display: flex;
-    flex-direction: column;
-    border-right: 1px solid #ccc;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
 }
 
-/* Search Bar */
-.search-bar {
-    padding: 10px;
-    background-color: #1f1d38;
-    border-radius: 10px;
-}
-
-    .search-bar input {
-        width: 100%;
-        padding: 10px;
-        border: none;
-        border-radius: 5px;
-        background-color: #171629;
-        color: white;
-        font-size: 16px;
-        outline: none;
+    .chat-page .sidebar {
+        width: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(10px);
+        transition: width 0.3s ease;
     }
 
-.chat-list {
-    margin-top: 20px;
-    flex-grow: 1;
-    overflow-y: auto;
+.sidebar:hover {
+    width: 320px;
 }
+
+.search-bar input {
+    width: 100%;
+    padding: 10px;
+    margin: 15px 10px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    outline: none;
+}
+
+    .search-bar input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
 
 .chat-item {
     display: flex;
     align-items: center;
     padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    transition: background 0.2s;
     cursor: pointer;
+    transition: background 0.3s ease;
 }
 
     .chat-item:hover {
-        background-color: #2a3942;
+        background: rgba(255, 255, 255, 0.1);
     }
 
 .chat-avatar {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    margin-right: 15px;
+    margin-right: 25px;
 }
 
-.chat-info {
-    flex-grow: 1;
-}
-
-.chat-name {
+.chat-info h4 {
     margin: 0;
-    font-size: 18px;
-    color: #e5e5e5;
+    font-weight: bold;
 }
 
-.chat-last-message {
-    margin: 0;
+.chat-info p {
+    margin: 5px 0 0;
+    color: #ffff;
     font-size: 14px;
-    color: #bbb;
 }
 
-/* Chat Area */
 .chat-area {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    background-color: #fff;
-    padding: 20px;
-}
-
-.chat-header {
-    background-color: #ededed;
-    padding: 20px;
-    border-bottom: 1px solid #ccc;
-    border-radius: 10px;
-}
-
-.chat-messages {
-    flex-grow: 1;
-    padding: 20px;
-    overflow-y: auto;
-}
-
-.message {
-    padding: 10px;
-    border-radius: 10px;
-    margin-bottom: 10px;
-    max-width: 60%;
-    word-wrap: break-word;
-}
-
-.message-sent {
-    background-color: #d1f0da;
-    align-self: flex-end;
-}
-
-.message-received {
-    background-color: #e6e6e6;
-    align-self: flex-start;
+    overflow: hidden;
 }
 
 .chat-input {
     display: flex;
-    gap: 10px;
-    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 1;
 }
 
     .chat-input input {
         flex-grow: 1;
         padding: 10px;
-        border: none;
         border-radius: 20px;
-        background-color: #f0f0f0;
-        font-size: 16px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        margin-right: 10px;
+        outline: none;
     }
 
-.send-button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 20px;
-    background-color: #0d6efd;
-    color: white;
-    cursor: pointer;
-    transition: background-color 0.2s;
+        .chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+.chat-messages {
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fade-in 0.5s ease;
 }
 
-    .send-button:hover {
-        background-color: #0b5ed7;
+.message {
+    max-width: 70%;
+    padding: 12px;
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+}
+
+.message-sent {
+    align-self: flex-end;
+    background: rgba(0, 0, 0, 0.7); /* Transparent black */
+    color: white;
+    text-align: right;
+}
+
+.message-received {
+    align-self: flex-start;
+    background: white;
+    color: black;
+    text-align: left;
+}
+
+.message-image {
+    max-width: 100%;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+/* ChatPage.css */
+.chat-page {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+}
+
+.search-bar {
+    padding: 10px;
+}
+
+.chat-item .ant-list-item-meta-title {
+    color: #ffff !important; /* Используйте !important, если необходимо */
+}
+
+.chat-item .ant-list-item-meta-description {
+    color: rgba(255, 255, 255, 0.8) !important; /* Используйте !important, если необходимо */
+}
+
+
+.chat-item {
+    padding: 10px;
+    margin-left: 10px;
+    cursor: pointer;
+    color: white !important;
+}
+
+.chat-content {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    background-color: #f0f0f0;
+}
+
+.chat-messages {
+    flex-grow: 1;
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.chat-input {
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #e0e0e0;
+    display: flex;
+}
+
+.message {
+    max-width: 60%;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.sent {
+    align-self: flex-end;
+    background: rgba(0, 0, 0, 0.7); /* Transparent black */
+    color: white;
+}
+
+.received {
+    align-self: flex-start;
+    background: white;
+    color: black;
+}
+
+/* Ensure chat-messages has smooth scrolling */
+.chat-messages {
+    overflow-y: scroll;
+}
+
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
     }
+
+    to {
+        opacity: 1;
+    }
+}

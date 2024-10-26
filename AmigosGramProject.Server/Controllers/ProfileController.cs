@@ -1,7 +1,12 @@
 ﻿using AmigosGramProject.Server.Models;
 using Azure.Storage.Blobs;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
 namespace AmigosGramProject.Server.Controllers
 {
     [Route("api/[controller]")]
@@ -10,13 +15,16 @@ namespace AmigosGramProject.Server.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly BlobServiceClient _blobServiceClient;
+        private readonly HttpClient _httpClient;
 
-        public ProfileController(UserManager<User> userManager, BlobServiceClient blobServiceClient)
+        public ProfileController(UserManager<User> userManager, BlobServiceClient blobServiceClient, HttpClient httpClient)
         {
             _userManager = userManager;
             _blobServiceClient = blobServiceClient;
+            _httpClient = httpClient;
         }
 
+        // Upload avatar
         [HttpPost("upload-avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
@@ -47,6 +55,8 @@ namespace AmigosGramProject.Server.Controllers
 
             return Ok(new { avatarUrl = user.AvatarUrl });
         }
+
+        // Get user data
         [HttpGet("get-user-data")]
         public async Task<IActionResult> GetUserData()
         {
@@ -57,42 +67,66 @@ namespace AmigosGramProject.Server.Controllers
             return Ok(new
             {
                 avatarUrl = user.AvatarUrl,
-                username = user.UserName
+                username = user.UserName,
+                biography = user.Bio,
+                email = user.Email
             });
         }
 
+
+        // Change username
         [HttpPost("change-username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
         {
-            // Получаем текущего пользователя
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
-            {
                 return NotFound("User not found");
-            }
 
-            // Проверка, существует ли уже такой ник
+            // Check if the username already exists
             var existingUser = await _userManager.FindByNameAsync(request.NewUsername);
             if (existingUser != null)
             {
                 return Conflict("Username already exists");
             }
 
-            // Обновление имени пользователя
             user.UserName = request.NewUsername;
-            user.NormalizedUserName = request.NewUsername.ToUpper(); // Обновление нормализованного имени
+            user.NormalizedUserName = request.NewUsername.ToUpper();
 
-            // Обновляем данные пользователя в базе
             var result = await _userManager.UpdateAsync(user);
-
             if (result.Succeeded)
             {
                 return Ok(new { message = "Username updated successfully!" });
             }
 
-            // Если произошла ошибка
             return BadRequest(result.Errors);
         }
 
+        // Change biography
+        [HttpPost("change-biography")]
+        public async Task<IActionResult> ChangeBiography([FromBody] ChangeBiographyRequest request)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+                return Unauthorized();
+
+            user.Bio = request.Biography;
+            var result = await _userManager.UpdateAsync(user);
+
+            if (result.Succeeded)
+                return Ok(new { message = "Biography updated successfully!" });
+
+            return BadRequest(result.Errors);
+        }
+    }
+    // Request classes for changing username and biography
+
+    public class ChangeBiographyRequest
+    {
+        public string Biography { get; set; }
+    }
+
+    public class ChangeUsernameRequest
+    {
+        public string NewUsername { get; set; }
     }
 }

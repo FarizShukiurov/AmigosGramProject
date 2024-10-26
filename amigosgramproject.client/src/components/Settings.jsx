@@ -1,5 +1,16 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import {
+    Modal,
+    Button,
+    Input,
+    Upload,
+    message,
+    Avatar,
+    Collapse,
+} from "antd";
 import "./Settings.css";
+
+const { Panel } = Collapse;
 
 const Settings = () => {
     const [file, setFile] = useState(null);
@@ -12,6 +23,8 @@ const Settings = () => {
     const [showUsernameInput, setShowUsernameInput] = useState(false);
     const [faqOpen, setFaqOpen] = useState(false);
     const [aboutOpen, setAboutOpen] = useState(false);
+    const [visible, setVisible] = useState(false);
+    const [bio, setBio] = useState("");
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -20,7 +33,8 @@ const Settings = () => {
                 const data = await response.json();
                 setAvatarUrl(data.avatarUrl);
                 setCurrentUsername(data.username);
-                setEmail(data.email); // Ensure this is being set correctly
+                setEmail(data.email);
+                setBio(data.biography || ""); // Default to an empty string if undefined
             } catch (error) {
                 console.error("Error fetching user data", error);
             }
@@ -29,44 +43,17 @@ const Settings = () => {
         fetchUserData();
     }, []);
 
-    // Function to mask the email for display
-    const maskEmail = (email) => {
-        if (!email) return ""; // Check if email is defined
-        const parts = email.split("@");
-        const maskedLocalPart = parts[0].length > 2
-            ? parts[0].slice(0, 2) + "***"
-            : parts[0];
-        return `${maskedLocalPart}@${parts[1]}`;
-    };
-
-    const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+    const handleFileChange = (info) => {
+        if (info.file.status === "done") {
+            setAvatarUrl(info.file.response.avatarUrl);
+        } else if (info.file.status === "error") {
+            message.error("Failed to upload avatar.");
+        }
     };
 
     const toggleUsernameInput = () => {
         setShowUsernameInput((prev) => !prev);
         if (showUsernameInput) setNewUsername(""); // Reset field on close
-    };
-
-    const handleSubmitAvatar = async (e) => {
-        e.preventDefault();
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        try {
-            const response = await fetch("/api/Profile/upload-avatar", {
-                method: "POST",
-                body: formData,
-            });
-
-            const data = await response.json();
-            setAvatarUrl(data.avatarUrl);
-        } catch (error) {
-            console.error("Error uploading avatar", error);
-            setErrorMessage("Failed to upload avatar.");
-        }
     };
 
     const handleSubmitUsername = async (e) => {
@@ -97,45 +84,96 @@ const Settings = () => {
         }
     };
 
+    const handleChangeBiography = async () => {
+        const requestBody = { Biography: bio };
+        try {
+            const response = await fetch("/api/Profile/change-biography", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (response.ok) {
+                message.success("Biography updated successfully!");
+            } else {
+                message.error("Failed to update biography.");
+            }
+        } catch (error) {
+            console.error("Error changing biography", error);
+            message.error("An unexpected error occurred.");
+        }
+    };
+
+    const handleOpenOverlay = () => {
+        setVisible(true);
+    };
+
+    const handleCancel = () => {
+        setVisible(false);
+    };
+    const maskEmail = (email) => {
+        if (!email) return ""; // Check if email is defined
+        const parts = email.split("@");
+        const maskedLocalPart = parts[0].length > 2
+            ? parts[0].slice(0, 2) + "***"
+            : parts[0];
+        return `${maskedLocalPart}@${parts[1]}`;
+    };
+
     return (
         <div className="settings-container">
             <h1 className="settings-title">Profile</h1>
 
             <div className="avatar-section">
-                {avatarUrl && (
-                    <img src={avatarUrl} alt="User Avatar" className="avatar-img" />
-                )}
-                <div className="avatar-popup">
-                    <label htmlFor="file-upload" className="change-avatar-btn">
-                        Change Avatar
-                    </label>
-                    <input
-                        id="file-upload"
-                        type="file"
+                <Avatar src={avatarUrl} size={100} />
+                <Button onClick={handleOpenOverlay}>Change Avatar</Button>
+                <Modal
+                    title="Choose an Avatar"
+                    visible={visible}
+                    onCancel={handleCancel}
+                    footer={null}
+                >
+                    <Upload
+                        name="file"
+                        action="/api/Profile/upload-avatar"
                         onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                    />
-                    <p className="default-avatar-text">Upload Default</p>
-                    <button onClick={handleSubmitAvatar} className="submit-btn">Submit</button>
-                </div>
+                        showUploadList={false}
+                    >
+                        <Button>Upload New Avatar</Button>
+                    </Upload>
+                    {/* Add your default avatars as images */}
+                    <div className="default-avatars">
+                        <img
+                            src="default-avatar1.png"
+                            alt="Default Avatar 1"
+                            onClick={() => setAvatarUrl("default-avatar1.png")}
+                        />
+                        <img
+                            src="default-avatar2.png"
+                            alt="Default Avatar 2"
+                            onClick={() => setAvatarUrl("default-avatar2.png")}
+                        />
+                        {/* Add more default avatars as needed */}
+                    </div>
+                </Modal>
             </div>
 
             <div className="field-section">
                 <label className="field-label">Name</label>
                 <div className="field-content">
                     <span>{currentUsername}</span>
-                    <button onClick={toggleUsernameInput} className="edit-btn">Edit</button>
+                    <Button onClick={toggleUsernameInput} type="primary">Edit</Button>
                 </div>
                 {showUsernameInput && (
                     <form onSubmit={handleSubmitUsername} className="username-form">
-                        <input
-                            type="text"
+                        <Input
                             placeholder="New Username"
                             value={newUsername}
                             onChange={(e) => setNewUsername(e.target.value)}
-                            className="username-input"
                         />
-                        <button type="submit" className="submit-btn">Submit</button>
+                        <Button type="primary" htmlType="submit">Submit</Button>
                     </form>
                 )}
                 {usernameMessage && <p className="success-message">{usernameMessage}</p>}
@@ -145,48 +183,47 @@ const Settings = () => {
             <div className="field-section">
                 <label className="field-label">Email</label>
                 <div className="field-content">
-                    <span>{maskEmail(email)}</span> {/* Masked email display */}
+                    <span>{maskEmail(email)}</span>
                 </div>
             </div>
 
-            <div className="password-section">
-                <label className="field-label">Change Password</label>
-                <button className="change-password-btn">Change Password</button>
+            <div className="field-section">
+                <label className="field-label">Biography</label>
+                <Input.TextArea
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    rows={4}
+                />
+                <Button type="primary" onClick={handleChangeBiography}>
+                    Update Biography
+                </Button>
             </div>
 
             <div className="faq-section">
-                <label
-                    className={`faq-label ${faqOpen ? 'active' : ''}`}
-                    onClick={() => setFaqOpen(!faqOpen)}
-                >
-                    Questions about AmigosGram
-                </label>
-                <div className={`faq-content ${faqOpen ? 'active' : ''}`}>
-                    <p>1. What is AmigosGram?</p>
-                    <p>Answer: AmigosGram is a social media platform for connecting friends.</p>
-                    <p>2. How can I change my password?</p>
-                    <p>Answer: You can change your password in the profile settings.</p>
-                    <p>3. How to delete my account?</p>
-                    <p>Answer: Contact support to delete your account.</p>
-                    <p>4. How do I change my profile picture?</p>
-                    <p>Answer: Click on your avatar to upload a new picture.</p>
-                    <p>5. Is AmigosGram free?</p>
-                    <p>Answer: Yes, it's completely free!</p>
-                </div>
+                <Collapse defaultActiveKey={['1']}>
+                    <Panel header="Questions about AmigosGram" key="1">
+                        <p>1. What is AmigosGram?</p>
+                        <p>Answer: AmigosGram is a social media platform for connecting friends.</p>
+                        <p>2. How can I change my password?</p>
+                        <p>Answer: You can change your password in the profile settings.</p>
+                        <p>3. How to delete my account?</p>
+                        <p>Answer: Contact support to delete your account.</p>
+                        <p>4. How do I change my profile picture?</p>
+                        <p>Answer: Click on your avatar to upload a new picture.</p>
+                        <p>5. Is AmigosGram free?</p>
+                        <p>Answer: Yes, it's completely free!</p>
+                    </Panel>
+                </Collapse>
             </div>
 
             <div className="about-section">
-                <label
-                    className={`about-label ${aboutOpen ? 'active' : ''}`}
-                    onClick={() => setAboutOpen(!aboutOpen)}
-                >
-                    AmigosGram Features
-                </label>
-                <div className={`about-content ${aboutOpen ? 'active' : ''}`}>
-                    <p>AmigosGram lets you share posts, follow friends, and communicate with others.</p>
-                    <p>It's designed for ease of use and security.</p>
-                    <p>Stay connected with friends around the world!</p>
-                </div>
+                <Collapse>
+                    <Panel header="AmigosGram Features" key="1">
+                        <p>AmigosGram lets you share posts, follow friends, and communicate with others.</p>
+                        <p>It's designed for ease of use and security.</p>
+                        <p>Stay connected with friends around the world!</p>
+                    </Panel>
+                </Collapse>
             </div>
         </div>
     );

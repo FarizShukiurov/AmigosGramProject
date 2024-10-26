@@ -1,32 +1,25 @@
 import { useState, useEffect } from 'react';
+import { Input, List, Avatar, Modal, Button, Popconfirm } from 'antd';
+import { PlusOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import './Contacts.css';
-import AddContactIcon from '/src/assets/AddContact.svg';
-import DeleteIcon from '/src/assets/Delete.svg';
-import ContactIcon from '/src/assets/ContactsDark.svg';
 
 const Contacts = () => {
     const [contacts, setContacts] = useState([]);
     const [ownContacts, setOwnContacts] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [showModal, setShowModal] = useState(false);
-    const [showDetailCard, setShowDetailCard] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [contactDetails, setContactDetails] = useState(null);
-    const [confirmDelete, setConfirmDelete] = useState(false); // State to manage confirmation for deletion
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const fetchOwnContacts = async () => {
         try {
             const response = await fetch(`/contacts/GetContacts`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" }
             });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch own contacts: ${response.statusText}`);
-            }
-
+            if (!response.ok) throw new Error(`Failed to fetch own contacts: ${response.statusText}`);
             const ownUsers = await response.json();
             setOwnContacts(ownUsers);
             setContacts(ownUsers);
@@ -40,19 +33,13 @@ const Contacts = () => {
             setContacts(ownContacts);
             return;
         }
-
         try {
             const response = await fetch(`/Account/SearchAccount?nickname=${encodeURIComponent(searchText)}`, {
                 method: "GET",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" }
             });
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch users: ${response.statusText}`);
-            }
-
+            if (!response.ok) throw new Error(`Failed to fetch users: ${response.statusText}`);
             const users = await response.json();
             setContacts(users);
         } catch (error) {
@@ -62,23 +49,16 @@ const Contacts = () => {
 
     const handleSubmitContact = async (e) => {
         e.preventDefault();
-
         const emailToSend = selectedUser.email;
 
         try {
             const response = await fetch(`/contacts/AddContact`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(emailToSend),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(emailToSend)
             });
 
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                throw new Error(`Failed to add contact: ${errorMessage}`);
-            }
-
+            if (!response.ok) throw new Error(`Failed to add contact: ${await response.text()}`);
             await fetchOwnContacts();
             closeModal();
         } catch (error) {
@@ -90,31 +70,20 @@ const Contacts = () => {
         try {
             const response = await fetch('/contacts/DeleteContact', {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contactId })
             });
 
-            if (!response.ok) {
-                const errorMessage = await response.text();
-                throw new Error(`Failed to delete contact: ${errorMessage}`);
-            }
-
+            if (!response.ok) throw new Error(`Failed to delete contact: ${await response.text()}`);
             await fetchOwnContacts();
-            closeDetailCard(); // Close the detail card after deletion
+            closeDetailCard();
         } catch (error) {
             console.error('Error deleting contact:', error);
         }
     };
 
-    useEffect(() => {
-        fetchOwnContacts();
-    }, []);
-
-    useEffect(() => {
-        fetchContacts(searchText);
-    }, [searchText]);
+    useEffect(() => { fetchOwnContacts(); }, []);
+    useEffect(() => { fetchContacts(searchText); }, [searchText]);
 
     const handleAddContact = (contact) => {
         setSelectedUser(contact);
@@ -126,107 +95,114 @@ const Contacts = () => {
         setSelectedUser(null);
     };
 
-    const isContactAdded = (contact) => {
-        return ownContacts.some((ownContact) => ownContact.id === contact.id);
-    };
+    const isContactAdded = (contact) => ownContacts.some((ownContact) => ownContact.id === contact.id);
 
     const handleAvatarClick = (contact) => {
         setContactDetails(contact);
-        setShowDetailCard(true);
     };
 
     const closeDetailCard = () => {
-        setShowDetailCard(false);
         setContactDetails(null);
-        setConfirmDelete(false); // Reset confirmation state
-    };
-
-    const confirmDeleteContact = (contact) => {
-        setContactDetails(contact);
-        setConfirmDelete(true); // Show confirmation for deletion
-    };
-
-    const handleConfirmDelete = () => {
-        if (contactDetails) {
-            handleDeleteContact(contactDetails.id);
-        }
-        closeDetailCard(); // Close the detail card after deletion
+        setConfirmDelete(false);
     };
 
     return (
         <div className="contacts-container">
-            <div className="search-bar">
-                <input
-                    type="text"
-                    placeholder="Search by username..."
-                    value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
-                />
-            </div>
+            {/* Search Input */}
+            <Input.Search
+                placeholder="Search by username..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="ant-input-search"
+                style={{ marginBottom: '16px', width: '100%', }}
+            />
 
-            <div className="contacts-list">
-                {contacts.length === 0 ? (
-                    <p>No contacts found.</p>
-                ) : (
-                    contacts.map((contact) => (
-                        <div key={contact.id} className="contact-item">
-                            <div className="contact-info">
-                                <img
-                                    src={contact.avatarUrl || ContactIcon}
-                                    alt="Contact"
-                                    className="contact-icon"
-                                    onClick={() => handleAvatarClick(contact)} // Click to show detail card
-                                />
-                                <h4>{contact.userName}</h4>
-                            </div>
-                            {isContactAdded(contact) ? (
-                                <button className="delete-contact" onClick={() => confirmDeleteContact(contact)}>
-                                    <img src={DeleteIcon} alt="Delete" className="delete-icon" />
-                                </button>
+            {/* Contacts List */}
+            <List
+                itemLayout="horizontal"
+                dataSource={contacts}
+                renderItem={contact => (
+                    <List.Item
+                        className="ant-list-item"
+                        actions={[
+                            isContactAdded(contact) ? (
+                                <Popconfirm
+                                    title={`Are you sure you want to delete ${contact.userName}?`}
+                                    onConfirm={() => handleDeleteContact(contact.id)}
+                                    okText="Yes"
+                                    cancelText="No"
+                                >
+                                    <Button
+                                        icon={<DeleteOutlined />}
+                                        type="danger"
+                                        className="contact-delete-btn"
+                                    />
+                                </Popconfirm>
                             ) : (
-                                <button className="add-contact" onClick={() => handleAddContact(contact)}>
-                                    <img src={AddContactIcon} alt="Add Contact" className="add-icon" />
-                                </button>
-                            )}
-                        </div>
-                    ))
+                                <Button
+                                    icon={<PlusOutlined />}
+                                    onClick={() => handleAddContact(contact)}
+                                />
+                            )
+                        ]}
+                    >
+                        <List.Item.Meta
+                            avatar={
+                                <Avatar
+                                    src={contact.avatarUrl}
+                                    icon={!contact.avatarUrl ? <UserOutlined /> : undefined}
+                                    onClick={() => handleAvatarClick(contact)}
+                                    className="contact-avatar"
+                                />
+                            }
+                            title={contact.userName}
+                            description={contact.email}
+                        />
+                    </List.Item>
                 )}
-            </div>
+            />
+            <Modal
+                title={`Add Contact for ${selectedUser?.userName}`}
+                visible={showModal}
+                onCancel={closeModal}
+                onOk={handleSubmitContact}
+                okText="Add Contact"
+            >
+                <Avatar
+                    size={64}
+                    src={selectedUser?.avatarUrl}
+                    icon={!selectedUser?.avatarUrl ? <UserOutlined /> : undefined}
+                    className="modal-avatar"
+                />
+                <p>Email: {selectedUser?.email}</p>
+            </Modal>
 
-            {showModal && selectedUser && (
-                <div className="modal">
-                    <div className="modal-content">
-                        <h2 className="modal-title">Add Contact for {selectedUser.userName}</h2>
-                        <img src={selectedUser.avatarUrl || ContactIcon} alt="Selected User" className="modal-avatar" />
-                        <p className="modal-email">Email: {selectedUser.email}</p>
-                        <button className="modal-button" onClick={handleSubmitContact}>Add Contact</button>
-                        <button className="modal-button close-button" onClick={closeModal}>Close</button>
-                    </div>
-                </div>
-            )}
-
-            {showDetailCard && contactDetails && !confirmDelete && (
-                <div className="detail-card">
-                    <div className="detail-card-content">
-                        <img src={contactDetails.avatarUrl || ContactIcon} alt="Contact" className="detail-avatar" />
-                        <h4>{contactDetails.userName}</h4>
-                        <p>Email: {contactDetails.email}</p>
-                        {/* Add any additional details you want to display */}
-                        <button className="detail-card-button close-detail" onClick={closeDetailCard}>Close</button>
-                    </div>
-                </div>
-            )}
-
-            {confirmDelete && contactDetails && (
-                <div className="confirmation-dialog">
-                    <div className="confirmation-content">
-                        <h3>Are you sure you want to delete {contactDetails.userName}?</h3>
-                        <button className="confirmation-button confirm" onClick={handleConfirmDelete}>Yes, Delete</button>
-                        <button className="confirmation-button cancel" onClick={closeDetailCard}>Cancel</button>
-                    </div>
-                </div>
-            )}
+            {/* Contact Details Modal */}
+            <Modal
+                title={contactDetails?.userName}
+                visible={!!contactDetails && !confirmDelete}
+                onCancel={closeDetailCard}
+                footer={[
+                    <Button key="close" onClick={closeDetailCard}>Close</Button>,
+                    <Button
+                        key="delete"
+                        type="danger"
+                        onClick={() => setConfirmDelete(true)}
+                    >
+                        Delete Contact
+                    </Button>
+                ]}
+            >
+                <Avatar
+                    size={64}
+                    src={contactDetails?.avatarUrl}
+                    icon={!contactDetails?.avatarUrl ? <UserOutlined /> : undefined}
+                    className="detail-avatar"
+                />
+                <p>Email: {contactDetails?.email}</p>
+            </Modal>
         </div>
+
     );
 };
 

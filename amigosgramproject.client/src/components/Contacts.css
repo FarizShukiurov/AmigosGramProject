@@ -1,175 +1,91 @@
+/* Contacts container styling */
 .contacts-container {
+    background: white;
     padding: 20px;
-    background-color: #f5f5f5;
-}
-
-.search-bar {
-    margin-bottom: 20px;
-}
-
-    .search-bar input {
-        width: 100%;
-        padding: 10px;
-        border-radius: 5px;
-        border: 1px solid #ddd;
-    }
-
-.contacts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.contact-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    background-color: #fff;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s ease;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
+    max-width: 600px;
+    margin: 0 auto;
+    color: #e0e0e0;
 }
 
-    .contact-item:hover {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    /* Search input with improved hover and focus background for visibility */
+    .contacts-container .ant-input-search {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: #ffffff;
+        border-radius: 6px;
+        transition: background-color 0.3s, color 0.3s;
     }
 
-.contact-info {
-    display: flex;
-    align-items: center;
-    cursor: pointer; /* Indicate that the avatar is clickable */
-}
+        .contacts-container .ant-input-search:hover,
+        .contacts-container .ant-input-search:focus {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
 
-.contact-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 10px;
-}
-
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-    text-align: center;
-    position: relative;
-}
-
-.modal-avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin-bottom: 10px;
-}
-
-.modal-button {
-    background-color: #141226; /* Your specified button color */
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background-color 0.3s;
-}
-
-    .modal-button:hover {
-        background-color: #1b1f2f; /* Darker shade on hover */
+    /* List item with contrasting hover and focused background colors */
+    .contacts-container .ant-list-item {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+        transition: transform 0.2s, background-color 0.3s;
     }
 
-.detail-card {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
+        .contacts-container .ant-list-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            transform: scale(1.02);
+        }
 
-.detail-card-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-    text-align: center;
-}
-
-.detail-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    margin-bottom: 10px;
-}
-
-.close-detail {
-    background-color: #141226; /* Your specified button color */
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: background-color 0.3s;
-}
-
-    .close-detail:hover {
-        background-color: #1b1f2f; /* Darker shade on hover */
-    }
-.confirmation-dialog {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.confirmation-content {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    width: 300px;
-}
-
-.confirmation-button {
-    background-color: #141226; /* Your specified button color */
-    color: white;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    margin: 5px;
-    transition: background-color 0.3s;
-}
-
-    .confirmation-button:hover {
-        background-color: #1b1f2f; /* Darker shade on hover */
+    /* Avatar styling with color for better contrast */
+    .contacts-container .contact-avatar {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        cursor: pointer;
+        transition: border-color 0.3s, transform 0.2s;
     }
 
-    .confirmation-button.cancel {
-        background-color: #f44336; /* Red for cancel */
+        .contacts-container .contact-avatar:hover {
+            border-color: #00bfa5;
+            transform: scale(1.1);
+        }
+
+    /* Modal content with high contrast text and background */
+    .contacts-container .ant-modal-content {
+        background-color: rgba(0, 0, 0, 0.85);
+        color: #e0e0e0;
+        border-radius: 12px;
+    }
+
+    .contacts-container .ant-modal-header {
+        background: rgba(0, 0, 0, 0.5);
+        border-bottom: none;
+        color: #ffffff;
+    }
+
+    /* Footer buttons with enhanced background contrast */
+    .contacts-container .ant-modal-footer button {
+        background: rgba(255, 255, 255, 0.15);
+        color: #e0e0e0;
+        border: none;
+        transition: background-color 0.3s;
+    }
+
+        .contacts-container .ant-modal-footer button:hover {
+            background-color: rgba(255, 255, 255, 0.3);
+        }
+
+    /* Profile and detail avatar styling */
+    .contacts-container .detail-avatar {
+        border: 2px solid #00bfa5;
+        border-radius: 50%;
+        margin-bottom: 10px;
+    }
+
+    /* Ensuring all text elements have high contrast on different backgrounds */
+    .contacts-container,
+    .contacts-container .ant-input-search,
+    .contacts-container .ant-modal-content,
+    .contacts-container .ant-list-item {
+        color: #e0e0e0;
     }

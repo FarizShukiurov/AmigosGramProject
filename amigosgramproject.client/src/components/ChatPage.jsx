@@ -1,16 +1,52 @@
-import { useState, useEffect} from "react";
-import * as signalR from '@microsoft/signalr';
+/* eslint-disable no-unused-vars */
+import { useState, useEffect, useRef } from "react";
+import * as signalR from "@microsoft/signalr";
+import {
+    Input,
+    Layout,
+    List,
+    Avatar,
+    Button,
+    Space,
+    Tooltip,
+    Modal,
+    Upload,
+    message as antdMessage,
+} from "antd";
+import {
+    SendOutlined,
+    FileOutlined,
+    PictureOutlined,
+    AudioOutlined,
+    SearchOutlined,
+} from "@ant-design/icons";
 import "./ChatPage.css";
+
+const { Sider, Content } = Layout;
 
 function ChatPage() {
     const [search, setSearch] = useState("");
     const [chats, setChats] = useState([]);
     const [selectedChatId, setSelectedChatId] = useState(null);
-    const [lastMessages, setLastMessages] = useState({}); 
+    const [lastMessages, setLastMessages] = useState({});
     const [hubConnection, setHubConnection] = useState(null);
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
     const [currentUserId, setCurrentUserId] = useState();
+    const [isImageModalVisible, setIsImageModalVisible] = useState(false);
+    const [isFileModalVisible, setIsFileModalVisible] = useState(false);
+    const messagesEndRef = useRef(null);
+
+    // Scroll to the bottom of the message list whenever messages update
+    const scrollToBottom = () => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
     useEffect(() => {
         const newConnection = new signalR.HubConnectionBuilder()
@@ -18,181 +54,29 @@ function ChatPage() {
             .build();
 
         newConnection.on("ReceiveMessage", (receivedMessage) => {
-            const newMessage = receivedMessage;
-
-            setMessages(prevMessages => [...prevMessages, newMessage]);
-
-            setLastMessages(prevLastMessages => ({
+            setMessages((prevMessages) => [...prevMessages, receivedMessage]);
+            setLastMessages((prevLastMessages) => ({
                 ...prevLastMessages,
-                [newMessage.senderId === currentUserId ? newMessage.receiverId : newMessage.senderId]: newMessage.content
+                [receivedMessage.senderId === currentUserId
+                    ? receivedMessage.receiverId
+                    : receivedMessage.senderId]: receivedMessage.content,
             }));
         });
 
-        newConnection.start()
+        newConnection
+            .start()
             .then(() => {
                 console.log("Connection completed");
                 setHubConnection(newConnection);
             })
-            .catch(err => console.error("Error connection: ", err));
+            .catch((err) => console.error("Error connection: ", err));
 
         return () => {
             if (newConnection) {
                 newConnection.stop();
             }
         };
-    }, []);
-
-    const fetchContacts = async () => {
-        try {
-            const response = await fetch('/contacts/GetContacts', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const contactData = await response.json();
-                setChats(contactData);
-                
-                contactData.forEach(chat => {
-                    fetchLastMessage(chat.id, currentUserId)
-                        .then(lastMessage => {
-                            console.log(chat.id);
-                            console.log(currentUserId);
-                            setLastMessages(prev => ({ ...prev, [chat.id]: lastMessage.content }));
-                        });
-                });
-            } else if (response.status === 401) {
-                console.error('User is not authorized');
-            } else {
-                console.error('Error fetching contacts:', response.status);
-            }
-        } catch (error) {
-            console.error('An error occurred:', error);
-        }
-    };
-
-    const fetchLastMessage = async (userId1, userId2) => {
-        try {
-            const response = await fetch(`/api/Message/getLastMessageBetweenUsers?userId1=${userId1}&userId2=${userId2}`, {
-                method: 'GET'
-            });
-
-            if (response.ok) {
-                const lastMessage = await response.json();
-                return lastMessage;
-            } else {
-                console.error('Error fetching the last message:', response.status);
-                return null; // Возвращаем null, если ошибка
-            }
-        } catch (error) {
-            console.error('An error occurred while fetching the last message:', error);
-            return null; // Возвращаем null в случае ошибки
-        }
-    };
-
-
-    const fetchMessages = async (chatId) => {
-        try {
-            const response = await fetch(`/api/Message/getMessagesBetweenUsers?userId1=${currentUserId}&userId2=${chatId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const messagesData = await response.json();
-                setMessages(messagesData || []);
-            } else {
-                console.error('Error fetching messages:', response.status);
-            }
-        } catch (error) {
-            console.error('An error occurred:', error);
-        }
-    };
-
-    const fetchCurrentUserId = async () => {
-        try {
-            const response = await fetch('/Account/GetCurrentUserId', {
-                method: 'GET',
-                headers: {
-                    'Accept': '*/*'
-                }
-            });
-
-            if (response.ok) {
-                const userId = await response.text(); // Получаем текстовый ответ
-                setCurrentUserId(userId); // Устанавливаем ID пользователя
-            } else {
-                console.error('Error fetching user ID:', response.status);
-            }
-        } catch (error) {
-            console.error('An error occurred:', error);
-        }
-    };
-
-
-    const handleChatClick = (chatId) => {
-        setSelectedChatId(chatId);
-        fetchMessages(chatId); // Загружаем сообщения для выбранного чата
-    };
-
-    const renderMessage = (msg) => {
-        const isCurrentUserSender = msg.senderId === currentUserId;
-
-        return (
-            <div key={msg.id} className={`message ${isCurrentUserSender ? "message-sent" : "message-received"}`}>
-                {msg.messageType === "Image" && msg.mediaUrl ? (
-                    <div>
-                        <img src={msg.mediaUrl} alt="Sent media" className="message-image" />
-                        {msg.content && <p>{msg.content}</p>}
-                    </div>
-                ) : (
-                    <p>{msg.content}</p>
-                )}
-            </div>
-        );
-    };
-
-    const sendMessage = async () => {
-        if (!message || !selectedChatId) {
-            return;
-        }
-
-        const messageDto = {
-            senderId: currentUserId,
-            receiverId: selectedChatId,
-            content: message,
-            messageType: 0, 
-            imageUrl: null 
-        };
-
-        try {
-            const response = await fetch('/api/Message/createMessage', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(messageDto)
-            });
-
-            if (response.ok) {
-                const createdMessage = await response.json();
-                setMessages(prevMessages => [...prevMessages, createdMessage]);
-                setLastMessages(prevLastMessages => ({
-                    ...prevLastMessages,
-                    [createdMessage.senderId === currentUserId ? createdMessage.receiverId : createdMessage.senderId]: createdMessage.content
-                }));
-                setMessage(""); // Очистка поля ввода после отправки
-            } else {
-                console.error('Error message:', response.status);
-            }
-        } catch (error) {
-            console.error('Error message:', error);
-        }
-    };
+    }, [currentUserId]);
 
     useEffect(() => {
         fetchCurrentUserId();
@@ -201,54 +85,242 @@ function ChatPage() {
         }
     }, [currentUserId]);
 
+    const fetchContacts = async () => {
+        try {
+            const response = await fetch("/contacts/GetContacts", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+
+            if (response.ok) {
+                const contactData = await response.json();
+                setChats(contactData);
+
+                contactData.forEach((chat) => {
+                    fetchLastMessage(chat.id, currentUserId).then((lastMessage) => {
+                        setLastMessages((prev) => ({
+                            ...prev,
+                            [chat.id]: lastMessage.content,
+                        }));
+                    });
+                });
+            } else {
+                console.error("Error fetching contacts:", response.status);
+            }
+        } catch (error) {
+            console.error("An error occurred:", error);
+        }
+    };
+
+    const fetchLastMessage = async (userId1, userId2) => {
+        try {
+            const response = await fetch(
+                `/api/Message/getLastMessageBetweenUsers?userId1=${userId1}&userId2=${userId2}`,
+                { method: "GET" }
+            );
+
+            if (response.ok) {
+                return await response.json();
+            } else {
+                console.error("Error fetching last message:", response.status);
+            }
+        } catch (error) {
+            console.error("An error occurred while fetching the last message:", error);
+        }
+    };
+
+    const fetchMessages = async (chatId) => {
+        try {
+            const response = await fetch(
+                `/api/Message/getMessagesBetweenUsers?userId1=${currentUserId}&userId2=${chatId}`,
+                { method: "GET", headers: { "Content-Type": "application/json" } }
+            );
+
+            if (response.ok) {
+                const messagesData = await response.json();
+                setMessages(messagesData || []);
+            } else {
+                console.error("Error fetching messages:", response.status);
+            }
+        } catch (error) {
+            console.error("An error occurred:", error);
+        }
+    };
+
+    const fetchCurrentUserId = async () => {
+        try {
+            const response = await fetch("/Account/GetCurrentUserId", {
+                method: "GET",
+                headers: { Accept: "*/*" },
+            });
+
+            if (response.ok) {
+                const userId = await response.text();
+                setCurrentUserId(userId);
+            } else {
+                console.error("Error fetching user ID:", response.status);
+            }
+        } catch (error) {
+            console.error("An error occurred:", error);
+        }
+    };
+
+    const handleChatClick = (chatId) => {
+        setSelectedChatId(chatId);
+        fetchMessages(chatId);
+    };
+
+    const sendMessage = async () => {
+        if (!message || !selectedChatId) return;
+
+        const messageDto = {
+            senderId: currentUserId,
+            receiverId: selectedChatId,
+            content: message,
+            messageType: 0,
+        };
+
+        try {
+            const response = await fetch("/api/Message/createMessage", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(messageDto),
+            });
+
+            if (response.ok) {
+                const createdMessage = await response.json();
+                setMessages((prevMessages) => [...prevMessages, createdMessage]);
+                setMessage("");
+            } else {
+                console.error("Error sending message:", response.status);
+            }
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
+    };
+
+    const renderMessage = (msg) => {
+        const isCurrentUserSender = msg.senderId === currentUserId;
+        return (
+            <div key={msg.id} className={`message ${isCurrentUserSender ? "sent" : "received"}`}>
+                {msg.content}
+            </div>
+        );
+    };
+
+    const handleImageModalOpen = () => setIsImageModalVisible(true);
+    const handleFileModalOpen = () => setIsFileModalVisible(true);
+    const handleModalClose = () => {
+        setIsImageModalVisible(false);
+        setIsFileModalVisible(false);
+    };
+
+    const imageProps = {
+        beforeUpload: (file) => {
+            const isImage = file.type.startsWith("image/");
+            if (!isImage) {
+                antdMessage.error("You can only upload image files!");
+            }
+            return isImage || Upload.LIST_IGNORE;
+        },
+        onChange: (info) => {
+            if (info.file.status === "done") {
+                antdMessage.success(`${info.file.name} file uploaded successfully`);
+                handleModalClose();
+            } else if (info.file.status === "error") {
+                antdMessage.error(`${info.file.name} file upload failed.`);
+            }
+        },
+    };
+
     return (
-        <div className="chat-page">
-            <aside className="sidebar">
+        <Layout className="chat-page">
+            <Sider className="sidebar" width={300}>
                 <div className="search-bar">
-                    <input
-                        type="text"
+                    <Input
                         placeholder="Search Chats"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
+                        prefix={<SearchOutlined />}
                     />
                 </div>
-                <div className="chat-list">
-                    {chats.map(chat => (
-                        <div
-                            key={chat.id}
-                            className={`chat-item ${chat.id === selectedChatId ? "active" : ""}`}
+                <List
+                    itemLayout="horizontal"
+                    dataSource={chats}
+                    renderItem={(chat) => (
+                        <List.Item
                             onClick={() => handleChatClick(chat.id)}
+                            className={`chat-item ${chat.id === selectedChatId ? "active" : ""}`}
                         >
-                            <img src={chat.avatarUrl} alt={`${chat.userName}'s Avatar`} className="chat-avatar" />
-                            <div className="chat-info">
-                                <h4 className="chat-name">{chat.userName}</h4>
-                                <p className="chat-last-message">
-                                    {lastMessages[chat.id] ? lastMessages[chat.id] : "Loading..."}
-                                </p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </aside>
+                            <List.Item.Meta
+                                avatar={<Avatar src={chat.avatarUrl} />}
+                                title={chat.userName}
+                                description={lastMessages[chat.id] || "Loading..."}
+                            />
+                        </List.Item>
+                    )}
+                />
+            </Sider>
 
-            <main className="chat-area">
-                <header className="chat-header">
-                    <h2>Chat</h2>
-                </header>
-                <div className="chat-messages">
-                    {messages.map((msg) => renderMessage(msg))}
-                </div>
-                <div className="chat-input">
-                    <input
-                        type="text"
-                        placeholder="Type your message..."
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                    />
-                    <button className="send-button" onClick={sendMessage}>Send</button>
-                </div>
-            </main>
-        </div>
+            <Layout>
+                <Content className="chat-content">
+                    <div className="chat-messages">
+                        {messages.map((msg) => renderMessage(msg))}
+                        {/* Reference to keep the scroll at the bottom */}
+                        <div ref={messagesEndRef} />
+                    </div>
+                    <div className="chat-input">
+                        <Input
+                            placeholder="Type your message..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            suffix={
+                                <Space>
+                                    <Tooltip title="Send Image">
+                                        <Button icon={<PictureOutlined />} shape="circle" onClick={handleImageModalOpen} />
+                                    </Tooltip>
+                                    <Tooltip title="Send File">
+                                        <Button icon={<FileOutlined />} shape="circle" onClick={handleFileModalOpen} />
+                                    </Tooltip>
+                                    <Tooltip title="Send Audio">
+                                        <Button icon={<AudioOutlined />} shape="circle" />
+                                    </Tooltip>
+                                    <Button
+                                        type="primary"
+                                        icon={<SendOutlined />}
+                                        onClick={sendMessage}
+                                    />
+                                </Space>
+                            }
+                        />
+                    </div>
+                </Content>
+            </Layout>
+
+            <Modal
+                title="Select Image"
+                visible={isImageModalVisible}
+                onCancel={handleModalClose}
+                footer={null}
+            >
+                <Upload {...imageProps}>
+                    <Button icon={<PictureOutlined />}>Click to Upload</Button>
+                </Upload>
+            </Modal>
+
+            <Modal
+                title="Select File"
+                visible={isFileModalVisible}
+                onCancel={handleModalClose}
+                footer={null}
+            >
+                <Upload>
+                    <Button icon={<FileOutlined />}>Click to Upload</Button>
+                </Upload>
+            </Modal>
+        </Layout>
     );
 }
 

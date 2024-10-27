@@ -21,8 +21,6 @@ const Settings = () => {
     const [currentUsername, setCurrentUsername] = useState("");
     const [email, setEmail] = useState("");
     const [showUsernameInput, setShowUsernameInput] = useState(false);
-    const [faqOpen, setFaqOpen] = useState(false);
-    const [aboutOpen, setAboutOpen] = useState(false);
     const [visible, setVisible] = useState(false);
     const [bio, setBio] = useState("");
 

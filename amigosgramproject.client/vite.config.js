@@ -118,6 +118,10 @@ export default defineConfig({
             '^/api/Message/createMessage': {
                 target,
                 secure: false
+            },
+            '^/api/files/upload': {
+                target,
+                secure: false
             }
             
         },

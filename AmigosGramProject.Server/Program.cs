@@ -58,6 +58,10 @@ namespace AmigosGramProject.Server
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpClient();
+            builder.Logging.ClearProviders();
+            builder.Logging.AddConsole();
+            builder.Logging.SetMinimumLevel(LogLevel.Trace);
+
             var app = builder.Build();
 
             app.UseDefaultFiles();

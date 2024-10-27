@@ -172,6 +172,56 @@ function ChatPage() {
         fetchMessages(chatId);
     };
 
+    const handleImageUpload = async (info) => {
+        console.log("Cli")
+        const file = info.file.originFileObj;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch("/api/files/upload", {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload image.');
+            }
+
+            const data = await response.json();
+            message.success('Image uploaded successfully!');
+            console.log(data);  // Данные можно использовать для отображения или других целей
+        } catch (error) {
+            message.error(error.message || 'Failed to upload image.');
+            console.error(error);
+        }
+    };
+
+    const handleFileUpload = async (info) => {
+        const file = info.file.originFileObj;
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/files/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload file.');
+            }
+
+            const data = await response.json();
+            message.success('File uploaded successfully!');
+            console.log(data);  // Данные можно использовать для других операций
+        } catch (error) {
+            message.error(error.message || 'Failed to upload file.');
+            console.error(error);
+        }
+    };
+
+
     const sendMessage = async () => {
         if (!message || !selectedChatId) return;
 
@@ -305,7 +355,11 @@ function ChatPage() {
                 onCancel={handleModalClose}
                 footer={null}
             >
-                <Upload {...imageProps}>
+                <Upload
+                    beforeUpload={() => false}
+                    onChange={handleImageUpload}
+                    {...imageProps}
+                >
                     <Button icon={<PictureOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
@@ -316,10 +370,14 @@ function ChatPage() {
                 onCancel={handleModalClose}
                 footer={null}
             >
-                <Upload>
+                <Upload
+                    beforeUpload={() => false}
+                    onChange={handleFileUpload}
+                >
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
+
         </Layout>
     );
 }

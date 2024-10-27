@@ -21,8 +21,8 @@
 
 .search-bar input {
     width: 100%;
-    padding: 10px;
-    margin: 15px 10px;
+    padding: 8px;
+    margin: 10px 8px;
     border-radius: 10px;
     background: rgba(255, 255, 255, 0.2);
     border: none;
@@ -44,7 +44,9 @@
 
     .chat-item:hover {
         background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
     }
+
 
 .chat-avatar {
     margin-right: 25px;
@@ -187,14 +189,18 @@
 }
 
 .message {
-    max-width: 60%;
-    padding: 10px;
-    border-radius: 10px;
+    max-width: 70%;
+    padding: 12px;
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+    font-size: 1.1rem;
+    line-height: 1.4; 
 }
+
 
 .sent {
     align-self: flex-end;
-    background: rgba(0, 0, 0, 0.7); /* Transparent black */
+    background: rgba(0, 0, 0, 0.7);
     color: white;
 }
 
@@ -204,7 +210,6 @@
     color: black;
 }
 
-/* Ensure chat-messages has smooth scrolling */
 .chat-messages {
     overflow-y: scroll;
 }

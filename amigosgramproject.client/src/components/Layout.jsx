@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Tooltip } from "antd";
 import { LogoutOutlined, SettingOutlined, MessageOutlined, UserOutlined } from '@ant-design/icons';
 import AuthorizeView from "./AuthorizeView.jsx";
@@ -7,7 +7,7 @@ import "./Layout.css";
 
 function Layout() {
     const [avatarUrl, setAvatarUrl] = useState(""); // Уберите значение по умолчанию
-
+    const navigate = useNavigate();
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -40,6 +40,25 @@ function Layout() {
         fetchUserData();
     }, []);
 
+    const handleLogout = async () => {
+        try {
+            const response = await fetch("/logout", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include",
+            });
+
+            if (response.ok) {
+                navigate("/login"); // Redirect to login page on success
+            } else {
+                console.error("Logout failed");
+            }
+        } catch (error) {
+            console.error("Error during logout:", error);
+        }
+    };
     return (
         <AuthorizeView>
             <div className="app-layout animated-layout">
@@ -77,7 +96,7 @@ function Layout() {
                             </button>
                         </Tooltip>
                         <Tooltip title="Logout">
-                            <button className="logout menu-item">
+                            <button className="logout menu-item" onClick={handleLogout}>
                                 <LogoutOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </button>
                         </Tooltip>

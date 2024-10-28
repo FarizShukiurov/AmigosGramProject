@@ -214,7 +214,7 @@ function ChatPage() {
 
             const data = await response.json();
             message.success('File uploaded successfully!');
-            console.log(data);  // ƒанные можно использовать дл€ других операций
+            console.log(data);
         } catch (error) {
             message.error(error.message || 'Failed to upload file.');
             console.error(error);
@@ -326,6 +326,12 @@ function ChatPage() {
                             placeholder="Type your message..."
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) { 
+                                    e.preventDefault();
+                                    sendMessage();
+                                }
+                            }}
                             suffix={
                                 <Space>
                                     <Tooltip title="Send Image">

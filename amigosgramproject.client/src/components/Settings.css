@@ -1,33 +1,209 @@
-.avatar-section {
-    display: flex;
-    align-items: center;
+.settings-container {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: #f5f5f5 !important;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: Arial, sans-serif;
+    animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.settings-title {
+    font-size: 24px;
+    color: #000 !important;
+    text-align: center;
     margin-bottom: 20px;
 }
 
-.avatar-popup {
-    margin-left: 10px;
+.avatar-section {
+    text-align: center;
+    margin-bottom: 20px;
 }
 
+    .avatar-section .ant-avatar {
+        transition: transform 0.3s ease-in-out;
+    }
+
+        .avatar-section .ant-avatar:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(19, 21, 22, 0.5);
+        }
+
+    .avatar-section .ant-btn {
+        margin-top: 10px;
+        color: #fff !important;
+        background-color: #000 !important;
+        border: none;
+        transition: background-color 0.3s ease-in-out;
+    }
+
+        .avatar-section .ant-btn:hover {
+            background-color: #171819 !important;
+        }
+
 .default-avatars img {
-    width: 50px; /* Adjust size */
-    height: 50px; /* Adjust size */
-    cursor: pointer;
+    width: 60px;
+    height: 60px;
     margin: 5px;
-    transition: transform 0.3s;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.3s ease-in-out;
 }
 
     .default-avatars img:hover {
         transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(19, 17, 17, 0.3);
     }
 
 .field-section {
-    margin: 20px 0;
+    margin-bottom: 20px;
 }
 
+.field-label {
+    font-weight: bold;
+    color: #000 !important;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.field-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #000 !important;
+    padding: 8px;
+    background-color: #fff !important;
+    border-radius: 5px;
+    transition: box-shadow 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+    .field-content:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+.username-form {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.ant-input,
+.ant-btn {
+    transition: all 0.3s ease;
+}
+
+    .ant-input:focus,
+    .ant-btn:focus {
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
 .success-message {
-    color: green;
+    color: #4CAF50 !important;
+    font-weight: bold;
+    margin-top: 5px;
 }
 
 .error-message {
-    color: red;
+    color: #f44336 !important;
+    font-weight: bold;
+    margin-top: 5px;
 }
+
+.ant-collapse-header {
+    font-weight: bold;
+    color: #000 !important;
+}
+
+.ant-collapse-content {
+    background-color: #fafafa !important;
+    color: #666 !important;
+    padding: 15px;
+}
+
+.ant-collapse-item {
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+}
+
+    .ant-collapse-item:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+    }
+
+.ant-collapse-content > p {
+    margin-bottom: 8px;
+}
+
+.about-section {
+    margin-top: 20px;
+}
+
+.ant-btn, .ant-btn-primary {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    color: #fff !important;
+    border: none;
+    transition: background-color 0.3s ease-in-out;
+}
+
+    .ant-btn:hover, .ant-btn-primary:hover {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+
+.ant-modal-content {
+    border-radius: 8px;
+}
+
+.ant-modal-header {
+    background-color: #000 !important;
+    color: #fff !important;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.ant-modal-footer .ant-btn {
+    background-color: #000 !important;
+    color: #fff !important;
+}
+
+    .ant-modal-footer .ant-btn:hover {
+        background-color: #171819 !important;
+    }
+
+.faq-section,
+.about-section {
+    margin-top: 20px;
+}
+
+    .faq-section p {
+        color: #000 !important;
+        margin-bottom: 5px;
+    }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AmigosGramProject.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class ss : Migration
+    public partial class sss : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

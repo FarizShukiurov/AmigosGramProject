@@ -173,27 +173,28 @@ function ChatPage() {
     };
 
     const handleImageUpload = async (info) => {
-        console.log("Cli")
         const file = info.file.originFileObj;
         const formData = new FormData();
-        formData.append('file', file);
-
+        formData.append("file", file);
         try {
-            const response = await fetch("/api/files/upload", {
-                method: 'POST',
-                body: formData
+            const response = await fetch("https://localhost:7015/api/files/upload", {
+                method: "POST",
+                body: formData,
             });
 
             if (!response.ok) {
-                throw new Error('Failed to upload image.');
+                const errorData = await response.json();
+                console.error("Server response error:", errorData);
+                throw new Error(errorData || "Failed to upload image.");
             }
 
             const data = await response.json();
-            message.success('Image uploaded successfully!');
-            console.log(data);  // Данные можно использовать для отображения или других целей
+            antdMessage.success("Image uploaded successfully!");
+            console.log("Uploaded file details:", data);
+
         } catch (error) {
-            message.error(error.message || 'Failed to upload image.');
-            console.error(error);
+            antdMessage.error(error.message || "Failed to upload image.");
+            console.error("Upload error:", error);
         }
     };
 
@@ -356,11 +357,11 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
-                    beforeUpload={() => false}
-                    onChange={handleImageUpload}
-                    {...imageProps}
+                    accept="image/*" // Specify accepted file types
+                    onChange={handleImageUpload} // Handle file upload
+                    showUploadList={false} // Hide the default upload list
                 >
-                    <Button icon={<PictureOutlined />}>Click to Upload</Button>
+                    <Button>Click to Upload Image</Button>
                 </Upload>
             </Modal>
 

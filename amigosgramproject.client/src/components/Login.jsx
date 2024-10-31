@@ -1,7 +1,9 @@
-/* eslint-disable no-unused-vars */
 import { useState } from "react";
+import { Button, Form, Input, Checkbox, Typography, Alert } from 'antd';
 import { useNavigate } from "react-router-dom";
 import './Login.css';
+
+const { Title, Text } = Typography;
 
 function Login() {
     const [email, setEmail] = useState("");
@@ -32,53 +34,47 @@ function Login() {
         return re.test(password);
     };
 
-    const handleLoginSubmit = (e) => {
-        e.preventDefault();
+    const handleLoginSubmit = async () => {
         if (!email || !password) {
             setError("Please fill in all fields.");
         } else {
             setError("");
             const loginurl = rememberme ? "/login?useCookies=true" : "/login?useSessionCookies=true";
-            fetch(loginurl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
-            })
-                .then((response) => {
-                    if (response.ok) {
-                        setError("Successful Login.");
-                        window.location.href = '/';
-                    } else {
-                        setError("Error Logging In.");
-                    }
-                })
-                .catch(() => setError("Error Logging in."));
+            try {
+                const response = await fetch(loginurl, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password }),
+                });
+                if (response.ok) {
+                    setError("Successful Login.");
+                    window.location.href = '/';
+                } else {
+                    setError("Error Logging In.");
+                }
+            } catch {
+                setError("Error Logging in.");
+            }
         }
     };
 
-    const handleRegisterSubmit = async (e) => {
-        e.preventDefault();
-
+    const handleRegisterSubmit = async () => {
         if (!email || !password || !confirmPassword) {
             setError("Please fill in all fields.");
             return;
         }
-
         if (!validateEmail(email)) {
             setError("Please enter a valid email address.");
             return;
         }
-
         if (!validatePassword(password)) {
             setError("Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.");
             return;
         }
-
         if (password !== confirmPassword) {
             setError("Passwords do not match.");
             return;
         }
-
         setError("");
         try {
             const response = await fetch("/register", {
@@ -86,29 +82,23 @@ function Login() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),
             });
-
             if (response.ok) {
                 startBlockTimer();
-
                 const confirmationResponse = await fetch("/Account/SendEmailConfirmation", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(email),
                 });
-
                 if (confirmationResponse.ok) {
                     setError("Registration successful! Please check your email to confirm your account.");
                 } else {
-                    const errorText = await confirmationResponse.text();
-                    setError(`Error sending confirmation email: ${errorText}`);
+                    setError("Error sending confirmation email.");
                 }
             } else {
-                const errorText = await response.text();
-                setError(`Error registering: ${errorText}`);
+                setError("Error registering.");
             }
         } catch (error) {
             setError("Error registering. Please try again later.");
-            console.error(error);
         }
     };
 
@@ -132,7 +122,6 @@ function Login() {
     const handleRegisterClick = () => {
         if (isRegistering) return;
         setPanelClass("login-panel slide-out");
-
         setTimeout(() => {
             setIsRegistering(true);
             setPanelClass("register-panel slide-in");
@@ -142,140 +131,86 @@ function Login() {
     const handleLoginClick = () => {
         if (!isRegistering) return;
         setPanelClass("register-panel slide-out");
-
         setTimeout(() => {
             setIsRegistering(false);
             setPanelClass("login-panel slide-in");
         }, 500);
-    };
-    const handleResendClick = async () => {
-        try {
-            const confirmationResponse = await fetch("/Account/SendEmailConfirmation", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(email),
-            });
-
-            if (confirmationResponse.ok) {
-                setError("Confirmation email resent. Please check your email.");
-                startBlockTimer();
-            } else {
-                const errorText = await confirmationResponse.text();
-                setError(`Error sending confirmation email: ${errorText}`);
-            }
-        } catch (error) {
-            setError("Error resending confirmation email. Please try again later.");
-            console.error(error);
-        }
     };
 
     return (
         <div className="login-container">
             <div className="info-section">
                 <img src="src/assets/Amigos-logo.png" alt="AmigosGram Logo" className="logo" />
-                <h2 className="info-title">Welcome to AmigosGram</h2>
-                <p className="info-text">Join AmigosGram today and enjoy the following benefits:</p>
-                <ul className="benefits-list">
-                    <li className="benefit-item">Free messaging</li>
-                    <li className="benefit-item">End-to-end encryption</li>
-                    <li className="benefit-item">Unlimited storage</li>
-                </ul>
+                <Title className="info-title">Welcome to AmigosGram</Title>
+                <Text className="info-text">Join AmigosGram today and enjoy free messaging, end-to-end encryption, and unlimited storage.</Text>
             </div>
             <div className={`panel ${panelClass} ${isRegistering ? 'register-panel' : 'login-panel'}`}>
                 {isRegistering ? (
-                    <>
-                        <h3 className="title">Create an account</h3>
-                        <form onSubmit={handleRegisterSubmit} className="form">
-                            <div className="form-group">
-                                <label htmlFor="email">Email <span className="required">*</span></label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={email}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                    disabled={isBlocked}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="password">Password <span className="required">*</span></label>
-                                <input
-                                    type="password"
-                                    id="password"
-                                    name="password"
-                                    value={password}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                    disabled={isBlocked}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="confirmPassword">Confirm Password <span className="required">*</span></label>
-                                <input
-                                    type="password"
-                                    id="confirmPassword"
-                                    name="confirmPassword"
-                                    value={confirmPassword}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                    disabled={isBlocked}
-                                />
-                            </div>
-                            <button type="submit" className="submit-button" disabled={isBlocked}>
-                                Register {isBlocked && `(${timer}s)`}
-                            </button>
-                            {isResendVisible && (
-                                <button type="button" className="resend-button" onClick={handleResendClick}>
-                                    Resend Confirmation Email
-                                </button>
-                            )}
-                        </form>
-                        <div className="login">
-                            Already have an account? <span className="login-link" onClick={handleLoginClick}>Login</span>
+                    <Form onFinish={handleRegisterSubmit} layout="vertical" disabled={isBlocked}>
+                        <Title level={3}>Create an account</Title>
+                        <Form.Item label="Email" required>
+                            <Input
+                                type="email"
+                                name="email"
+                                value={email}
+                                onChange={handleChange}
+                                disabled={isBlocked}
+                            />
+                        </Form.Item>
+                        <Form.Item label="Password" required>
+                            <Input.Password
+                                name="password"
+                                value={password}
+                                onChange={handleChange}
+                                disabled={isBlocked}
+                            />
+                        </Form.Item>
+                        <Form.Item label="Confirm Password" required>
+                            <Input.Password
+                                name="confirmPassword"
+                                value={confirmPassword}
+                                onChange={handleChange}
+                                disabled={isBlocked}
+                            />
+                        </Form.Item>
+                        <Button type="primary" htmlType="submit" block disabled={isBlocked}>
+                            Register {isBlocked && `(${timer}s)`}
+                        </Button>
+                        {isResendVisible && (
+                            <Button type="link" onClick={handleResendClick}>Resend Confirmation Email</Button>
+                        )}
+                        {error && <Alert message={error} type="error" showIcon />}
+                        <div className="switch-form">
+                            Already have an account? <Button type="link" onClick={handleLoginClick}>Login</Button>
                         </div>
-                    </>
+                    </Form>
                 ) : (
-                    <>
-                        <h3 className="title">Welcome back!</h3>
-                        <p className="subtitle">Were so excited to see you again!</p>
-                        <form onSubmit={handleLoginSubmit} className="form">
-                            <div className="form-group">
-                                <label htmlFor="email">Email<span className="required">*</span></label>
-                                <input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={email}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label htmlFor="password">Password <span className="required">*</span></label>
-                                <input
-                                    type="password"
-                                    id="password"
-                                    name="password"
-                                    value={password}
-                                    onChange={handleChange}
-                                    className="input-field"
-                                />
-                            </div>
-                            <div className="forgot-password">
-                                Forgot your password?
-                            </div>
-                            <button type="submit" className="submit-button">Log In</button>
-                        </form>
-                        <div className="register">
-                            Need an account?{' '}
-                            <span className="register-link" onClick={handleRegisterClick}>
-                                Register
-                            </span>
+                    <Form onFinish={handleLoginSubmit} layout="vertical">
+                        <Title level={3}>Welcome back!</Title>
+                        <Text>We're so excited to see you again!</Text>
+                        <Form.Item label="Email" required>
+                            <Input
+                                type="email"
+                                name="email"
+                                value={email}
+                                onChange={handleChange}
+                            />
+                        </Form.Item>
+                        <Form.Item label="Password" required>
+                            <Input.Password
+                                name="password"
+                                value={password}
+                                onChange={handleChange}
+                            />
+                        </Form.Item>
+                        <Checkbox name="rememberme" onChange={handleChange}>Remember me</Checkbox>
+                        <Button type="primary" htmlType="submit" block>Log In</Button>
+                        {error && <Alert message={error} type="error" showIcon />}
+                        <div className="switch-form">
+                            Need an account? <Button type="link" onClick={handleRegisterClick}>Register</Button>
                         </div>
-                    </>
+                    </Form>
                 )}
-                {error && <p className="error">{error}</p>}
             </div>
         </div>
     );

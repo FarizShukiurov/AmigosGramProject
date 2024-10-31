@@ -3,17 +3,16 @@ html, body {
     padding: 0;
     width: 100%;
     height: 100%;
-    overflow-x: hidden;
+    font-family: 'Arial', sans-serif;
+    background-color: black;
+    color: white;
 }
 
 .login-container {
     display: flex;
-    width: 100vw; /* Используем всю ширину экрана */
-    height: 100vh; /* Используем всю высоту экрана */
-    background-color: #201c4f;
-    color: #f2eedc;
-    font-family: 'Arial', sans-serif;
-    overflow: hidden; /* Убираем возможные полоски прокрутки */
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .info-section {
@@ -23,254 +22,99 @@ html, body {
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    background-color: #201c4f;
+    background-color: white;
+    color: black;
 }
 
-.login-container .info-section .logo {
+.logo {
     width: 150px;
     margin-bottom: -40px;
 }
 
 .info-title {
     font-size: 2.5rem;
-    margin-bottom: 10px;
+    color: black;
 }
 
-.info-text {
-    font-size: 1.2rem;
-    margin-bottom: 20px;
-}
-
-.benefits-list {
-    list-style: none;
-    padding: 0;
-}
-
-.benefit-item {
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-}
-
-.login-panel {
+.panel {
     width: 50%;
     padding: 50px;
-    background-color: #f2eedc;
-    position: relative;
-    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
+    background: rgba(0, 0, 0, 0.7);
+    color: white; /* Ensure default text color in panel is white */
     display: flex;
-    border-radius: 7px;
     flex-direction: column;
     justify-content: center;
-    box-shadow: -8px 0 16px rgba(0, 0, 0, 0.3), -12px 0 40px rgba(0, 0, 0, 0.2);
+    border-radius: 7px;
+    transition: all 0.7s ease;
 }
 
-
-    .login-panel label {
-        font-size: 1rem;
-        color: #201c4f;
-    }
-    .login-panel .title {
-        font-size: 2rem;
-        color: #201c4f;
-        margin-bottom: 10px;
+    .panel h1, .panel h2, .panel h3, .panel p, .panel a {
+        color: white !important;
     }
 
-.login-panel .subtitle {
-    font-size: 1.2rem;
-    color: #201c4f;
-    margin-bottom: 30px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-
-.login-panel .input-field {
-    width: 100%;
-    padding: 10px;
-    margin-top: 5px;
-    font-size: 1rem;
-    border: 1px solid #201c4f;
-    border-radius: 5px;
-    background-color: #fff;
-    color: #201c4f;
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: #201c4f;
-}
-
-.login-panel .submit-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #201c4f;
-    color: #f2eedc;
-    font-size: 1.2rem;
-    border: solid;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.6s ease, color 0.6s ease, border 0.6s ease;
-}
-
-    .login-panel .submit-button:hover {
-        border: dashed;
-        background-color: #f2eedc;
-        color: #201c4f;
-    }
-
-
-@keyframes slide-in {
-    from {
-        right: -50%;
-    }
-
-    to {
-        right: 0;
-    }
-}
-
-
-
-.forgot-password {
-    color: #201c4f;
-    text-align: right;
-    cursor: pointer;
-    margin-bottom: 20px;
-}
-
-.register {
-    margin-top: 20px;
-    color: #201c4f;
-}
-
-.register-link {
-    color: #201c4f;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.error {
-    color: red;
-    margin-top: 10px;
-}
-
-/* Shared styles for both components */
 .slide-in {
-    animation: slideIn 0.5s forwards;
+    animation: slideIn 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
 }
 
 .slide-out {
-    animation: slideOut 0.5s forwards;
+    animation: slideOut 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
 }
 
 @keyframes slideIn {
-    from {
-        transform: translateX(100%);
+    0% {
+        transform: translateX(50%);
         opacity: 0;
     }
 
-    to {
+    75% {
+        transform: translateX(-5%);
+        opacity: 1;
+    }
+
+    100% {
         transform: translateX(0);
         opacity: 1;
     }
 }
 
 @keyframes slideOut {
-    from {
+    0% {
         transform: translateX(0);
         opacity: 1;
     }
 
-    to {
-        transform: translateX(100%);
+    100% {
+        transform: translateX(-50%);
         opacity: 0;
     }
 }
-/* reg*/
 
-.register-panel {
-    width: 50%;
-    padding: 50px;
-    background-color: #f2eedc;
-    position: relative;
-    transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
-    display: flex;
-    border-radius: 7px;
-    flex-direction: column;
-    justify-content: center;
-    box-shadow: -8px 0 16px rgba(0, 0, 0, 0.3), -12px 0 40px rgba(0, 0, 0, 0.2);
-}
-
-    .register-panel label {
-        font-size: 1rem;
-        color: #201c4f;
-    }
-
-    .register-panel .title {
-        font-size: 2rem;
-        color: #201c4f;
-        margin-bottom: 10px;
-    }
-
-    .register-panel .subtitle {
-        font-size: 1.2rem;
-        color: #201c4f;
-        margin-bottom: 30px;
-    }
-
-    .register-panel .form-group {
-        margin-bottom: 20px;
-    }
-
-    .register-panel .input-field {
-        width: 100%;
-        padding: 10px;
-        margin-top: 5px;
-        font-size: 1rem;
-        border: 1px solid #201c4f;
-        border-radius: 5px;
-        background-color: #fff;
-        color: #201c4f;
-    }
-
-.input-field:focus {
-    outline: none;
-    border-color: #201c4f;
-}
-
-.register-panel .submit-button {
-    width: 100%;
-    padding: 10px;
-    background-color: #201c4f;
-    color: #f2eedc;
-    font-size: 1.2rem;
-    border: solid;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.6s ease, color 0.6s ease, border 0.6s ease;
-}
-
-    .register-panel .submit-button:hover {
-        border: dashed;
-        background-color: #f2eedc;
-        color: #201c4f;
-    }
-
-.register-panel .error {
-    color: red;
-    margin-top: 10px;
-}
-
-.register-panel .login {
+.switch-form {
     margin-top: 20px;
-    color: #201c4f;
+    color: #ccc;
 }
 
-.register-panel .login-link {
-    color: #201c4f;
-    cursor: pointer;
-    font-weight: bold;
+    .switch-form a {
+        color: white;
+    }
+.panel label,
+.panel .ant-checkbox-wrapper,
+.panel .ant-form-item-label > label,
+.panel p,
+.panel .ant-typography {
+    color: white !important;
 }
-/* Для login-panel и register-panel */
+
+.panel h1, .panel h2, .panel h3, .panel p, .panel a {
+    color: white !important;
+}
+
+    .panel input[type="text"]:focus,
+    .panel input[type="password"]:focus,
+    .panel input[type="email"]:focus {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: white;
+        outline: none;
+    }
+

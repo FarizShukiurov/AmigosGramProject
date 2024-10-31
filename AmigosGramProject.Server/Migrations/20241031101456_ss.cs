@@ -5,10 +5,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace AmigosGramProject.Server.Migrations
 {
-    /// <inheritdoc />
-    public partial class sss : Migration
+    public partial class ss : Migration
     {
-        /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(

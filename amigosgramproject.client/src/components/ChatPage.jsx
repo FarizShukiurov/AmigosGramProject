@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import {
@@ -35,6 +34,8 @@ function ChatPage() {
     const [currentUserId, setCurrentUserId] = useState();
     const [isImageModalVisible, setIsImageModalVisible] = useState(false);
     const [isFileModalVisible, setIsFileModalVisible] = useState(false);
+    const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
+    const [uploadedFileUrls, setUploadedFileUrls] = useState([]);
     const messagesEndRef = useRef(null);
 
     // Scroll to the bottom of the message list whenever messages update
@@ -172,65 +173,81 @@ function ChatPage() {
         fetchMessages(chatId);
     };
 
-    const handleImageUpload = async (info) => {
-        const file = info.file.originFileObj;
-        const formData = new FormData();
-        formData.append("file", file);
-        try {
-            const response = await fetch("https://localhost:7015/api/files/upload", {
-                method: "POST",
-                body: formData,
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error("Server response error:", errorData);
-                throw new Error(errorData || "Failed to upload image.");
-            }
-
-            const data = await response.json();
-            antdMessage.success("Image uploaded successfully!");
-            console.log("Uploaded file details:", data);
-
-        } catch (error) {
-            antdMessage.error(error.message || "Failed to upload image.");
-            console.error("Upload error:", error);
+    const handleImageChange = (info) => {
+        if (info.file.status === 'done') {
+            // Проверяем успешную загрузку
+            const imageUrl = info.file.response.url; // URL, возвращенный эндпоинтом
+            setUploadedImageUrls((prevUrls) => [...prevUrls, imageUrl]);
+            antdMessage.success(`${info.file.name} Successfully uploaded.`);
+        } else if (info.file.status === 'error') {
+            antdMessage.error(`${info.file.name} upload error.`);
         }
     };
 
-    const handleFileUpload = async (info) => {
-        const file = info.file.originFileObj;
-        const formData = new FormData();
-        formData.append('file', file);
-
+    const handleImageRemove = async (file) => {
         try {
-            const response = await fetch('/api/files/upload', {
-                method: 'POST',
-                body: formData
+            // Отправляем запрос на удаление
+            console.log(file.response.fileId);
+            const response = await fetch(`/api/files/delete/${file.response.fileId}`, {
+                method: 'DELETE',
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to upload file.');
+            if (response.ok) {
+                setUploadedImageUrls((prevUrls) =>
+                    prevUrls.filter((url) => url !== file.response.url)
+                );
+                antdMessage.success('File successfully deleted');
+            } else {
+                antdMessage.error('File delete failed 1');
             }
-
-            const data = await response.json();
-            message.success('File uploaded successfully!');
-            console.log(data);
         } catch (error) {
-            message.error(error.message || 'Failed to upload file.');
-            console.error(error);
+            antdMessage.error('File delete failed 2');
         }
     };
 
+    const handleFileChange = (info) => {
+        if (info.file.status === 'done') {
+            // Проверяем успешную загрузку
+            const fileUrl = info.file.response.url; // URL, возвращенный эндпоинтом
+            setUploadedFileUrls((prevUrls) => [...prevUrls, fileUrl]);
+            antdMessage.success(`${info.file.name} Successfully uploaded.`);
+        } else if (info.file.status === 'error') {
+            antdMessage.error(`${info.file.name} upload error.`);
+        }
+    };
+
+    const handleFileRemove = async (file) => {
+        try {
+            // Отправляем запрос на удаление
+            console.log(file.response.fileId);
+            const response = await fetch(`/api/files/delete/${file.response.fileId}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                setUploadedFileUrls((prevUrls) =>
+                    prevUrls.filter((url) => url !== file.response.url)
+                );
+                antdMessage.success('File successfully deleted');
+            } else {
+                antdMessage.error('File delete failed 1');
+            }
+        } catch (error) {
+            antdMessage.error('File delete failed 2');
+        }
+    };
 
     const sendMessage = async () => {
         if (!message || !selectedChatId) return;
+
 
         const messageDto = {
             senderId: currentUserId,
             receiverId: selectedChatId,
             content: message,
-            messageType: 0,
+            messageType: uploadedImageUrls.length > 0 ? 1 : uploadedFileUrls.length > 0 ? 2 : 0,
+            mediaUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : [],
+            fileUrls: uploadedFileUrls.length > 0 ? uploadedFileUrls : [],
         };
 
         try {
@@ -244,6 +261,7 @@ function ChatPage() {
                 const createdMessage = await response.json();
                 setMessages((prevMessages) => [...prevMessages, createdMessage]);
                 setMessage("");
+                setUploadedImageUrls([]);
             } else {
                 console.error("Error sending message:", response.status);
             }
@@ -268,23 +286,6 @@ function ChatPage() {
         setIsFileModalVisible(false);
     };
 
-    const imageProps = {
-        beforeUpload: (file) => {
-            const isImage = file.type.startsWith("image/");
-            if (!isImage) {
-                antdMessage.error("You can only upload image files!");
-            }
-            return isImage || Upload.LIST_IGNORE;
-        },
-        onChange: (info) => {
-            if (info.file.status === "done") {
-                antdMessage.success(`${info.file.name} file uploaded successfully`);
-                handleModalClose();
-            } else if (info.file.status === "error") {
-                antdMessage.error(`${info.file.name} file upload failed.`);
-            }
-        },
-    };
 
     return (
         <Layout className="chat-page">
@@ -363,9 +364,10 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
-                    accept="image/*" // Specify accepted file types
-                    onChange={handleImageUpload} // Handle file upload
-                    showUploadList={false} // Hide the default upload list
+                    accept="image/*"
+                    action="/api/files/upload"
+                    onRemove={handleImageRemove}
+                    onChange={handleImageChange}
                 >
                     <Button>Click to Upload Image</Button>
                 </Upload>
@@ -378,8 +380,10 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
-                    beforeUpload={() => false}
-                    onChange={handleFileUpload}
+                    accept=".txt, .pdf, .doc, .docx, .zip, .rar, .7z"
+                    action="/api/files/upload"
+                    onRemove={handleFileRemove}
+                    onChange={handleFileChange}
                 >
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>

@@ -3,7 +3,8 @@
     public enum MessageType
     {
         Text,      
-        Image      
+        Image,
+        File
     }
 
     public class Message
@@ -14,7 +15,8 @@
         public string Content { get; set; }        
         public DateTime Timestamp { get; set; }     
         public MessageType MessageType { get; set; }
-        public string? MediaUrl { get; set; } = null;      
+        public List<string>? MediaUrls { get; set; } = null;
+        public List<string>? FileUrls { get; set; } = null;
     }
 
 }

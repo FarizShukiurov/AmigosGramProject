@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20241028053840_sss")]
-    partial class sss
+    [Migration("20241031180208_123")]
+    partial class _123
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,7 +37,10 @@ namespace AmigosGramProject.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MediaUrl")
+                    b.Property<string>("FileUrls")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MediaUrls")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MessageType")

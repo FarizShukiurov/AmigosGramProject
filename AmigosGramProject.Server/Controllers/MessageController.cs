@@ -33,7 +33,8 @@ namespace AmigosGramProject.Server.Controllers
                 Content = messageDto.Content,
                 MessageType = messageDto.MessageType,
                 Timestamp = DateTime.Now,
-                MediaUrl = messageDto.ImageUrl // Добавляем URL, если это сообщение с картинкой
+                MediaUrls = messageDto.MediaUrls, // Добавляем URL, если это сообщение с картинкой
+                FileUrls = messageDto.FileUrls // Добавляем URL, если это сообщение с картинкой
             };
 
             // Сохраняем сообщение в базе данных

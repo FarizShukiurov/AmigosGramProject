@@ -122,6 +122,10 @@ export default defineConfig({
             '^/api/files/upload': {
                 target,
                 secure: false
+            },
+            '^/api/files/delete/': {
+                target,
+                secure: false
             }
             
         },

@@ -34,7 +34,10 @@ namespace AmigosGramProject.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MediaUrl")
+                    b.Property<string>("FileUrls")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MediaUrls")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MessageType")

@@ -166,6 +166,7 @@ const Contacts = () => {
                 visible={showModal}
                 onCancel={closeModal}
                 onOk={handleSubmitContact}
+                closable={false}
                 okText="Add Contact"
             >
                 <Avatar

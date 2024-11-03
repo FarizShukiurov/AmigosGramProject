@@ -67,40 +67,33 @@ function Layout() {
                         <img src="/src/assets/Amigos-logo.png" alt="App Logo" className="logo-img" />
                     </div>
                     <div className="profile">
-                        <Tooltip title="Profile">
+                        <Tooltip title="">
                             <img src={avatarUrl} alt="Profile Avatar" className="sidebar-avatar" />
                         </Tooltip>
                         <hr className="separator" />
                     </div>
                     <nav className="menu">
-                        <Tooltip title="Contacts">
-                            <button className="menu-item">
-                                <Link to="/contacts">
-                                    <UserOutlined style={{ fontSize: '24px', color: 'white' }} />
-                                </Link>
-                            </button>
-                        </Tooltip>
-                        <Tooltip title="Chats">
-                            <button className="menu-item">
-                                <Link to="/chats">
-                                    <MessageOutlined style={{ fontSize: '24px', color: 'white' }} />
-                                </Link>
-                            </button>
-                        </Tooltip>
+                        <button className="menu-item">
+                            <Link to="/contacts">
+                                <UserOutlined style={{ fontSize: '24px', color: 'white' }} />
+                            </Link>
+                        </button>
+                        <button className="menu-item">
+                            <Link to="/chats">
+                                <MessageOutlined style={{ fontSize: '24px', color: 'white' }} />
+                            </Link>
+                        </button>
                         <div className="menu-spacer" />
-                        <Tooltip title="Settings">
-                            <button className="menu-item">
-                                <Link to="/settings">
-                                    <SettingOutlined style={{ fontSize: '24px', color: 'white' }} />
-                                </Link>
-                            </button>
-                        </Tooltip>
-                        <Tooltip title="Logout">
-                            <button className="logout menu-item" onClick={handleLogout}>
-                                <LogoutOutlined style={{ fontSize: '24px', color: 'white' }} />
-                            </button>
-                        </Tooltip>
+                        <button className="menu-item">
+                            <Link to="/settings">
+                                <SettingOutlined style={{ fontSize: '24px', color: 'white' }} />
+                            </Link>
+                        </button>
+                        <button className="logout menu-item" onClick={handleLogout}>
+                            <LogoutOutlined style={{ fontSize: '24px', color: 'white' }} />
+                        </button>
                     </nav>
+
                 </aside>
                 <main className="content animated-content">
                     <Outlet />

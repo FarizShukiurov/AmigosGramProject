@@ -10,6 +10,7 @@ import {
     Tooltip,
     Modal,
     Upload,
+    Image,
     message as antdMessage,
 } from "antd";
 import {
@@ -175,8 +176,8 @@ function ChatPage() {
 
     const handleImageChange = (info) => {
         if (info.file.status === 'done') {
-            // Проверяем успешную загрузку
-            const imageUrl = info.file.response.url; // URL, возвращенный эндпоинтом
+            console.log(info.file.response); // Check the structure of the response
+            const imageUrl = info.file.response.url; // Make sure this URL is correct
             setUploadedImageUrls((prevUrls) => [...prevUrls, imageUrl]);
             antdMessage.success(`${info.file.name} Successfully uploaded.`);
         } else if (info.file.status === 'error') {
@@ -272,12 +273,48 @@ function ChatPage() {
 
     const renderMessage = (msg) => {
         const isCurrentUserSender = msg.senderId === currentUserId;
+
         return (
             <div key={msg.id} className={`message ${isCurrentUserSender ? "sent" : "received"}`}>
-                {msg.content}
+                {/* Check for different message types */}
+                {msg.content && <p>{msg.content}</p>}
+
+                {/* Display uploaded images if present */}
+                {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                    <div className="image-gallery">
+                        {msg.mediaUrls.map((url, index) => (
+                            <Image
+                                key={index}
+                                width={200}
+                                src={url} // Ensure this URL is the direct link to your blob storage
+                                alt={`Uploaded media ${index + 1}`}
+                                style={{ margin: '8px 0' }}
+                            />
+                        ))}
+                    </div>
+                )}
+
+                {/* Display uploaded files if present */}
+                {msg.fileUrls && msg.fileUrls.length > 0 && (
+                    <div className="file-list">
+                        {msg.fileUrls.map((url, index) => (
+                            <Button
+                                key={index}
+                                type="link"
+                                href={url} // This should also be a direct link to your blob storage
+                                target="_blank"
+                                icon={<FileOutlined />}
+                                style={{ display: 'block', margin: '4px 0' }}
+                            >
+                                Download File {index + 1}
+                            </Button>
+                        ))}
+                    </div>
+                )}
             </div>
         );
     };
+
 
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
@@ -358,9 +395,10 @@ function ChatPage() {
             </Layout>
 
             <Modal
-                title="Select Image"
+                title={<span className="custom-modal-title">Select Image</span>}
                 visible={isImageModalVisible}
                 onCancel={handleModalClose}
+                closable={false}
                 footer={null}
             >
                 <Upload
@@ -374,9 +412,10 @@ function ChatPage() {
             </Modal>
 
             <Modal
-                title="Select File"
+                title={<span className="custom-modal-title">Select File</span>}
                 visible={isFileModalVisible}
                 onCancel={handleModalClose}
+                closable={false}
                 footer={null}
             >
                 <Upload
@@ -388,6 +427,7 @@ function ChatPage() {
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
+
 
         </Layout>
     );

@@ -50,6 +50,7 @@
 
 
 .chat-avatar {
+    padding:10px;
     margin-right: 25px;
 }
 
@@ -163,6 +164,7 @@
 .chat-item {
     padding: 10px;
     margin-left: 10px;
+    margin-right:10px;
     cursor: pointer;
     color: white !important;
 }

@@ -162,7 +162,7 @@ const Contacts = () => {
                 )}
             />
             <Modal
-                title={`Add Contact for ${selectedUser?.userName}`}
+                title={<span className="custom-modal-title">Add Contact for {selectedUser?.userName}</span>}
                 visible={showModal}
                 onCancel={closeModal}
                 onOk={handleSubmitContact}

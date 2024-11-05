@@ -118,3 +118,18 @@ html, body {
         outline: none;
     }
 
+/* Add this to your Login.css */
+.custom-button {
+    background-color: white !important; /* Set background color to white */
+    color: black !important; /* Set text color to black */
+    border: 1px solid #d9d9d9 !important; /* Optional: add a border */
+}
+
+    .custom-button:hover {
+        background-color: #f0f0f0 !important; /* Change background color on hover */
+        transition: 0.5s;
+        border: 1px solid darkgray !important;
+        color: darkgray !important; /* Ensure text remains black on hover */
+    }
+
+/* If you want to remove the default primary button styles */

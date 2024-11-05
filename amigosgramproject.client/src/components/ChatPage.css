@@ -50,6 +50,7 @@
 
 
 .chat-avatar {
+    padding:10px;
     margin-right: 25px;
 }
 
@@ -95,6 +96,7 @@
 
         .chat-input input::placeholder {
             color: rgba(255, 255, 255, 0.6);
+            border-block-color: black;
         }
 
 .chat-messages {
@@ -162,6 +164,7 @@
 .chat-item {
     padding: 10px;
     margin-left: 10px;
+    margin-right:10px;
     cursor: pointer;
     color: white !important;
 }
@@ -215,6 +218,21 @@
     overflow-y: scroll;
 }
 
+.message img, .message .file-list {
+    max-width: 100%;
+    margin: 8px 0;
+}
+
+.image-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.custom-modal-title {
+    margin-left: 16px;
+    color: white; /* Set the color to white */
+}
 
 @keyframes fade-in {
     from {

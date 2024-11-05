@@ -16,7 +16,9 @@ function Login() {
     const [timer, setTimer] = useState(0);
     const [isResendVisible, setIsResendVisible] = useState(false);
     const [panelClass, setPanelClass] = useState("login-panel");
+    const [isTransitioning, setIsTransitioning] = useState(false); // New state for transitions
 
+    // Handle input change
     const handleChange = (e) => {
         const { name, value } = e.target;
         if (name === "email") setEmail(value);
@@ -120,20 +122,24 @@ function Login() {
     };
 
     const handleRegisterClick = () => {
-        if (isRegistering) return;
+        if (isTransitioning) return; // Prevent action during transition
+        setIsTransitioning(true); // Start transition
         setPanelClass("login-panel slide-out");
         setTimeout(() => {
             setIsRegistering(true);
             setPanelClass("register-panel slide-in");
+            setIsTransitioning(false); // End transition
         }, 500);
     };
 
     const handleLoginClick = () => {
-        if (!isRegistering) return;
+        if (isTransitioning) return; // Prevent action during transition
+        setIsTransitioning(true); // Start transition
         setPanelClass("register-panel slide-out");
         setTimeout(() => {
             setIsRegistering(false);
             setPanelClass("login-panel slide-in");
+            setIsTransitioning(false); // End transition
         }, 500);
     };
 
@@ -173,7 +179,7 @@ function Login() {
                                 disabled={isBlocked}
                             />
                         </Form.Item>
-                        <Button type="primary" htmlType="submit" block disabled={isBlocked}>
+                        <Button type="primary" className="custom-button" htmlType="submit" block disabled={isBlocked}>
                             Register {isBlocked && `(${timer}s)`}
                         </Button>
                         {isResendVisible && (
@@ -204,7 +210,9 @@ function Login() {
                             />
                         </Form.Item>
                         <Checkbox name="rememberme" onChange={handleChange}>Remember me</Checkbox>
-                        <Button type="primary" htmlType="submit" block>Log In</Button>
+                            <Button type="primary" className="custom-button" htmlType="submit" block>
+                                Log In
+                            </Button>
                         {error && <Alert message={error} type="error" showIcon />}
                         <div className="switch-form">
                             Need an account? <Button type="link" onClick={handleRegisterClick}>Register</Button>

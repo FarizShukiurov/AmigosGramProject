@@ -14,13 +14,24 @@ const Contacts = () => {
 
     const fetchOwnContacts = async () => {
         try {
-            const response = await fetch(`/contacts/GetContacts`, {
+            const response = await fetch('/api/Contacts/GetContacts', {
                 method: "GET",
-                headers: { "Content-Type": "application/json" }
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                credentials: "include", // Для отправки куки
             });
 
-            if (!response.ok) throw new Error(`Failed to fetch own contacts: ${response.statusText}`);
-            const ownUsers = await response.json();
+            // Логируем текст ответа, чтобы понять, что возвращает сервер
+            const responseText = await response.text();
+            console.log('Server response:', responseText);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch own contacts: ${response.statusText}. ${responseText}`);
+            }
+
+            // Парсим JSON только если ответ корректен
+            const ownUsers = JSON.parse(responseText);
             setOwnContacts(ownUsers);
             setContacts(ownUsers);
         } catch (error) {
@@ -46,16 +57,18 @@ const Contacts = () => {
             console.error('Error fetching contacts:', error);
         }
     };
-
     const handleSubmitContact = async (e) => {
         e.preventDefault();
         const emailToSend = selectedUser.email;
 
         try {
-            const response = await fetch(`/contacts/AddContact`, {
+            const response = await fetch('/api/Contacts/AddContact', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(emailToSend)
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify(emailToSend),
             });
 
             if (!response.ok) throw new Error(`Failed to add contact: ${await response.text()}`);
@@ -66,12 +79,16 @@ const Contacts = () => {
         }
     };
 
+
     const handleDeleteContact = async (contactId) => {
         try {
-            const response = await fetch('/contacts/DeleteContact', {
+            const response = await fetch('/api/Contacts/DeleteContact', {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contactId })
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include', // Включаем отправку cookies
+                body: JSON.stringify({ contactId }),
             });
 
             if (!response.ok) throw new Error(`Failed to delete contact: ${await response.text()}`);
@@ -81,6 +98,7 @@ const Contacts = () => {
             console.error('Error deleting contact:', error);
         }
     };
+
 
     useEffect(() => { fetchOwnContacts(); }, []);
     useEffect(() => { fetchContacts(searchText); }, [searchText]);

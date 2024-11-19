@@ -42,7 +42,7 @@ function Layout() {
 
     const handleLogout = async () => {
         try {
-            const response = await fetch("/logout", {
+            const response = await fetch("/Account/logout", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

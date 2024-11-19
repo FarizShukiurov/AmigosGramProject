@@ -1,67 +1,71 @@
 import { useState } from "react";
 import { Button, Form, Input, Checkbox, Typography, Alert } from 'antd';
-import { useNavigate } from "react-router-dom";
+import Cookies from 'js-cookie'; // Импортируем библиотеку для работы с cookies
 import './Login.css';
+import axios from 'axios';
 
 const { Title, Text } = Typography;
 
 function Login() {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [email, setEmail] = useState(""); // Поле email остается для регистрации
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [rememberme, setRememberme] = useState(false);
     const [error, setError] = useState("");
     const [isRegistering, setIsRegistering] = useState(false);
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [isBlocked, setIsBlocked] = useState(false);
     const [timer, setTimer] = useState(0);
-    const [isResendVisible, setIsResendVisible] = useState(false);
     const [panelClass, setPanelClass] = useState("login-panel");
-    const [isTransitioning, setIsTransitioning] = useState(false); // New state for transitions
+    const [isTransitioning, setIsTransitioning] = useState(false);
 
-    // Handle input change
     const handleChange = (e) => {
         const { name, value } = e.target;
-        if (name === "email") setEmail(value);
+        if (name === "username") setUsername(value);
         if (name === "password") setPassword(value);
+        if (name === "email") setEmail(value); // Оставляем email для регистрации
         if (name === "confirmPassword") setConfirmPassword(value);
         if (name === "rememberme") setRememberme(e.target.checked);
     };
-    const validateEmail = (email) => {
-        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return re.test(String(email).toLowerCase());
-    };
 
-    const validatePassword = (password) => {
-        const re = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
-        return re.test(password);
-    };
+    const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const validatePassword = (password) => /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/.test(password);
 
     const handleLoginSubmit = async () => {
-        if (!email || !password) {
+        if (!username || !password) {
             setError("Please fill in all fields.");
-        } else {
-            setError("");
-            const loginurl = rememberme ? "/login?useCookies=true" : "/login?useSessionCookies=true";
-            try {
-                const response = await fetch(loginurl, {
-                    method: "POST",
+            return;
+        }
+        setError("");
+
+        const loginUrl = rememberme ? "/Account/login" : "/Account/login";
+
+        try {
+            const response = await axios.post(
+                loginUrl,
+                { username, password },
+                {
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ email, password }),
-                });
-                if (response.ok) {
-                    setError("Successful Login.");
-                    window.location.href = '/';
-                } else {
-                    setError("Error Logging In.");
+                    withCredentials: true // Передаём креденшиалы (cookies)
                 }
-            } catch {
-                setError("Error Logging in.");
+            );
+            console.log("privet")
+            if (response.status === 200) {
+                console.log("poka")
+                const data = response.data;
+
+                setError("Successful Login.");
+                window.location.href = '/';
+            } else {
+                setError("Error Logging In.");
             }
+        } catch (error) {
+            setError("Error Logging in.");
         }
     };
 
     const handleRegisterSubmit = async () => {
-        if (!email || !password || !confirmPassword) {
+        if (!username || !email || !password || !confirmPassword) {
             setError("Please fill in all fields.");
             return;
         }
@@ -79,67 +83,40 @@ function Login() {
         }
         setError("");
         try {
-            const response = await fetch("/register", {
+            const response = await fetch("/Account/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ username, email, password }),
             });
             if (response.ok) {
-                startBlockTimer();
-                const confirmationResponse = await fetch("/Account/SendEmailConfirmation", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(email),
-                });
-                if (confirmationResponse.ok) {
-                    setError("Registration successful! Please check your email to confirm your account.");
-                } else {
-                    setError("Error sending confirmation email.");
-                }
+                setError("Registration successful! Please check your email to confirm your account.");
             } else {
                 setError("Error registering.");
             }
-        } catch (error) {
+        } catch {
             setError("Error registering. Please try again later.");
         }
     };
 
-    const startBlockTimer = () => {
-        setIsBlocked(true);
-        setTimer(60);
-        setIsResendVisible(false);
-        const countdown = setInterval(() => {
-            setTimer((prev) => {
-                if (prev <= 1) {
-                    clearInterval(countdown);
-                    setIsBlocked(false);
-                    setIsResendVisible(true);
-                    return 0;
-                }
-                return prev - 1;
-            });
-        }, 1000);
-    };
-
     const handleRegisterClick = () => {
-        if (isTransitioning) return; // Prevent action during transition
-        setIsTransitioning(true); // Start transition
+        if (isTransitioning) return;
+        setIsTransitioning(true);
         setPanelClass("login-panel slide-out");
         setTimeout(() => {
             setIsRegistering(true);
             setPanelClass("register-panel slide-in");
-            setIsTransitioning(false); // End transition
+            setIsTransitioning(false);
         }, 500);
     };
 
     const handleLoginClick = () => {
-        if (isTransitioning) return; // Prevent action during transition
-        setIsTransitioning(true); // Start transition
+        if (isTransitioning) return;
+        setIsTransitioning(true);
         setPanelClass("register-panel slide-out");
         setTimeout(() => {
             setIsRegistering(false);
             setPanelClass("login-panel slide-in");
-            setIsTransitioning(false); // End transition
+            setIsTransitioning(false);
         }, 500);
     };
 
@@ -154,6 +131,16 @@ function Login() {
                 {isRegistering ? (
                     <Form onFinish={handleRegisterSubmit} layout="vertical" disabled={isBlocked}>
                         <Title level={3}>Create an account</Title>
+                        <Form.Item label="Username" required>
+                            <Input
+                                type="text"
+                                name="username"
+                                value={username}
+                                onChange={handleChange}
+                                disabled={isBlocked}
+                                className="username-input"
+                            />
+                        </Form.Item>
                         <Form.Item label="Email" required>
                             <Input
                                 type="email"
@@ -182,42 +169,46 @@ function Login() {
                         <Button type="primary" className="custom-button" htmlType="submit" block disabled={isBlocked}>
                             Register {isBlocked && `(${timer}s)`}
                         </Button>
-                        {isResendVisible && (
-                            <Button type="link" onClick={handleResendClick}>Resend Confirmation Email</Button>
-                        )}
                         {error && <Alert message={error} type="error" showIcon />}
                         <div className="switch-form">
                             Already have an account? <Button type="link" onClick={handleLoginClick}>Login</Button>
                         </div>
                     </Form>
                 ) : (
-                    <Form onFinish={handleLoginSubmit} layout="vertical">
-                        <Title level={3}>Welcome back!</Title>
-                        <Text>We're so excited to see you again!</Text>
-                        <Form.Item label="Email" required>
-                            <Input
-                                type="email"
-                                name="email"
-                                value={email}
-                                onChange={handleChange}
-                            />
-                        </Form.Item>
-                        <Form.Item label="Password" required>
-                            <Input.Password
-                                name="password"
-                                value={password}
-                                onChange={handleChange}
-                            />
-                        </Form.Item>
-                        <Checkbox name="rememberme" onChange={handleChange}>Remember me</Checkbox>
-                            <Button type="primary" className="custom-button" htmlType="submit" block>
-                                Log In
-                            </Button>
-                        {error && <Alert message={error} type="error" showIcon />}
-                        <div className="switch-form">
-                            Need an account? <Button type="link" onClick={handleRegisterClick}>Register</Button>
-                        </div>
-                    </Form>
+                        <Form onFinish={handleLoginSubmit} layout="vertical">
+                            <Title level={3}>Welcome back!</Title>
+                            <Text>We are so excited to see you again!</Text>
+                            <Form.Item label="Username" required>
+                                <Input
+                                    type="text"
+                                    name="username"
+                                    value={username}
+                                    onChange={handleChange}
+                                />
+                            </Form.Item>
+                            <Form.Item label="Password" required>
+                                <Input.Password
+                                    name="password"
+                                    value={password}
+                                    onChange={handleChange}
+                                />
+                            </Form.Item>
+                            <Form.Item>
+                                <Checkbox name="rememberme" checked={rememberme} onChange={handleChange}>
+                                    Remember me
+                                </Checkbox>
+                            </Form.Item>
+                            <Form.Item>
+                                <Button type="primary" className="custom-button" htmlType="submit" block>
+                                    Log In
+                                </Button>
+                            </Form.Item>
+                            {error && <Alert message={error} type="error" showIcon />}
+                            <div className="switch-form">
+                                Need an account? <Button type="link" onClick={handleRegisterClick}>Register</Button>
+                            </div>
+                        </Form>
+
                 )}
             </div>
         </div>

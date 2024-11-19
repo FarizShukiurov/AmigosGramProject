@@ -1,12 +1,12 @@
-
-using AmigosGramProject.Server.Models;
-using Microsoft.AspNetCore.Identity;
+    using AmigosGramProject.Server.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Mail;
-using System.Net;
 using System.Security.Claims;
 using Azure.Storage.Blobs;
 using AmigosGramProject.Server.Hubs;
+using AmigosGramProject.Server.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace AmigosGramProject.Server
 {
@@ -15,79 +15,139 @@ namespace AmigosGramProject.Server
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+
+            // Подключение к базе данных
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
-            builder.Services.AddAuthorization();
-            builder.Services.AddCors(options => {
+
+            // Настройка CORS
+            builder.Services.AddCors(options =>
+            {
                 options.AddDefaultPolicy(policy =>
                 {
-                    policy.WithOrigins("https://localhost:5173/")
-                    .AllowAnyHeader()
-                    .AllowAnyMethod()
-                    .SetIsOriginAllowed((host) => true)
-                    .AllowCredentials();
+                    policy.WithOrigins("https://localhost:5173")
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                 });
             });
+
+            // SignalR
             builder.Services.AddSignalR();
-            builder.Services.AddIdentityApiEndpoints<User>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ChatDbContext>();
+
+            // Email сервис
             builder.Services.AddScoped<IEmailSender, EmailSender>();
-            var requireEmailConfirmed = builder.Configuration.GetValue<bool>("RequireConfirmedEmail");
-            builder.Services.Configure<IdentityOptions>(options =>
-            {
-                options.Password.RequireDigit = true;
-                options.Password.RequireLowercase = true;
-                options.Password.RequireNonAlphanumeric = true;
-                options.Password.RequireUppercase = true;
-                options.Password.RequiredLength = 6;
-                options.Password.RequiredUniqueChars = 1;
 
-                options.SignIn.RequireConfirmedEmail = requireEmailConfirmed;
+            // JWT Token Helper
+            builder.Services.AddScoped<JwtTokenHelper>();
+            builder.Services.AddScoped<PasswordHasher>();  // Убедитесь, что здесь правильный тип
 
-                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-                options.Lockout.MaxFailedAccessAttempts = 5;
-                options.Lockout.AllowedForNewUsers = true;
-
-                options.User.AllowedUserNameCharacters =
-                    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
-                options.User.RequireUniqueEmail = true;
-            });
+            // Azure Blob Storage
             builder.Services.AddSingleton(x =>
-            new BlobServiceClient(builder.Configuration.GetSection("Azure:BlobStorage:ConnectionString").Value));
+                new BlobServiceClient(builder.Configuration.GetSection("Azure:BlobStorage:ConnectionString").Value));
+
+            // Controllers
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddHttpClient();
+
+            // Логирование
             builder.Logging.ClearProviders();
             builder.Logging.AddConsole();
             builder.Logging.SetMinimumLevel(LogLevel.Trace);
 
+            // Аутентификация через JWT
+            var secretKey = builder.Configuration.GetValue<string>("JwtSettings:Secret");
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                throw new InvalidOperationException("SecretKey для JWT не найден в конфигурации.");
+            }
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+                    ValidAudience = builder.Configuration["JwtSettings:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:Secret"]))
+                };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.HttpContext.Request.Cookies["accessToken"];
+                        if (!string.IsNullOrEmpty(accessToken))
+                        {
+                            context.Token = accessToken;
+                            Console.WriteLine($"Token received: {accessToken}"); 
+                        }
+                        else
+                        {
+                            Console.WriteLine("No token found in cookies.");
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
+            });
+
+
+
+
             var app = builder.Build();
 
+            // Middleware
             app.UseDefaultFiles();
             app.UseStaticFiles();
-            app.MapIdentityApi<User>();
             app.UseCors();
-            app.MapPost("/logout", async (SignInManager<User> signInManager) =>
-            {
-                await signInManager.SignOutAsync();
-                return Results.Ok();
-            }).RequireAuthorization();
-            app.MapGet("/pingauth", (ClaimsPrincipal user) =>
-            {
-                var email = user.FindFirstValue(ClaimTypes.Email);
-                return Results.Json(new { Email = email });
-            }).RequireAuthorization();
+            app.UseHttpsRedirection();
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            // Swagger
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-            app.UseHttpsRedirection();
+
+            // Эндпоинт для выхода
+            app.MapPost("/logout", async (HttpContext httpContext) =>
+            {
+                // Здесь можно реализовать логику для "выхода" на клиенте, например, удаление токена
+                return Results.Ok(new { Message = "Logged out successfully" });
+            }).RequireAuthorization();  // Требуется авторизация для выхода
+
+            // Эндпоинт для проверки аутентификации
+            app.MapGet("/pingauth", (HttpContext httpContext) =>
+            {
+                // Проверка наличия email claim
+                var emailClaim = httpContext.User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+
+                if (emailClaim != null)
+                {
+                    return Results.Json(new { Email = emailClaim });  // Возвращаем email, если он есть в токене
+                }
+
+                return Results.Unauthorized();  // Если email не найден или пользователь не аутентифицирован
+            }).RequireAuthorization();  // Требуется авторизация для выполнения запроса
+
+            // Эндпоинты
             app.MapHub<ChatHub>("/chat");
-            app.UseAuthorization();
             app.MapControllers();
             app.MapFallbackToFile("index.html");
+
             app.Run();
         }
     }

@@ -89,7 +89,7 @@ function ChatPage() {
 
     const fetchContacts = async () => {
         try {
-            const response = await fetch("/contacts/GetContacts", {
+            const response = await fetch("api/Contacts/GetContacts", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",

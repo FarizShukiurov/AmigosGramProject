@@ -1,17 +1,23 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 
 namespace AmigosGramProject.Server.Models
 {
-    public class ChatDbContext : IdentityDbContext<User>
+    public class ChatDbContext : DbContext
     {
         public ChatDbContext(DbContextOptions<ChatDbContext> options) : base(options) { }
+
+        public DbSet<User> Users { get; set; }
         public DbSet<UserContact> UserContacts { get; set; }
         public DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            // Define the User primary key
+            builder.Entity<User>()
+                .HasKey(u => u.Id);
 
             builder.Entity<UserContact>()
                 .HasKey(uc => new { uc.UserId, uc.ContactId });

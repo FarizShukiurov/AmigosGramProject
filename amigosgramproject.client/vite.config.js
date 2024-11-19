@@ -43,19 +43,11 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/pingauth': {
+            '^/Account/pingauth': {
                 target,
                 secure: false
             },
-            '^/register': {
-                target,
-                secure: false
-            },
-            '^/login': {
-                target,
-                secure: false
-            },
-            '^/logout': {
+            '^/Account/logout': {
                 target,
                 secure: false
             },
@@ -71,15 +63,15 @@ export default defineConfig({
                 target,
                 secure: false
             },
-            '^/contacts/GetContacts': {
+            '^/api/Contacts/GetContacts': {
                 target,
                 secure: false
             },
-            '^/contacts/AddContact': {
+            '^/api/Contacts/AddContact': {
                 target,
                 secure: false
             },
-            '^/contacts/DeleteContact': {
+            '^/api/Contacts/DeleteContact': {
                 target,
                 secure: false
             },
@@ -126,7 +118,19 @@ export default defineConfig({
             '^/api/files/delete/': {
                 target,
                 secure: false
-            }
+            },
+            '^/Account/register': {
+                target,
+                secure: false
+            },
+            '^/Account/login': {
+                target,
+                secure: false
+            },
+            '^/Account/refresh-token': {
+                target,
+                secure: false
+            },
             
         },
         port: 5173,

@@ -1,9 +1,7 @@
 ﻿using AmigosGramProject.Server.Models;
 using Azure.Storage.Blobs;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -11,27 +9,36 @@ namespace AmigosGramProject.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize] // Требуется JWT аутентификация
     public class ProfileController : ControllerBase
     {
-        private readonly UserManager<User> _userManager;
+        private readonly ChatDbContext _dbContext;
         private readonly BlobServiceClient _blobServiceClient;
-        private readonly HttpClient _httpClient;
 
-        public ProfileController(UserManager<User> userManager, BlobServiceClient blobServiceClient, HttpClient httpClient)
+        public ProfileController(ChatDbContext dbContext, BlobServiceClient blobServiceClient)
         {
-            _userManager = userManager;
+            _dbContext = dbContext;
             _blobServiceClient = blobServiceClient;
-            _httpClient = httpClient;
         }
 
-        // Upload avatar
+        // Метод для получения текущего пользователя из токена
+        private User GetCurrentUser()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null)
+                return null;
+
+            return _dbContext.Users.FirstOrDefault(u => u.Id == userIdClaim);
+        }
+
+        // Загрузка аватара
         [HttpPost("upload-avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Invalid file.");
 
-            var user = await _userManager.GetUserAsync(User);
+            var user = GetCurrentUser();
             if (user == null)
                 return Unauthorized();
 
@@ -48,19 +55,17 @@ namespace AmigosGramProject.Server.Controllers
             }
 
             user.AvatarUrl = blobClient.Uri.ToString();
-            var result = await _userManager.UpdateAsync(user);
-
-            if (!result.Succeeded)
-                return StatusCode(500, "Failed to update user profile.");
+            _dbContext.Update(user);
+            await _dbContext.SaveChangesAsync();
 
             return Ok(new { avatarUrl = user.AvatarUrl });
         }
 
-        // Get user data
+        // Получение данных пользователя
         [HttpGet("get-user-data")]
-        public async Task<IActionResult> GetUserData()
+        public IActionResult GetUserData()
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = GetCurrentUser();
             if (user == null)
                 return Unauthorized();
 
@@ -73,53 +78,43 @@ namespace AmigosGramProject.Server.Controllers
             });
         }
 
-
-        // Change username
+        // Изменение имени пользователя
         [HttpPost("change-username")]
         public async Task<IActionResult> ChangeUsername([FromBody] ChangeUsernameRequest request)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = GetCurrentUser();
             if (user == null)
-                return NotFound("User not found");
+                return Unauthorized();
 
-            // Check if the username already exists
-            var existingUser = await _userManager.FindByNameAsync(request.NewUsername);
+            // Проверка на существование имени пользователя
+            var existingUser = _dbContext.Users.FirstOrDefault(u => u.UserName == request.NewUsername);
             if (existingUser != null)
-            {
                 return Conflict("Username already exists");
-            }
 
             user.UserName = request.NewUsername;
-            user.NormalizedUserName = request.NewUsername.ToUpper();
+            _dbContext.Update(user);
+            await _dbContext.SaveChangesAsync();
 
-            var result = await _userManager.UpdateAsync(user);
-            if (result.Succeeded)
-            {
-                return Ok(new { message = "Username updated successfully!" });
-            }
-
-            return BadRequest(result.Errors);
+            return Ok(new { message = "Username updated successfully!" });
         }
 
-        // Change biography
+        // Изменение биографии
         [HttpPost("change-biography")]
         public async Task<IActionResult> ChangeBiography([FromBody] ChangeBiographyRequest request)
         {
-            var user = await _userManager.GetUserAsync(User);
+            var user = GetCurrentUser();
             if (user == null)
                 return Unauthorized();
 
             user.Bio = request.Biography;
-            var result = await _userManager.UpdateAsync(user);
+            _dbContext.Update(user);
+            await _dbContext.SaveChangesAsync();
 
-            if (result.Succeeded)
-                return Ok(new { message = "Biography updated successfully!" });
-
-            return BadRequest(result.Errors);
+            return Ok(new { message = "Biography updated successfully!" });
         }
     }
-    // Request classes for changing username and biography
 
+    // Классы запросов
     public class ChangeBiographyRequest
     {
         public string Biography { get; set; }

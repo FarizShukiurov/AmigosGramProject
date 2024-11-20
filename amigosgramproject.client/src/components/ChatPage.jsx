@@ -55,7 +55,25 @@ function ChatPage() {
             .withUrl("https://localhost:7015/chat")
             .build();
 
-        newConnection.on("ReceiveMessage", (receivedMessage) => {
+        newConnection.on("ReceiveMessage", async (receivedMessage) => {
+            try {
+                const currentUserPrivateKey = localStorage.getItem("privateKey");
+                if (!currentUserPrivateKey) {
+                    console.error("Private key not found for decryption");
+                    return;
+                }
+
+                const encryptedContent =
+                    receivedMessage.senderId === currentUserId
+                        ? receivedMessage.encryptedForSender
+                        : receivedMessage.encryptedForReceiver;
+
+                receivedMessage.content = await decryptMessage(encryptedContent);
+
+            } catch (error) {
+                console.error(`Error decrypting incoming message:`, error);
+            }
+
             setMessages((prevMessages) => [...prevMessages, receivedMessage]);
             setLastMessages((prevLastMessages) => ({
                 ...prevLastMessages,
@@ -89,30 +107,56 @@ function ChatPage() {
 
     const fetchContacts = async () => {
         try {
-            const response = await fetch("api/Contacts/GetContacts", {
+            const response = await fetch("/api/Contacts/GetContacts", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
                 },
             });
 
-            if (response.ok) {
-                const contactData = await response.json();
-                setChats(contactData);
+            if (!response.ok) {
+                console.error("Error fetching contacts:", response.status);
+                return;
+            }
 
-                contactData.forEach((chat) => {
-                    fetchLastMessage(chat.id, currentUserId).then((lastMessage) => {
+            const contactData = await response.json();
+            setChats(contactData);
+
+            // Загрузка и обработка последнего сообщения для каждого чата
+            await Promise.all(
+                contactData.map(async (chat) => {
+                    try {
+                        const lastMessage = await fetchLastMessage(chat.id, currentUserId);
+                        console.log(lastMessage);
+                        if (lastMessage) {
+                            const encryptedContent =
+                                lastMessage.senderId === currentUserId
+                                    ? lastMessage.encryptedForSender
+                                    : lastMessage.encryptedForReceiver;
+
+                            const decryptedContent = await decryptMessage(encryptedContent);
+
+                            setLastMessages((prev) => ({
+                                ...prev,
+                                [chat.id]: decryptedContent || "[Unable to decrypt message]",
+                            }));
+                        } else {
+                            setLastMessages((prev) => ({
+                                ...prev,
+                                [chat.id]: "No messages yet :)",
+                            }));
+                        }
+                    } catch (error) {
+                        console.error(`Error processing last message for chat ${chat.id}:`, error);
                         setLastMessages((prev) => ({
                             ...prev,
-                            [chat.id]: lastMessage.content,
+                            [chat.id]: "[Error: Unable to fetch or decrypt message]",
                         }));
-                    });
-                });
-            } else {
-                console.error("Error fetching contacts:", response.status);
-            }
+                    }
+                })
+            );
         } catch (error) {
-            console.error("An error occurred:", error);
+            console.error("An error occurred while fetching contacts:", error);
         }
     };
 
@@ -123,15 +167,17 @@ function ChatPage() {
                 { method: "GET" }
             );
 
-            if (response.ok) {
-                return await response.json();
-            } else {
+            if (!response.ok) {
                 console.error("Error fetching last message:", response.status);
+                return null;
             }
+
+            return await response.json();
         } catch (error) {
-            console.error("An error occurred while fetching the last message:", error);
+            return null;
         }
     };
+
 
     const fetchMessages = async (chatId) => {
         try {
@@ -142,7 +188,24 @@ function ChatPage() {
 
             if (response.ok) {
                 const messagesData = await response.json();
-                setMessages(messagesData || []);
+
+                const decryptedMessages = await Promise.all(
+                    messagesData.map(async (msg) => {
+                        try {
+                            const encryptedContent =
+                                msg.senderId === currentUserId
+                                    ? msg.encryptedForSender
+                                    : msg.encryptedForReceiver;
+                            msg.content = await decryptMessage(encryptedContent);
+                        } catch (error) {
+                            console.error(`Error decrypting message with ID ${msg.id}:`, error);
+                            msg.content = "[Error: Unable to decrypt message]";
+                        }
+                        return msg;
+                    })
+                );
+
+                setMessages(decryptedMessages || []);
             } else {
                 console.error("Error fetching messages:", response.status);
             }
@@ -238,20 +301,129 @@ function ChatPage() {
         }
     };
 
+    const encryptMessage = async (message, publicKeyBase64) => {
+        try {
+            // Декодируем Base64 в ArrayBuffer
+            const publicKeyBuffer = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0)).buffer;
+
+            // Импортируем публичный ключ
+            const publicKey = await window.crypto.subtle.importKey(
+                "spki",
+                publicKeyBuffer,
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256",
+                },
+                false,
+                ["encrypt"]
+            );
+
+            // Шифруем сообщение
+            const encoder = new TextEncoder();
+            const encodedMessage = encoder.encode(message);
+
+            const encryptedMessage = await window.crypto.subtle.encrypt(
+                {
+                    name: "RSA-OAEP",
+                },
+                publicKey,
+                encodedMessage
+            );
+
+            // Кодируем результат в Base64 для отправки
+            return btoa(String.fromCharCode(...new Uint8Array(encryptedMessage)));
+        } catch (error) {
+            console.error("Error encrypting message:", error);
+            throw error;
+        }
+    };
+
+    const decryptMessage = async (encryptedMessageBase64) => {
+        try {
+            console.log("Starting decryption...");
+            // Декодируем Base64 в ArrayBuffer для зашифрованного сообщения
+            const encryptedMessageBuffer = Uint8Array.from(atob(encryptedMessageBase64), (c) => c.charCodeAt(0)).buffer;
+            console.log("Encrypted message buffer:", encryptedMessageBuffer);
+  
+            // Извлекаем приватный ключ из localStorage
+            const privateKeyBase64 = localStorage.getItem("privateKey");
+            if (!privateKeyBase64) {
+                throw new Error("Private key not found in localStorage");
+            }
+
+            // Декодируем Base64 в ArrayBuffer для приватного ключа
+            const privateKeyBuffer = Uint8Array.from(atob(privateKeyBase64), (c) => c.charCodeAt(0)).buffer;
+            console.log("Private key buffer:", privateKeyBuffer);
+
+            // Проверка длины приватного ключа
+            if (privateKeyBuffer.byteLength < 1200) {
+                throw new Error("Private key is too short, invalid format.");
+            }
+
+            // Импортируем приватный ключ
+            const privateKey = await window.crypto.subtle.importKey(
+                "pkcs8",
+                privateKeyBuffer,
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256",
+                },
+                false,
+                ["decrypt"]
+            );
+            console.log("Private key imported successfully.");
+
+            // Дешифруем сообщение
+            const decryptedBuffer = await window.crypto.subtle.decrypt(
+                { name: "RSA-OAEP" },
+                privateKey,
+                encryptedMessageBuffer
+            );
+            console.log("Decrypted buffer:", decryptedBuffer);
+            // Преобразуем ArrayBuffer в строку
+            const decoder = new TextDecoder();
+            const decryptedMessage = decoder.decode(decryptedBuffer);
+            console.log("Decrypted message:", decryptedMessage);
+            return decryptedMessage;
+        } catch (error) {
+            console.error("Error decrypting message:", error);
+            return "[Error: Unable to decrypt message]";
+        }
+    };
+
+
+
     const sendMessage = async () => {
         if (!message || !selectedChatId) return;
 
-
-        const messageDto = {
-            senderId: currentUserId,
-            receiverId: selectedChatId,
-            content: message,
-            messageType: uploadedImageUrls.length > 0 ? 1 : uploadedFileUrls.length > 0 ? 2 : 0,
-            mediaUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : [],
-            fileUrls: uploadedFileUrls.length > 0 ? uploadedFileUrls : [],
-        };
-
         try {
+            // Получение публичных ключей
+            const receiverKeyResponse = await fetch(`/api/Keys/getPublicKey/${selectedChatId}`);
+            const senderKeyResponse = await fetch(`/api/Keys/getPublicKey/${currentUserId}`);
+
+            if (!receiverKeyResponse.ok || !senderKeyResponse.ok) {
+                throw new Error("Failed to fetch public keys");
+            }
+
+            const receiverPublicKey = await receiverKeyResponse.text();
+            const senderPublicKey = await senderKeyResponse.text();
+
+            // Шифруем сообщение для получателя и для отправителя
+            const encryptedForReceiver = await encryptMessage(message, receiverPublicKey);
+            const encryptedForSender = await encryptMessage(message, senderPublicKey);
+
+            const messageDto = {
+                senderId: currentUserId,
+                receiverId: selectedChatId,
+                encryptedForSender,
+                encryptedForReceiver,
+                messageType: uploadedImageUrls.length > 0 ? 1 : uploadedFileUrls.length > 0 ? 2 : 0,
+                mediaUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : [],
+                fileUrls: uploadedFileUrls.length > 0 ? uploadedFileUrls : [],
+            };
+
+            console.log("Sending message DTO:", messageDto);
+
             const response = await fetch("/api/Message/createMessage", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -259,10 +431,20 @@ function ChatPage() {
             });
 
             if (response.ok) {
-                const createdMessage = await response.json();
-                setMessages((prevMessages) => [...prevMessages, createdMessage]);
+                const localDecryptedMessage = {
+                    senderId: currentUserId,
+                    receiverId: selectedChatId,
+                    content: message,
+                    isEncrypted: false,
+                };
+                setMessages((prevMessages) => [...prevMessages, localDecryptedMessage]);
+                setLastMessages((prevLastMessages) => ({
+                    ...prevLastMessages,
+                    [selectedChatId]: message,
+                }));
                 setMessage("");
                 setUploadedImageUrls([]);
+                setUploadedFileUrls([]);
             } else {
                 console.error("Error sending message:", response.status);
             }

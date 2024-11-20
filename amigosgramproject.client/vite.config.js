@@ -130,6 +130,12 @@ export default defineConfig({
             '^/Account/refresh-token': {
                 target,
                 secure: false
+            },'^/api/Keys/storePublicKey': {
+                target,
+                secure: false
+            },'^/api/Keys/getPublicKey': {
+                target,
+                secure: false
             },
             
         },

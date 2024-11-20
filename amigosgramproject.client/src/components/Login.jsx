@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Form, Input, Checkbox, Typography, Alert } from 'antd';
 import Cookies from 'js-cookie'; // Импортируем библиотеку для работы с cookies
+import { Buffer } from "buffer";
 import './Login.css';
 import axios from 'axios';
 
@@ -63,6 +64,51 @@ function Login() {
             setError("Error Logging in.");
         }
     };
+    const arrayBufferToBase64 = (buffer) => {
+        const base64String = Buffer.from(new Uint8Array(buffer)).toString('base64');
+        return base64String;
+    };
+
+    const generateKeyPair = async (userId) => {
+        try {
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "RSA-OAEP",
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256",
+                },
+                true,
+                ["encrypt", "decrypt"]
+            );
+
+            // Экспорт публичного и приватного ключей
+            const publicKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+            const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+
+            console.log("Generated Key Pair:");
+            console.log("Public Key:", arrayBufferToBase64(publicKey));
+            console.log("Private Key:", arrayBufferToBase64(privateKey));
+
+            // Сохранение приватного ключа в localStorage
+            localStorage.setItem("privateKey", arrayBufferToBase64(privateKey));
+
+            // Отправка публичного ключа на сервер
+            await fetch("/api/Keys/storePublicKey", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    publicKey: arrayBufferToBase64(publicKey),
+                }),
+            });
+
+            console.log("Keys generated and sent to server!");
+        } catch (error) {
+            console.error("Error while generating keys:", error);
+        }
+    };
+
 
     const handleRegisterSubmit = async () => {
         if (!username || !email || !password || !confirmPassword) {
@@ -89,6 +135,8 @@ function Login() {
                 body: JSON.stringify({ username, email, password }),
             });
             if (response.ok) {
+                const data = await response.json();
+                await generateKeyPair(data.userId); 
                 setError("Registration successful! Please check your email to confirm your account.");
             } else {
                 setError("Error registering.");

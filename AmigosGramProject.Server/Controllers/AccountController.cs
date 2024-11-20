@@ -58,7 +58,7 @@ namespace AmigosGramProject.Server.Controllers
             var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account", new { userId = user.Id }, Request.Scheme);
             await _emailSender.SendEmailAsync(model.Email, "Email Confirmation", $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>link</a>");
 
-            return Ok(new { accessToken, refreshToken });
+            return Ok(new {userId = user.Id, accessToken, refreshToken });
         }
 
         // Логин пользователя

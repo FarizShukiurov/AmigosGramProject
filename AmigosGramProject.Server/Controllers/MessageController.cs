@@ -30,7 +30,8 @@ namespace AmigosGramProject.Server.Controllers
             {
                 SenderId = messageDto.SenderId,
                 ReceiverId = messageDto.ReceiverId,
-                Content = messageDto.Content,
+                EncryptedForReceiver = messageDto.EncryptedForReceiver,
+                EncryptedForSender = messageDto.EncryptedForSender,
                 MessageType = messageDto.MessageType,
                 Timestamp = DateTime.Now,
                 MediaUrls = messageDto.MediaUrls, // Добавляем URL, если это сообщение с картинкой
@@ -89,11 +90,21 @@ namespace AmigosGramProject.Server.Controllers
 
             if (lastMessage == null)
             {
-                return Ok(new { content = "No messages yet :)" });
+                return Ok(null);
             }
 
-            return Ok(lastMessage);
+            // Возвращаем зашифрованные данные и дополнительную информацию
+            return Ok(new
+            {
+                lastMessage.Id,
+                lastMessage.SenderId,
+                lastMessage.ReceiverId,
+                lastMessage.Timestamp,
+                lastMessage.EncryptedForSender,
+                lastMessage.EncryptedForReceiver
+            });
         }
+
 
     }
 }

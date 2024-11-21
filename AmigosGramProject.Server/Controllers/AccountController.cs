@@ -16,20 +16,23 @@ namespace AmigosGramProject.Server.Controllers
         private readonly JwtTokenHelper _jwtTokenHelper;
         private readonly Services.PasswordHasher _passwordHasher;
         private readonly IEmailSender _emailSender;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public AccountController(
             ChatDbContext context,
             JwtTokenHelper jwtTokenHelper,
             Services.PasswordHasher passwordHasher,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IWebHostEnvironment webHostEnvironment)
         {
             _context = context;
             _jwtTokenHelper = jwtTokenHelper;
             _passwordHasher = passwordHasher;
             _emailSender = emailSender;
+            _webHostEnvironment = webHostEnvironment;
         }
 
-        // Регистрирует пользователя
+        // Регистрация пользователя
         [HttpPost("Register")]
         public async Task<IActionResult> Register([FromBody] RegisterDTO model)
         {
@@ -50,23 +53,27 @@ namespace AmigosGramProject.Server.Controllers
 
             var accessToken = _jwtTokenHelper.GenerateAccessToken(user);
             var refreshToken = _jwtTokenHelper.GenerateRefreshToken();
-            user.RefreshTokens.Add(new RefreshToken { Token = refreshToken, Expires = DateTime.UtcNow.AddDays(7) });
 
-            await _context.SaveChangesAsync();
+            // Установка refresh токена в cookie
+            HttpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            });
 
-            // Отправка email с ссылкой для подтверждения
+            // Отправка email с подтверждением
             var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account", new { userId = user.Id }, Request.Scheme);
             await _emailSender.SendEmailAsync(model.Email, "Email Confirmation", $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>link</a>");
 
-            return Ok(new {userId = user.Id, accessToken, refreshToken });
+            return Ok(new { userId = user.Id, accessToken });
         }
 
         // Логин пользователя
         [HttpPost("Login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO model)
         {
-            var user = await _context.Users.Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.UserName == model.UserName);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == model.UserName);
 
             if (user == null || !_passwordHasher.Verify(model.Password, user.PasswordHash))
             {
@@ -80,9 +87,6 @@ namespace AmigosGramProject.Server.Controllers
 
             var accessToken = _jwtTokenHelper.GenerateAccessToken(user);
             var refreshToken = _jwtTokenHelper.GenerateRefreshToken();
-
-            user.RefreshTokens.Add(new RefreshToken { Token = refreshToken, Expires = DateTime.UtcNow.AddDays(7) });
-            await _context.SaveChangesAsync();
 
             HttpContext.Response.Cookies.Append("accessToken", accessToken, new CookieOptions
             {
@@ -100,13 +104,130 @@ namespace AmigosGramProject.Server.Controllers
             return Ok(new { message = "Login successful" });
         }
 
+        [HttpPost("SendResetPasswordLink")]
+        public async Task<IActionResult> SendResetPasswordLink([FromBody] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest("Email is null or empty.");
+            }
+
+            Console.WriteLine($"Received email: {email}");
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            var resetToken = _jwtTokenHelper.GenerateResetPasswordToken(user);
+            var resetLink = Url.Action(nameof(ResetPasswordForm), "Account", new { token = resetToken }, Request.Scheme);
+
+            await _emailSender.SendEmailAsync(email, "Password Reset",
+                $"Click the link to reset your password: <a href='{resetLink}'>Reset Password</a>");
+
+            return Ok("Password reset link sent to your email.");
+        }
+
+
+        // Adjusted to return an HTML form for password reset
+        [HttpGet("ResetPasswordForm")]
+        public IActionResult ResetPasswordForm(string token)
+        {
+            var claimsPrincipal = _jwtTokenHelper.ValidateResetPasswordToken(token);
+            if (claimsPrincipal == null)
+            {
+                return BadRequest("Invalid or expired token.");
+            }
+
+            // Return a simple HTML form for password reset.
+            var htmlForm = @"
+                <html>
+                    <body>
+                        <h2>Reset Your Password</h2>
+                        <form method='POST' action='/Account/ResetPassword'>
+                            <input type='hidden' name='token' value='" + token + @"' />
+                            <label for='oldPassword'>Old Password:</label>
+                            <input type='password' id='oldPassword' name='oldPassword' required />
+                            <br/>
+                            <label for='newPassword'>New Password:</label>
+                            <input type='password' id='newPassword' name='newPassword' required />
+                            <br/>
+                            <label for='confirmNewPassword'>Confirm New Password:</label>
+                            <input type='password' id='confirmNewPassword' name='confirmNewPassword' required />
+                            <br/>
+                            <button type='submit'>Reset Password</button>
+                        </form>
+                    </body>
+                </html>";
+
+            return Content(htmlForm, "text/html");
+        }
+
+        // Adjusted to handle form submission from the reset password HTML form
+        [HttpPost("ResetPassword")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDTO model)
+        {
+
+            if (model == null)
+            {
+                return BadRequest("Invalid data.");
+            }
+
+            var claimsPrincipal = _jwtTokenHelper.ValidateResetPasswordToken(model.Token);
+            if (claimsPrincipal == null)
+            {
+                return BadRequest("Invalid or expired token.");
+            }
+
+            var userId = claimsPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userId == null)
+            {
+                return BadRequest("Invalid token: user ID not found.");
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            // Проверка старого пароля
+            if (!_passwordHasher.Verify(model.OldPassword, user.PasswordHash))
+            {
+                return BadRequest("Old password is incorrect.");
+            }
+
+            // Проверка совпадения нового пароля и подтверждения нового пароля
+            if (model.NewPassword != model.ConfirmNewPassword)
+            {
+                return BadRequest("New password and confirmation do not match.");
+            }
+
+            // Изменение пароля
+            user.PasswordHash = _passwordHasher.Generate(model.NewPassword);
+            await _context.SaveChangesAsync();
+
+            // Удаление токенов для пользователя (в данном случае токен доступа)
+            HttpContext.Response.Cookies.Delete("accessToken");
+            HttpContext.Response.Cookies.Delete("refreshToken");
+
+            // Отправляем сообщение, что пользователь должен войти заново
+            return Ok(new { message = "Password reset successfully. Please log in again." });
+        }
+
         // Обновление refreshToken
         [HttpPost("RefreshToken")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDTO model)
+        public IActionResult RefreshToken()
         {
-            var user = await _context.Users.Include(u => u.RefreshTokens)
-                .FirstOrDefaultAsync(u => u.RefreshTokens.Any(t => t.Token == model.RefreshToken && !t.IsExpired));
+            // Проверка наличия refresh токена в cookie
+            if (!HttpContext.Request.Cookies.TryGetValue("refreshToken", out var oldRefreshToken))
+            {
+                return Unauthorized("Refresh token is missing.");
+            }
 
+            // Генерация нового access токена и refresh токена
+            var user = GetUserFromToken(oldRefreshToken);
             if (user == null)
             {
                 return Unauthorized("Invalid refresh token.");
@@ -115,16 +236,29 @@ namespace AmigosGramProject.Server.Controllers
             var newAccessToken = _jwtTokenHelper.GenerateAccessToken(user);
             var newRefreshToken = _jwtTokenHelper.GenerateRefreshToken();
 
-            // Отмена старого refresh token
-            var oldToken = user.RefreshTokens.First(t => t.Token == model.RefreshToken);
-            oldToken.IsRevoked = true;
+            HttpContext.Response.Cookies.Append("refreshToken", newRefreshToken, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
+            });
 
-            // Добавление нового refresh token
-            user.RefreshTokens.Add(new RefreshToken { Token = newRefreshToken, Expires = DateTime.UtcNow.AddDays(7) });
-            await _context.SaveChangesAsync();
-
-            return Ok(new { accessToken = newAccessToken, refreshToken = newRefreshToken });
+            return Ok(new { accessToken = newAccessToken });
         }
+
+        private User GetUserFromToken(string token)
+        {
+            var claimsPrincipal = _jwtTokenHelper.ValidateToken(token);
+            var userId = claimsPrincipal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (userId == null)
+            {
+                throw new Exception("Invalid token: user ID not found.");
+            }
+
+            return _context.Users.FirstOrDefault(u => u.Id.ToString() == userId);
+        }
+
 
         // Поиск пользователей по nickname
         [HttpGet("SearchAccount")]

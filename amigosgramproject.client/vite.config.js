@@ -43,6 +43,18 @@ export default defineConfig({
     },
     server: {
         proxy: {
+            '^/Account/ResetPasswordForm': {
+                target,
+                secure: false
+            },
+            '^/Account/SendResetPasswordLink': {
+                target,
+                secure: false
+            },
+            '^/Account/ResetPassword': {
+                target,
+                secure: false
+            },
             '^/Account/pingauth': {
                 target,
                 secure: false

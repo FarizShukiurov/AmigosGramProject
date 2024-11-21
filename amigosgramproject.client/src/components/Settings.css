@@ -207,3 +207,31 @@
         color: #000 !important;
         margin-bottom: 5px;
     }
+
+/* Reset Password Button */
+.reset-btn {
+    margin-top: 15px;
+    padding: 10px 20px;
+    background-color: #FF5722 !important;
+    color: #fff !important;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    transition: background-color 0.3s ease-in-out, transform 0.3s ease-in-out;
+}
+
+    .reset-btn:hover {
+        background-color: #E64A19 !important;
+        transform: scale(1.05);
+    }
+
+    .reset-btn:focus {
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .reset-btn:disabled {
+        background-color: #BDBDBD !important;
+        cursor: not-allowed;
+    }

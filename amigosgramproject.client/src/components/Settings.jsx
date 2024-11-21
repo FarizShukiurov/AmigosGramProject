@@ -6,11 +6,8 @@ import {
     Upload,
     message,
     Avatar,
-    Collapse,
 } from "antd";
 import "./Settings.css";
-
-const { Panel } = Collapse;
 
 const Settings = () => {
     const [file, setFile] = useState(null);
@@ -23,11 +20,18 @@ const Settings = () => {
     const [showUsernameInput, setShowUsernameInput] = useState(false);
     const [visible, setVisible] = useState(false);
     const [bio, setBio] = useState("");
+    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+    const [resetPasswordEmail, setResetPasswordEmail] = useState("");
+    const [resetPasswordError, setResetPasswordError] = useState("");
 
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const response = await fetch("/api/Profile/get-user-data");
+                const response = await fetch("/api/Profile/get-user-data", {
+                    headers: {
+                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
+                    }
+                });
                 const data = await response.json();
                 setAvatarUrl(data.avatarUrl);
                 setCurrentUsername(data.username);
@@ -40,6 +44,17 @@ const Settings = () => {
 
         fetchUserData();
     }, []);
+
+    const getTokenFromCookies = () => {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            const [key, value] = cookie.trim().split("=");
+            if (key === "auth_token") {
+                return decodeURIComponent(value);
+            }
+        }
+        return null; // Return null if no token is found
+    };
 
     const handleFileChange = (info) => {
         if (info.file.status === "done") {
@@ -64,6 +79,7 @@ const Settings = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
                 },
                 body: JSON.stringify({ newUsername }),
             });
@@ -89,6 +105,7 @@ const Settings = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
                 },
                 body: JSON.stringify(requestBody),
             });
@@ -111,6 +128,7 @@ const Settings = () => {
     const handleCancel = () => {
         setVisible(false);
     };
+
     const maskEmail = (email) => {
         if (!email) return ""; // Check if email is defined
         const parts = email.split("@");
@@ -118,6 +136,51 @@ const Settings = () => {
             ? parts[0].slice(0, 2) + "***"
             : parts[0];
         return `${maskedLocalPart}@${parts[1]}`;
+    };
+
+    // Send password reset link to user's email
+    const handleSendResetPasswordLink = async () => {
+        if (!resetPasswordEmail) {
+            setResetPasswordError("Please enter your email address.");
+            return;
+        }
+        setResetPasswordError("");
+
+        try {
+            const response = await fetch("/Account/SendResetPasswordLink", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // Сервер ожидает JSON
+                },
+                body: JSON.stringify(resetPasswordEmail), // Передаем строку в формате JSON
+            });
+
+            if (response.ok) {
+                message.success("Password reset link sent to your email!");
+                setShowResetPasswordModal(false);
+            } else {
+                const errorText = await response.text();
+                console.error("Error response:", errorText);
+                message.error("Failed to send password reset link.");
+            }
+        } catch (error) {
+            console.error("Error sending reset password link", error);
+            message.error("An unexpected error occurred.");
+        }
+    };
+
+
+
+
+
+    const openResetPasswordModal = () => {
+        setShowResetPasswordModal(true);
+    };
+
+    const closeResetPasswordModal = () => {
+        setShowResetPasswordModal(false);
+        setResetPasswordEmail(""); // Clear email field
+        setResetPasswordError(""); // Clear error message
     };
 
     return (
@@ -197,32 +260,40 @@ const Settings = () => {
                 </Button>
             </div>
 
-            <div className="faq-section">
-                <Collapse defaultActiveKey={['1']}>
-                    <Panel header="Questions about AmigosGram" key="1">
-                        <p>1. What is AmigosGram?</p>
-                        <p>Answer: AmigosGram is a social media platform for connecting friends.</p>
-                        <p>2. How can I change my password?</p>
-                        <p>Answer: You can change your password in the profile settings.</p>
-                        <p>3. How to delete my account?</p>
-                        <p>Answer: Contact support to delete your account.</p>
-                        <p>4. How do I change my profile picture?</p>
-                        <p>Answer: Click on your avatar to upload a new picture.</p>
-                        <p>5. Is AmigosGram free?</p>
-                        <p>Answer: Yes, it's completely free!</p>
-                    </Panel>
-                </Collapse>
+            {/* Reset Password Section */}
+            <div className="field-section">
+                <Button onClick={openResetPasswordModal} type="primary">
+                    Reset Password
+                </Button>
             </div>
 
-            <div className="about-section">
-                <Collapse>
-                    <Panel header="AmigosGram Features" key="1">
-                        <p>AmigosGram lets you share posts, follow friends, and communicate with others.</p>
-                        <p>It's designed for ease of use and security.</p>
-                        <p>Stay connected with friends around the world!</p>
-                    </Panel>
-                </Collapse>
-            </div>
+            <Modal
+                title="Reset Password"
+                visible={showResetPasswordModal}
+                onCancel={closeResetPasswordModal}
+                footer={[
+                    <Button key="cancel" onClick={closeResetPasswordModal}>
+                        Cancel
+                    </Button>,
+                    <Button
+                        key="submit"
+                        type="primary"
+                        onClick={handleSendResetPasswordLink}
+                    >
+                        Send Reset Link
+                    </Button>,
+                ]}
+            >
+                <Input
+                    value={resetPasswordEmail}
+                    onChange={(e) => setResetPasswordEmail(e.target.value)}
+                    placeholder="Enter your email address"
+                    type="email"
+                />
+                {resetPasswordError && (
+                    <p className="error-message">{resetPasswordError}</p>
+                )}
+            </Modal>
         </div>
     );
 };

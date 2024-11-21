@@ -19,7 +19,8 @@ namespace AmigosGramProject.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     SenderId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ReceiverId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Content = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EncryptedForSender = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EncryptedForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     MessageType = table.Column<int>(type: "int", nullable: false),
                     MediaUrls = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -38,8 +39,10 @@ namespace AmigosGramProject.Server.Migrations
                     UserName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PublicKey = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Bio = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EmailConfirmed = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {

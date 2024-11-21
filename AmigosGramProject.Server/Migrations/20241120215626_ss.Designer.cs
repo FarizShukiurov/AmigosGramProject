@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20241107123158_ss")]
+    [Migration("20241120215626_ss")]
     partial class ss
     {
         /// <inheritdoc />
@@ -33,7 +33,11 @@ namespace AmigosGramProject.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Content")
+                    b.Property<string>("EncryptedForReceiver")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EncryptedForSender")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -105,8 +109,14 @@ namespace AmigosGramProject.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PublicKey")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserName")

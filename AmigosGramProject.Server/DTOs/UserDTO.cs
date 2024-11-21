@@ -8,6 +8,7 @@
         public string AvatarUrl { get; set; }
 
         public string Bio { get; set; } = "This user has not written a bio."; // Default value
+        public bool IsEmailConfirmed { get; set; }
     }
 
 }

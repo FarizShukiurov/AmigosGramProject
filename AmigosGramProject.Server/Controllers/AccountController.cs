@@ -73,30 +73,32 @@ namespace AmigosGramProject.Server.Controllers
                 return Unauthorized("Invalid credentials.");
             }
 
+            if (!user.EmailConfirmed)
+            {
+                return BadRequest(new { message = "Email is not confirmed.", action = "ResendConfirmation" });
+            }
+
             var accessToken = _jwtTokenHelper.GenerateAccessToken(user);
             var refreshToken = _jwtTokenHelper.GenerateRefreshToken();
 
-            // Добавляем refresh token в базу данных
             user.RefreshTokens.Add(new RefreshToken { Token = refreshToken, Expires = DateTime.UtcNow.AddDays(7) });
             await _context.SaveChangesAsync();
 
-            // Устанавливаем токены в cookies
             HttpContext.Response.Cookies.Append("accessToken", accessToken, new CookieOptions
             {
-                Secure = true, // Используйте только в HTTPS, установите false для разработки на HTTP
-                Expires = DateTimeOffset.UtcNow.AddHours(1) // Время действия access token
+                Secure = true,
+                Expires = DateTimeOffset.UtcNow.AddHours(1)
             });
 
             HttpContext.Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                Expires = DateTimeOffset.UtcNow.AddDays(7) // Время действия refresh token
+                Expires = DateTimeOffset.UtcNow.AddDays(7)
             });
 
             return Ok(new { message = "Login successful" });
         }
-
 
         // Обновление refreshToken
         [HttpPost("RefreshToken")]
@@ -178,8 +180,39 @@ namespace AmigosGramProject.Server.Controllers
                 return BadRequest("User not found.");
             }
 
+            if (user.EmailConfirmed)
+            {
+                return BadRequest("Email is already confirmed.");
+            }
+
+            user.EmailConfirmed = true;
+            await _context.SaveChangesAsync();
+
             return Ok("Email confirmed successfully.");
         }
+
+        [HttpPost("ResendEmailConfirmation")]
+        public async Task<IActionResult> ResendEmailConfirmation([FromBody] string username)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserName == username);
+            if (user == null)
+            {
+                return BadRequest("User not found.");
+            }
+
+            if (user.EmailConfirmed)
+            {
+                return BadRequest("Email is already confirmed.");
+            }
+
+            // Генерация новой ссылки подтверждения
+            var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account", new { userId = user.Id }, Request.Scheme);
+            await _emailSender.SendEmailAsync(user.Email, "Email Confirmation",
+                $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>link</a>");
+
+            return Ok("Confirmation email resent.");
+        }
+
 
         // Получение ID текущего пользователя
         [HttpGet("GetCurrentUserId")]

@@ -59,6 +59,10 @@ export default defineConfig({
                 target,
                 secure: false
             },
+            '^/Account/ResendEmailConfirmation': {
+                target,
+                secure: false
+            },
             '^/Account/SearchAccount': {
                 target,
                 secure: false

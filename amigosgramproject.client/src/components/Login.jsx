@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Form, Input, Checkbox, Typography, notification } from 'antd';
 import './Login.css';
 import axios from 'axios';
+import { Buffer } from "buffer";
 
 const { Title, Text } = Typography;
 
@@ -17,26 +18,14 @@ function Login() {
     const [isTransitioning, setIsTransitioning] = useState(false);
     const [passwordVisible, setPasswordVisible] = useState(false);
 
-
-    // Обработчики изменений
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-        if (name === "username") setUsername(value);
-        if (name === "password") setPassword(value);
-        if (name === "email") setEmail(value);
-        if (name === "confirmPassword") setConfirmPassword(value);
-        if (name === "rememberme") setRememberme(e.target.checked);
-    };
-
-    // Функция отправки запроса повторного подтверждения email
     const handleResendConfirmation = async () => {
         try {
             const response = await axios.post(
                 "https://localhost:5173/Account/ResendEmailConfirmation",  // URL
-                JSON.stringify(username),  // Передаем username как строку
+                JSON.stringify(username),  
                 {
                     headers: {
-                        "Content-Type": "application/json"  // Устанавливаем правильный Content-Type
+                        "Content-Type": "application/json"
                     }
                 }
             );
@@ -59,8 +48,52 @@ function Login() {
             });
         }
     };
+    const arrayBufferToBase64 = (buffer) => {
+        return Buffer.from(new Uint8Array(buffer)).toString('base64');
+    };
 
-    // Обработка логина
+    const generateKeyPair = async (userId) => {
+        try {
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "RSA-OAEP",
+                    modulusLength: 2048,
+                    publicExponent: new Uint8Array([1, 0, 1]),
+                    hash: "SHA-256",
+                },
+                true,
+                ["encrypt", "decrypt"]
+            );
+
+            const publicKey = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
+            const privateKey = await window.crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+
+            localStorage.setItem("privateKey", arrayBufferToBase64(privateKey));
+
+            await fetch("/api/Keys/storePublicKey", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userId,
+                    publicKey: arrayBufferToBase64(publicKey),
+                }),
+            });
+
+            notification.success({ message: "Keys generated and sent to the server!" });
+        } catch (error) {
+            notification.error({ message: "Error generating keys.", description: error.message });
+        }
+    };
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        if (name === "username") setUsername(value);
+        if (name === "password") setPassword(value);
+        if (name === "email") setEmail(value);
+        if (name === "confirmPassword") setConfirmPassword(value);
+        if (name === "rememberme") setRememberme(e.target.checked);
+    };
+
     const handleLoginSubmit = async () => {
         if (!username || !password) {
             notification.error({
@@ -86,7 +119,6 @@ function Login() {
                 const serverMessage = response.data?.message || "Unknown error";
 
                 if (serverMessage.includes("Email is not confirmed.") && response.data?.action === "ResendConfirmation") {
-                    // Показать уведомление с кнопкой повторной отправки письма
                     notification.error({
                         message: "Email Not Confirmed",
                         description: "Your email is not confirmed. Please check your inbox or resend the confirmation.",
@@ -127,10 +159,11 @@ function Login() {
 
     const handleRegisterSubmit = async () => {
         if (!username || !email || !password || !confirmPassword) {
-            notification.error({
-                message: "Registration Failed",
-                description: "Please fill in all fields.",
-            });
+            notification.error({ message: "Registration Failed", description: "Please fill in all fields." });
+            return;
+        }
+        if (password !== confirmPassword) {
+            notification.error({ message: "Passwords Do Not Match" });
             return;
         }
 
@@ -140,22 +173,19 @@ function Login() {
                 { username, email, password },
                 { headers: { "Content-Type": "application/json" } }
             );
+
             if (response.status === 200) {
+                const { userId } = response.data;
+                await generateKeyPair(userId);
                 notification.success({
                     message: "Registration Successful",
                     description: "Please check your email to confirm your account.",
                 });
             } else {
-                notification.error({
-                    message: "Registration Failed",
-                    description: "An error occurred during registration. Please try again.",
-                });
+                notification.error({ message: "Registration Failed", description: "Error occurred during registration." });
             }
         } catch {
-            notification.error({
-                message: "Registration Failed",
-                description: "An error occurred during registration. Please try again later.",
-            });
+            notification.error({ message: "Registration Failed", description: "Please try again later." });
         }
     };
 
@@ -193,44 +223,28 @@ function Login() {
                     <Form onFinish={handleRegisterSubmit} layout="vertical" disabled={isBlocked}>
                         <Title level={3}>Create an account</Title>
                         <Form.Item label="Username" required>
-                            <Input
-                                type="text"
-                                name="username"
-                                value={username}
-                                onChange={handleChange}
-                                disabled={isBlocked}
-                            />
+                            <Input type="text" name="username" value={username} onChange={handleChange} />
                         </Form.Item>
                         <Form.Item label="Email" required>
-                            <Input
-                                type="email"
-                                name="email"
-                                value={email}
-                                onChange={handleChange}
-                                disabled={isBlocked}
-                            />
+                            <Input type="email" name="email" value={email} onChange={handleChange} />
                         </Form.Item>
                         <Form.Item label="Password" required>
                             <Input.Password
-                                type="password"
                                 name="password"
                                 visibilityToggle={{ visible: passwordVisible, onVisibleChange: setPasswordVisible }}
                                 value={password}
                                 onChange={handleChange}
-                                disabled={isBlocked}
                             />
                         </Form.Item>
                         <Form.Item label="Confirm Password" required>
                             <Input.Password
-                                type="password"
                                 name="confirmPassword"
                                 visibilityToggle={{ visible: passwordVisible, onVisibleChange: setPasswordVisible }}
                                 value={confirmPassword}
                                 onChange={handleChange}
-                                disabled={isBlocked}
                             />
                         </Form.Item>
-                        <Button type="primary" className="custom-button" htmlType="submit" block disabled={isBlocked}>
+                        <Button type="primary" htmlType="submit" block disabled={isBlocked}>
                             Register
                         </Button>
                         <div className="switch-form">
@@ -241,18 +255,12 @@ function Login() {
                     <Form onFinish={handleLoginSubmit} layout="vertical">
                         <Title level={3}>Welcome back!</Title>
                         <Form.Item label="Username" required>
-                            <Input
-                                type="text"
-                                name="username"
-                                value={username}
-                                onChange={handleChange}
-                            />
+                            <Input type="text" name="username" value={username} onChange={handleChange} />
                         </Form.Item>
                         <Form.Item label="Password" required>
-                                <Input.Password
-                                type="password"
-                                visibilityToggle={{ visible: passwordVisible, onVisibleChange: setPasswordVisible }}
+                            <Input.Password
                                 name="password"
+                                visibilityToggle={{ visible: passwordVisible, onVisibleChange: setPasswordVisible }}
                                 value={password}
                                 onChange={handleChange}
                             />
@@ -262,7 +270,7 @@ function Login() {
                                 Remember me
                             </Checkbox>
                         </Form.Item>
-                        <Button type="primary" className="custom-button" htmlType="submit" block>
+                        <Button type="primary" htmlType="submit" block>
                             Log In
                         </Button>
                         <div className="switch-form">

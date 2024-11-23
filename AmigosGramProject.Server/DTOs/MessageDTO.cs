@@ -9,7 +9,9 @@ namespace AmigosGramProject.Server.DTOs
         public string EncryptedForSender { get; set; }
         public string EncryptedForReceiver { get; set; }
         public MessageType MessageType { get; set; }
-        public List<string>? MediaUrls { get; set; } = null;
-        public List<string>? FileUrls { get; set; } = null;
+        public List<string>? MediaUrlsForSender { get; set; } = null;
+        public List<string>? FileUrlsForSender { get; set; } = null; 
+        public List<string>? MediaUrlsForReceiver { get; set; } = null; 
+        public List<string>? FileUrlsForReceiver { get; set; } = null;
     }
 }

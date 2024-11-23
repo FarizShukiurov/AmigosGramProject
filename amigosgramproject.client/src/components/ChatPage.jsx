@@ -68,8 +68,19 @@ function ChatPage() {
                         ? receivedMessage.encryptedForSender
                         : receivedMessage.encryptedForReceiver;
 
-                receivedMessage.content = await decryptMessage(encryptedContent);
+                const encryptedMediaUrls =
+                    receivedMessage.senderId === currentUserId
+                        ? receivedMessage.mediaUrlsForSender
+                        : receivedMessage.mediaUrlsForReceiver;
 
+                const encryptedFileUrls =
+                    receivedMessage.senderId === currentUserId
+                        ? receivedMessage.fileUrlsForSender
+                        : receivedMessage.fileUrlsForReceiver;
+
+                receivedMessage.content = await decryptMessage(encryptedContent);
+                receivedMessage.mediaUrls = await decryptArray(encryptedMediaUrls);
+                receivedMessage.fileUrls = await decryptArray(encryptedFileUrls);
             } catch (error) {
                 console.error(`Error decrypting incoming message:`, error);
             }
@@ -196,10 +207,22 @@ function ChatPage() {
                                 msg.senderId === currentUserId
                                     ? msg.encryptedForSender
                                     : msg.encryptedForReceiver;
+                            const encryptedMediaUrls =
+                                msg.senderId === currentUserId
+                                    ? msg.mediaUrlsForSender
+                                    : msg.mediaUrlsForReceiver;
+                            const encryptedFileUrls =
+                                msg.senderId === currentUserId
+                                    ? msg.fileUrlsForSender
+                                    : msg.fileUrlsForReceiver;
                             msg.content = await decryptMessage(encryptedContent);
+                            msg.mediaUrls = await decryptArray(encryptedMediaUrls);
+                            msg.fileUrls = await decryptArray(encryptedFileUrls);
                         } catch (error) {
                             console.error(`Error decrypting message with ID ${msg.id}:`, error);
                             msg.content = "[Error: Unable to decrypt message]";
+                            msg.mediaUrls = [];
+                            msg.fileUrls = [];
                         }
                         return msg;
                     })
@@ -338,6 +361,15 @@ function ChatPage() {
         }
     };
 
+    const encryptArray = async (array, publicKey) => {
+        const encryptedArray = [];
+        for (const item of array) {
+            const encryptedItem = await encryptMessage(item, publicKey);
+            encryptedArray.push(encryptedItem);
+        }
+        return encryptedArray;
+    };
+
     const decryptMessage = async (encryptedMessageBase64) => {
         try {
             console.log("Starting decryption...");
@@ -391,7 +423,15 @@ function ChatPage() {
         }
     };
 
-
+    const decryptArray = async (encryptedArray) => {
+        if (!encryptedArray || encryptedArray.length === 0) return [];
+        const decryptedArray = [];
+        for (const encryptedItem of encryptedArray) {
+            const decryptedItem = await decryptMessage(encryptedItem);
+            decryptedArray.push(decryptedItem);
+        }
+        return decryptedArray;
+    };
 
     const sendMessage = async () => {
         if (!message || !selectedChatId) return;
@@ -408,19 +448,35 @@ function ChatPage() {
             const receiverPublicKey = await receiverKeyResponse.text();
             const senderPublicKey = await senderKeyResponse.text();
 
-            // Шифруем сообщение для получателя и для отправителя
+            // Шифруем сообщение и массивы ссылок для получателя
             const encryptedForReceiver = await encryptMessage(message, receiverPublicKey);
             const encryptedForSender = await encryptMessage(message, senderPublicKey);
+
+            const encryptedMediaUrlsForReceiver = uploadedImageUrls.length > 0
+                ? await encryptArray(uploadedImageUrls, receiverPublicKey)
+                : [];
+            const encryptedFileUrlsForReceiver = uploadedFileUrls.length > 0
+                ? await encryptArray(uploadedFileUrls, receiverPublicKey)
+                : [];
+            const encryptedMediaUrlsForSender = uploadedImageUrls.length > 0
+                ? await encryptArray(uploadedImageUrls, senderPublicKey)
+                : [];
+            const encryptedFileUrlsForSender = uploadedFileUrls.length > 0
+                ? await encryptArray(uploadedFileUrls, senderPublicKey)
+                : [];
 
             const messageDto = {
                 senderId: currentUserId,
                 receiverId: selectedChatId,
-                encryptedForSender,
-                encryptedForReceiver,
+                encryptedForSender, // Зашифрованное сообщение для отправителя
+                encryptedForReceiver, // Зашифрованное сообщение для получателя
                 messageType: uploadedImageUrls.length > 0 ? 1 : uploadedFileUrls.length > 0 ? 2 : 0,
-                mediaUrls: uploadedImageUrls.length > 0 ? uploadedImageUrls : [],
-                fileUrls: uploadedFileUrls.length > 0 ? uploadedFileUrls : [],
+                mediaUrlsForSender: encryptedMediaUrlsForSender, // Зашифрованные медиа ссылки для отправителя
+                fileUrlsForSender: encryptedFileUrlsForSender,  // Зашифрованные файлы ссылки для отправителя
+                mediaUrlsForReceiver: encryptedMediaUrlsForReceiver, // Зашифрованные медиа ссылки для получателя
+                fileUrlsForReceiver: encryptedFileUrlsForReceiver,  // Зашифрованные файлы ссылки для получателя
             };
+
 
             console.log("Sending message DTO:", messageDto);
 
@@ -436,6 +492,8 @@ function ChatPage() {
                     receiverId: selectedChatId,
                     content: message,
                     isEncrypted: false,
+                    mediaUrls: uploadedImageUrls, // Добавляем локально доступные ссылки
+                    fileUrls: uploadedFileUrls,   // Добавляем локально доступные ссылки
                 };
                 setMessages((prevMessages) => [...prevMessages, localDecryptedMessage]);
                 setLastMessages((prevLastMessages) => ({
@@ -458,17 +516,14 @@ function ChatPage() {
 
         return (
             <div key={msg.id} className={`message ${isCurrentUserSender ? "sent" : "received"}`}>
-                {/* Check for different message types */}
                 {msg.content && <p>{msg.content}</p>}
-
-                {/* Display uploaded images if present */}
                 {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                     <div className="image-gallery">
                         {msg.mediaUrls.map((url, index) => (
                             <Image
                                 key={index}
                                 width={200}
-                                src={url} // Ensure this URL is the direct link to your blob storage
+                                src={url} 
                                 alt={`Uploaded media ${index + 1}`}
                                 style={{ margin: '8px 0' }}
                             />
@@ -476,14 +531,13 @@ function ChatPage() {
                     </div>
                 )}
 
-                {/* Display uploaded files if present */}
                 {msg.fileUrls && msg.fileUrls.length > 0 && (
                     <div className="file-list">
                         {msg.fileUrls.map((url, index) => (
                             <Button
                                 key={index}
                                 type="link"
-                                href={url} // This should also be a direct link to your blob storage
+                                href={url} 
                                 target="_blank"
                                 icon={<FileOutlined />}
                                 style={{ display: 'block', margin: '4px 0' }}
@@ -496,7 +550,6 @@ function ChatPage() {
             </div>
         );
     };
-
 
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);

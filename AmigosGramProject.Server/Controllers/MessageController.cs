@@ -34,8 +34,10 @@ namespace AmigosGramProject.Server.Controllers
                 EncryptedForSender = messageDto.EncryptedForSender,
                 MessageType = messageDto.MessageType,
                 Timestamp = DateTime.Now,
-                MediaUrls = messageDto.MediaUrls, // Добавляем URL, если это сообщение с картинкой
-                FileUrls = messageDto.FileUrls // Добавляем URL, если это сообщение с картинкой
+                MediaUrlsForReceiver = messageDto.MediaUrlsForReceiver, 
+                FileUrlsForReceiver = messageDto.FileUrlsForReceiver,
+                MediaUrlsForSender = messageDto.MediaUrlsForSender,
+                FileUrlsForSender = messageDto.FileUrlsForSender
             };
 
             // Сохраняем сообщение в базе данных

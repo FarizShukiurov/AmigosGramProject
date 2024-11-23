@@ -168,14 +168,13 @@ const Settings = () => {
 
     // Send password reset link to user's email
     const handleSendResetPasswordLink = async () => {
-
         try {
             const response = await fetch("/Account/SendResetPasswordLink", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json", // Server expects JSON
+                    "Content-Type": "application/json", // Сервер ожидает JSON
                 },
-                body: JSON.stringify({ email: email }), // Automatically use email from user data
+                body: JSON.stringify({ email }), // Отправляем email как JSON-объект
             });
 
             if (response.ok) {
@@ -200,6 +199,7 @@ const Settings = () => {
             });
         }
     };
+
 
     const openResetPasswordModal = () => {
         setShowResetPasswordModal(true);
@@ -304,7 +304,7 @@ const Settings = () => {
                         {resetPasswordError && <p className="error-message">{resetPasswordError}</p>}
                         <Button
                             type="primary"
-                            onClick={handleSendResetPasswordLink()}
+                            onClick={handleSendResetPasswordLink}
                         >
                             Send Reset Link
                         </Button>

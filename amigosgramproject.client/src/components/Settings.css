@@ -29,11 +29,14 @@
 }
 
 .avatar-section {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     margin-bottom: 20px;
 }
 
     .avatar-section .ant-avatar {
+        margin-right: 10px; /* Small gap between avatar and button */
         transition: transform 0.3s ease-in-out;
     }
 
@@ -43,7 +46,6 @@
         }
 
     .avatar-section .ant-btn {
-        margin-top: 10px;
         color: #fff !important;
         background-color: #000 !important;
         border: none;
@@ -179,6 +181,7 @@
     }
 
 .ant-modal-content {
+    color:white;
     border-radius: 8px;
 }
 
@@ -235,3 +238,26 @@
         background-color: #BDBDBD !important;
         cursor: not-allowed;
     }
+
+.custom-modal-title {
+    margin-left: 16px;
+    color: white !important; /* Set the color to white */
+}
+
+/* Text in Modal */
+.ant-modal-body {
+    color: #000 !important; /* Ensuring text is black in modal */
+}
+
+/* Bio Input Field and Confirmation */
+.bio-confirmation {
+    margin-bottom: 15px; /* Adding a gap between bio confirmation and field */
+}
+
+.change-bio-btn {
+    margin-bottom: 10px; /* Small gap below the "Change Bio" button */
+}
+
+.bio-input {
+    margin-top: 10px; /* Small gap above the bio input field */
+}

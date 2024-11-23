@@ -142,33 +142,60 @@ namespace AmigosGramProject.Server.Controllers
 
             // Return a simple HTML form for password reset.
             var htmlForm = @"
-                <html>
-                    <body>
-                        <h2>Reset Your Password</h2>
-                        <form method='POST' action='/Account/ResetPassword'>
-                            <input type='hidden' name='token' value='" + token + @"' />
-                            <label for='oldPassword'>Old Password:</label>
-                            <input type='password' id='oldPassword' name='oldPassword' required />
-                            <br/>
-                            <label for='newPassword'>New Password:</label>
-                            <input type='password' id='newPassword' name='newPassword' required />
-                            <br/>
-                            <label for='confirmNewPassword'>Confirm New Password:</label>
-                            <input type='password' id='confirmNewPassword' name='confirmNewPassword' required />
-                            <br/>
-                            <button type='submit'>Reset Password</button>
-                        </form>
-                    </body>
-                </html>";
+        <html>
+            <body>
+                <h2>Reset Your Password</h2>
+                <form id='resetPasswordForm'>
+                    <input type='hidden' name='token' value='" + token + @"' />
+                    
+                    <label for='oldPassword'>Old Password:</label>
+                    <input type='password' id='oldPassword' name='oldPassword' required />
+                    <br/>
+                    
+                    <label for='newPassword'>New Password:</label>
+                    <input type='password' id='newPassword' name='newPassword' required />
+                    <br/>
+                    
+                    <label for='confirmNewPassword'>Confirm New Password:</label>
+                    <input type='password' id='confirmNewPassword' name='confirmNewPassword' required />
+                    <br/>
+                    
+                    <button type='button' id='resetPasswordBtn'>Reset Password</button>
+                </form>
+
+                <script>
+                    document.getElementById('resetPasswordBtn').addEventListener('click', function() {
+                        var formData = new FormData(document.getElementById('resetPasswordForm'));
+
+                        var data = {};
+                        formData.forEach((value, key) => { data[key] = value });
+
+                        fetch('/Account/ResetPassword', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(data)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            console.log('Success:', data);
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                    });
+                </script>
+            </body>
+        </html>";
 
             return Content(htmlForm, "text/html");
         }
 
-        // Adjusted to handle form submission from the reset password HTML form
+
         [HttpPost("ResetPassword")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDTO model)
         {
-
             if (model == null)
             {
                 return BadRequest("Invalid data.");
@@ -215,6 +242,7 @@ namespace AmigosGramProject.Server.Controllers
             // Отправляем сообщение, что пользователь должен войти заново
             return Ok(new { message = "Password reset successfully. Please log in again." });
         }
+
 
         // Обновление refreshToken
         [HttpPost("RefreshToken")]

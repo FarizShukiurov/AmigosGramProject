@@ -4,7 +4,7 @@ import {
     Button,
     Input,
     Upload,
-    message,
+    notification,
     Avatar,
 } from "antd";
 import "./Settings.css";
@@ -60,7 +60,10 @@ const Settings = () => {
         if (info.file.status === "done") {
             setAvatarUrl(info.file.response.avatarUrl);
         } else if (info.file.status === "error") {
-            message.error("Failed to upload avatar.");
+            notification.error({
+                message: "Avatar Upload Failed",
+                description: "Failed to upload avatar.",
+            });
         }
     };
 
@@ -87,14 +90,30 @@ const Settings = () => {
             if (response.ok) {
                 setUsernameMessage("Username updated successfully!");
                 setCurrentUsername(newUsername);
+                notification.success({
+                    message: "Username Updated",
+                    description: "Username updated successfully!",
+                });
             } else if (response.status === 409) {
                 setErrorMessage("This username is already taken.");
+                notification.error({
+                    message: "Username Taken",
+                    description: "This username is already taken.",
+                });
             } else {
                 setErrorMessage("An error occurred while updating username.");
+                notification.error({
+                    message: "Error",
+                    description: "An error occurred while updating username.",
+                });
             }
         } catch (error) {
             console.error("Error changing username", error);
             setErrorMessage("An unexpected error occurred.");
+            notification.error({
+                message: "Unexpected Error",
+                description: "An unexpected error occurred.",
+            });
         }
     };
 
@@ -111,13 +130,22 @@ const Settings = () => {
             });
 
             if (response.ok) {
-                message.success("Biography updated successfully!");
+                notification.success({
+                    message: "Biography Updated",
+                    description: "Biography updated successfully!",
+                });
             } else {
-                message.error("Failed to update biography.");
+                notification.error({
+                    message: "Failed to Update Biography",
+                    description: "Failed to update biography.",
+                });
             }
         } catch (error) {
             console.error("Error changing biography", error);
-            message.error("An unexpected error occurred.");
+            notification.error({
+                message: "Unexpected Error",
+                description: "An unexpected error occurred.",
+            });
         }
     };
 
@@ -140,38 +168,38 @@ const Settings = () => {
 
     // Send password reset link to user's email
     const handleSendResetPasswordLink = async () => {
-        if (!resetPasswordEmail) {
-            setResetPasswordError("Please enter your email address.");
-            return;
-        }
-        setResetPasswordError("");
 
         try {
             const response = await fetch("/Account/SendResetPasswordLink", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json", // Сервер ожидает JSON
+                    "Content-Type": "application/json", // Server expects JSON
                 },
-                body: JSON.stringify(resetPasswordEmail), // Передаем строку в формате JSON
+                body: JSON.stringify({ email: email }), // Automatically use email from user data
             });
 
             if (response.ok) {
-                message.success("Password reset link sent to your email!");
+                notification.success({
+                    message: "Password Reset Link Sent",
+                    description: "Password reset link sent to your email!",
+                });
                 setShowResetPasswordModal(false);
             } else {
                 const errorText = await response.text();
                 console.error("Error response:", errorText);
-                message.error("Failed to send password reset link.");
+                notification.error({
+                    message: "Password Reset Failed",
+                    description: "Failed to send password reset link.",
+                });
             }
         } catch (error) {
             console.error("Error sending reset password link", error);
-            message.error("An unexpected error occurred.");
+            notification.error({
+                message: "Unexpected Error",
+                description: "An unexpected error occurred.",
+            });
         }
     };
-
-
-
-
 
     const openResetPasswordModal = () => {
         setShowResetPasswordModal(true);
@@ -191,8 +219,9 @@ const Settings = () => {
                 <Avatar src={avatarUrl} size={100} />
                 <Button onClick={handleOpenOverlay}>Change Avatar</Button>
                 <Modal
-                    title="Choose an Avatar"
+                    title={<span className="custom-modal-title">Choose an Avatar</span>}
                     visible={visible}
+                    closable={false}
                     onCancel={handleCancel}
                     footer={null}
                 >
@@ -250,50 +279,38 @@ const Settings = () => {
 
             <div className="field-section">
                 <label className="field-label">Biography</label>
-                <Input.TextArea
+                <Input.TextArea className="bio-input"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={4}
                 />
-                <Button type="primary" onClick={handleChangeBiography}>
+                <Button type="primary" className="change-bio-btn" onClick={handleChangeBiography}>
                     Update Biography
                 </Button>
             </div>
 
-            {/* Reset Password Section */}
-            <div className="field-section">
-                <Button onClick={openResetPasswordModal} type="primary">
-                    Reset Password
-                </Button>
-            </div>
 
-            <Modal
-                title="Reset Password"
-                visible={showResetPasswordModal}
-                onCancel={closeResetPasswordModal}
-                footer={[
-                    <Button key="cancel" onClick={closeResetPasswordModal}>
-                        Cancel
-                    </Button>,
-                    <Button
-                        key="submit"
-                        type="primary"
-                        onClick={handleSendResetPasswordLink}
-                    >
-                        Send Reset Link
-                    </Button>,
-                ]}
-            >
-                <Input
-                    value={resetPasswordEmail}
-                    onChange={(e) => setResetPasswordEmail(e.target.value)}
-                    placeholder="Enter your email address"
-                    type="email"
-                />
-                {resetPasswordError && (
-                    <p className="error-message">{resetPasswordError}</p>
-                )}
-            </Modal>
+            <div className="reset-password-section">
+                <Button type="link" onClick={openResetPasswordModal}>Change Password</Button>
+                <Modal
+                    title={<span className="custom-modal-title">Reset Your Password</span>}
+                    visible={showResetPasswordModal}
+                    closable={false}
+                    onCancel={closeResetPasswordModal}
+                    footer={null}
+                >
+                    <div className="reset-password-container">
+                        <p>Your registered email: <strong>{maskEmail(email)}</strong></p> {/* Masked email */}
+                        {resetPasswordError && <p className="error-message">{resetPasswordError}</p>}
+                        <Button
+                            type="primary"
+                            onClick={handleSendResetPasswordLink()}
+                        >
+                            Send Reset Link
+                        </Button>
+                    </div>
+                </Modal>
+            </div>
         </div>
     );
 };

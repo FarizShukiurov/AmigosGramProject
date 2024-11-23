@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using AmigosGramProject.Server.DTOs;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -105,16 +106,16 @@ namespace AmigosGramProject.Server.Controllers
         }
 
         [HttpPost("SendResetPasswordLink")]
-        public async Task<IActionResult> SendResetPasswordLink([FromBody] string email)
+        public async Task<IActionResult> SendResetPasswordLink([FromBody] DTOs.ResetPasswordRequest request)
         {
-            if (string.IsNullOrWhiteSpace(email))
+            if (string.IsNullOrWhiteSpace(request.Email))
             {
                 return BadRequest("Email is null or empty.");
             }
 
-            Console.WriteLine($"Received email: {email}");
+            Console.WriteLine($"Received email: {request.Email}");
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
             if (user == null)
             {
                 return BadRequest("User not found.");
@@ -123,11 +124,12 @@ namespace AmigosGramProject.Server.Controllers
             var resetToken = _jwtTokenHelper.GenerateResetPasswordToken(user);
             var resetLink = Url.Action(nameof(ResetPasswordForm), "Account", new { token = resetToken }, Request.Scheme);
 
-            await _emailSender.SendEmailAsync(email, "Password Reset",
+            await _emailSender.SendEmailAsync(request.Email, "Password Reset",
                 $"Click the link to reset your password: <a href='{resetLink}'>Reset Password</a>");
 
             return Ok("Password reset link sent to your email.");
         }
+
 
 
         // Adjusted to return an HTML form for password reset
@@ -140,57 +142,129 @@ namespace AmigosGramProject.Server.Controllers
                 return BadRequest("Invalid or expired token.");
             }
 
-            // Return a simple HTML form for password reset.
+            // Return a simple HTML form for password reset with a black-and-white style.
             var htmlForm = @"
-        <html>
-            <body>
+    <html>
+        <head>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f9f9f9;
+                    color: #000;
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    height: 100vh;
+                }
+                .form-container {
+                    background-color: #fff;
+                    border: 1px solid #000;
+                    border-radius: 8px;
+                    padding: 20px;
+                    width: 300px;
+                    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                }
+                h2 {
+                    text-align: center;
+                    font-size: 18px;
+                    margin-bottom: 20px;
+                }
+                label {
+                    font-size: 14px;
+                    margin-bottom: 5px;
+                    display: block;
+                }
+                input {
+                    width: 100%;
+                    padding: 8px;
+                    margin-bottom: 15px;
+                    border: 1px solid #000;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    color: #000;
+                    background-color: #fff;
+                }
+                button {
+                    width: 100%;
+                    padding: 10px;
+                    font-size: 14px;
+                    color: #fff;
+                    background-color: #000;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: background-color 0.3s ease;
+                }
+                button:hover {
+                    background-color: #333;
+                }
+                .error-message {
+                    color: red;
+                    font-size: 12px;
+                    margin-top: -10px;
+                    margin-bottom: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class='form-container'>
                 <h2>Reset Your Password</h2>
                 <form id='resetPasswordForm'>
                     <input type='hidden' name='token' value='" + token + @"' />
                     
-                    <label for='oldPassword'>Old Password:</label>
+                    <label for='oldPassword'>Old Password</label>
                     <input type='password' id='oldPassword' name='oldPassword' required />
-                    <br/>
                     
-                    <label for='newPassword'>New Password:</label>
+                    <label for='newPassword'>New Password</label>
                     <input type='password' id='newPassword' name='newPassword' required />
-                    <br/>
                     
-                    <label for='confirmNewPassword'>Confirm New Password:</label>
+                    <label for='confirmNewPassword'>Confirm New Password</label>
                     <input type='password' id='confirmNewPassword' name='confirmNewPassword' required />
-                    <br/>
                     
                     <button type='button' id='resetPasswordBtn'>Reset Password</button>
                 </form>
+                <div class='error-message' id='errorMessage'></div>
+            </div>
 
-                <script>
-                    document.getElementById('resetPasswordBtn').addEventListener('click', function() {
-                        var formData = new FormData(document.getElementById('resetPasswordForm'));
+            <script>
+                document.getElementById('resetPasswordBtn').addEventListener('click', function() {
+                    var formData = new FormData(document.getElementById('resetPasswordForm'));
 
-                        var data = {};
-                        formData.forEach((value, key) => { data[key] = value });
+                    var data = {};
+                    formData.forEach((value, key) => { data[key] = value });
 
-                        fetch('/Account/ResetPassword', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(data)
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            console.log('Success:', data);
-                        })
-                        .catch((error) => {
-                            console.error('Error:', error);
-                        });
+                    fetch('/Account/ResetPassword', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            return response.json();
+                        } else {
+                            throw new Error('Failed to reset password');
+                        }
+                    })
+                    .then(data => {
+                        alert('Password successfully reset!');
+                        console.log('Success:', data);
+                    })
+                    .catch((error) => {
+                        document.getElementById('errorMessage').innerText = 'Error: ' + error.message;
+                        console.error('Error:', error);
                     });
-                </script>
-            </body>
-        </html>";
+                });
+            </script>
+        </body>
+    </html>";
 
             return Content(htmlForm, "text/html");
         }
+
 
 
         [HttpPost("ResetPassword")]

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20241121162117_ss")]
-    partial class ss
+    [Migration("20241124143347_audio")]
+    partial class audio
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,6 +33,12 @@ namespace AmigosGramProject.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AudioUrlForReceiver")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AudioUrlForSender")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("EncryptedForReceiver")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -41,10 +47,16 @@ namespace AmigosGramProject.Server.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FileUrls")
+                    b.Property<string>("FileUrlsForReceiver")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("MediaUrls")
+                    b.Property<string>("FileUrlsForSender")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MediaUrlsForReceiver")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MediaUrlsForSender")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("MessageType")

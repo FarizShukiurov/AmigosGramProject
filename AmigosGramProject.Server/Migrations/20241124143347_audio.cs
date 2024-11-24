@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AmigosGramProject.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class ss : Migration
+    public partial class audio : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -23,8 +23,12 @@ namespace AmigosGramProject.Server.Migrations
                     EncryptedForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     MessageType = table.Column<int>(type: "int", nullable: false),
-                    MediaUrls = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    FileUrls = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    MediaUrlsForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FileUrlsForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    MediaUrlsForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    FileUrlsForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AudioUrlForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AudioUrlForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {

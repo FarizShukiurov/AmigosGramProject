@@ -37,7 +37,9 @@ namespace AmigosGramProject.Server.Controllers
                 MediaUrlsForReceiver = messageDto.MediaUrlsForReceiver, 
                 FileUrlsForReceiver = messageDto.FileUrlsForReceiver,
                 MediaUrlsForSender = messageDto.MediaUrlsForSender,
-                FileUrlsForSender = messageDto.FileUrlsForSender
+                FileUrlsForSender = messageDto.FileUrlsForSender,
+                AudioUrlForReceiver = messageDto.AudioUrlForReceiver,
+                AudioUrlForSender = messageDto.AudioUrlForSender
             };
 
             // Сохраняем сообщение в базе данных

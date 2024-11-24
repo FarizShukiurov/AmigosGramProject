@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -57,6 +58,47 @@ public class FilesController : ControllerBase
             return StatusCode(500, $"Внутренняя ошибка сервера: {ex.Message}");
         }
     }
+
+    [HttpPost("uploadAudio")]
+    public async Task<IActionResult> UploadAudio(IFormFile audioFile)
+    {
+        if (audioFile == null || audioFile.Length == 0)
+            return BadRequest("Файл не выбран или пуст.");
+
+        // Проверяем тип аудиофайла
+        var allowedAudioTypes = new[] { "audio/mpeg", "audio/webm", "audio/wav" };
+        if (!allowedAudioTypes.Contains(audioFile.ContentType))
+            return BadRequest("Неверный формат файла. Разрешены только аудиофайлы.");
+        try
+        {
+            // Подключение к контейнеру Blob Storage
+            var containerClient = _blobServiceClient.GetBlobContainerClient("audio");
+            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+
+            // Генерация уникального ID и имени для файла
+            var uniqueId = Guid.NewGuid().ToString();
+            var uniqueFileName = $"{uniqueId}_{audioFile.FileName}";
+            var blobClient = containerClient.GetBlobClient(uniqueFileName);
+
+            // Загрузка файла в Blob Storage
+            await using (var stream = audioFile.OpenReadStream())
+            {
+                await blobClient.UploadAsync(stream, true);
+            }
+
+            // Получаем URL загруженного файла
+            var fileUrl = blobClient.Uri.ToString();
+
+            // Возвращаем URL файла вместе с ID и типом файла
+            return Ok(new { fileId = uniqueId, fileName = audioFile.FileName, url = fileUrl, fileType = audioFile.ContentType });
+        }
+        catch (Exception ex)
+        {
+            // Логируем ошибку и возвращаем 500 ошибку сервера
+            return StatusCode(500, $"Внутренняя ошибка сервера: {ex.Message}");
+        }
+    }
+
 
     // Эндпоинт для удаления файла по ID
     // Добавляем этот метод в FilesController

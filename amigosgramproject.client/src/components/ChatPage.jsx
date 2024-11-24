@@ -15,6 +15,7 @@ import {
 } from "antd";
 import {
     SendOutlined,
+    StopOutlined,
     FileOutlined,
     PictureOutlined,
     AudioOutlined,
@@ -37,6 +38,9 @@ function ChatPage() {
     const [isFileModalVisible, setIsFileModalVisible] = useState(false);
     const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
     const [uploadedFileUrls, setUploadedFileUrls] = useState([]);
+    const [isRecording, setIsRecording] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const audioChunks = useRef([]);
     const messagesEndRef = useRef(null);
 
     // Scroll to the bottom of the message list whenever messages update
@@ -63,6 +67,7 @@ function ChatPage() {
                     return;
                 }
 
+                // Определяем, какие данные нужно расшифровать
                 const encryptedContent =
                     receivedMessage.senderId === currentUserId
                         ? receivedMessage.encryptedForSender
@@ -78,13 +83,33 @@ function ChatPage() {
                         ? receivedMessage.fileUrlsForSender
                         : receivedMessage.fileUrlsForReceiver;
 
+                const encryptedAudioUrl =
+                    receivedMessage.senderId === currentUserId
+                        ? receivedMessage.audioUrlForSender
+                        : receivedMessage.audioUrlForReceiver;
+
+                // Расшифровываем данные
                 receivedMessage.content = await decryptMessage(encryptedContent);
-                receivedMessage.mediaUrls = await decryptArray(encryptedMediaUrls);
-                receivedMessage.fileUrls = await decryptArray(encryptedFileUrls);
+                receivedMessage.mediaUrls = encryptedMediaUrls
+                    ? await decryptArray(encryptedMediaUrls)
+                    : [];
+                receivedMessage.fileUrls = encryptedFileUrls
+                    ? await decryptArray(encryptedFileUrls)
+                    : [];
+                receivedMessage.audioUrl = encryptedAudioUrl
+                    ? await decryptMessage(encryptedAudioUrl)
+                    : null;
             } catch (error) {
                 console.error(`Error decrypting incoming message:`, error);
+
+                // Устанавливаем значения по умолчанию в случае ошибки
+                receivedMessage.content = "[Error: Unable to decrypt message]";
+                receivedMessage.mediaUrls = [];
+                receivedMessage.fileUrls = [];
+                receivedMessage.audioUrl = null;
             }
 
+            // Обновляем состояние
             setMessages((prevMessages) => [...prevMessages, receivedMessage]);
             setLastMessages((prevLastMessages) => ({
                 ...prevLastMessages,
@@ -108,6 +133,7 @@ function ChatPage() {
             }
         };
     }, [currentUserId]);
+
 
     useEffect(() => {
         fetchCurrentUserId();
@@ -207,22 +233,39 @@ function ChatPage() {
                                 msg.senderId === currentUserId
                                     ? msg.encryptedForSender
                                     : msg.encryptedForReceiver;
+
                             const encryptedMediaUrls =
                                 msg.senderId === currentUserId
                                     ? msg.mediaUrlsForSender
                                     : msg.mediaUrlsForReceiver;
+
                             const encryptedFileUrls =
                                 msg.senderId === currentUserId
                                     ? msg.fileUrlsForSender
                                     : msg.fileUrlsForReceiver;
+
+                            const encryptedAudioUrl =
+                                msg.senderId === currentUserId
+                                    ? msg.audioUrlForSender
+                                    : msg.audioUrlForReceiver;
+
+                            // Расшифровка контента
                             msg.content = await decryptMessage(encryptedContent);
-                            msg.mediaUrls = await decryptArray(encryptedMediaUrls);
-                            msg.fileUrls = await decryptArray(encryptedFileUrls);
+
+                            // Расшифровка медиа и файловых ссылок
+                            msg.mediaUrls = encryptedMediaUrls ? await decryptArray(encryptedMediaUrls) : [];
+                            msg.fileUrls = encryptedFileUrls ? await decryptArray(encryptedFileUrls) : [];
+
+                            // Расшифровка аудиоссылки
+                            msg.audioUrl = encryptedAudioUrl ? await decryptMessage(encryptedAudioUrl) : null;
                         } catch (error) {
                             console.error(`Error decrypting message with ID ${msg.id}:`, error);
+
+                            // Устанавливаем значения по умолчанию в случае ошибки
                             msg.content = "[Error: Unable to decrypt message]";
                             msg.mediaUrls = [];
                             msg.fileUrls = [];
+                            msg.audioUrl = null;
                         }
                         return msg;
                     })
@@ -236,6 +279,7 @@ function ChatPage() {
             console.error("An error occurred:", error);
         }
     };
+
 
     const fetchCurrentUserId = async () => {
         try {
@@ -511,19 +555,123 @@ function ChatPage() {
         }
     };
 
+    const sendAudioMessage = async (audioBlob) => {
+        const formData = new FormData();
+        formData.append("audioFile", audioBlob);
+
+        try {
+            // Шаг 1: Загрузка аудиофайла
+            console.log(audioBlob);
+            const uploadResponse = await fetch("/api/Files/uploadAudio", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+                console.error("Audio upload failed:", uploadResponse.status);
+                return;
+            }
+
+            const { url: audioUrl } = await uploadResponse.json();
+
+            // Шаг 2: Получение публичных ключей
+            const receiverKeyResponse = await fetch(`/api/Keys/getPublicKey/${selectedChatId}`);
+            const senderKeyResponse = await fetch(`/api/Keys/getPublicKey/${currentUserId}`);
+
+            if (!receiverKeyResponse.ok || !senderKeyResponse.ok) {
+                throw new Error("Failed to fetch public keys");
+            }
+
+            const receiverPublicKey = await receiverKeyResponse.text();
+            const senderPublicKey = await senderKeyResponse.text();
+
+            // Шаг 3: Шифрование ссылки на аудио
+            const encryptedAudioUrlForReceiver = await encryptMessage(audioUrl, receiverPublicKey);
+            const encryptedAudioUrlForSender = await encryptMessage(audioUrl, senderPublicKey);
+
+            // Шаг 4: Создание DTO
+            const messageDto = {
+                senderId: currentUserId,
+                receiverId: selectedChatId,
+                encryptedForSender: await encryptMessage("[Voice Message]", senderPublicKey), // Зашифрованный текстовый маркер для отправителя
+                encryptedForReceiver: await encryptMessage("[Voice Message]", receiverPublicKey), // Зашифрованный текстовый маркер для получателя
+                messageType: 3, // Указываем тип сообщения как аудио
+                audioUrlForSender: encryptedAudioUrlForSender, // Зашифрованная ссылка на аудио для отправителя
+                audioUrlForReceiver: encryptedAudioUrlForReceiver, // Зашифрованная ссылка на аудио для получателя
+            };
+
+            // Шаг 5: Отправка сообщения на сервер
+            const createMessageResponse = await fetch("/api/Message/createMessage", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(messageDto),
+            });
+
+            if (createMessageResponse.ok) {
+                const newMessage = {
+                    id: Date.now(), // Временный уникальный ID, можно заменить, если сервер возвращает ID
+                    senderId: currentUserId,
+                    receiverId: selectedChatId,
+                    content: "[Voice Message]",
+                    audioUrl: audioUrl, // Добавляем незашифрованную ссылку на аудио
+                    messageType: 3, // Тип сообщения - аудио
+                    timestamp: new Date().toISOString(), // Добавляем временную метку
+                };
+                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                console.log("Audio message sent!");
+            } else {
+                console.error("Failed to send audio message:", createMessageResponse.status);
+            }
+        } catch (error) {
+            console.error("Error uploading or sending audio:", error);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            setMediaRecorder(recorder);
+
+            recorder.ondataavailable = (event) => {
+                audioChunks.current.push(event.data);
+            };
+
+            recorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+                audioChunks.current = [];
+                sendAudioMessage(audioBlob);
+            };
+            recorder.start();
+            setIsRecording(true);
+        } catch (error) {
+            console.error("Error starting audio recording:", error);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
+        setIsRecording(false);
+    };
+
     const renderMessage = (msg) => {
         const isCurrentUserSender = msg.senderId === currentUserId;
 
         return (
             <div key={msg.id} className={`message ${isCurrentUserSender ? "sent" : "received"}`}>
+                {/* Отображение текстового содержимого */}
                 {msg.content && <p>{msg.content}</p>}
+
+                {/* Отображение медиа (изображения) */}
                 {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                     <div className="image-gallery">
                         {msg.mediaUrls.map((url, index) => (
                             <Image
                                 key={index}
                                 width={200}
-                                src={url} 
+                                src={url}
                                 alt={`Uploaded media ${index + 1}`}
                                 style={{ margin: '8px 0' }}
                             />
@@ -531,13 +679,14 @@ function ChatPage() {
                     </div>
                 )}
 
+                {/* Отображение файлов */}
                 {msg.fileUrls && msg.fileUrls.length > 0 && (
                     <div className="file-list">
                         {msg.fileUrls.map((url, index) => (
                             <Button
                                 key={index}
                                 type="link"
-                                href={url} 
+                                href={url}
                                 target="_blank"
                                 icon={<FileOutlined />}
                                 style={{ display: 'block', margin: '4px 0' }}
@@ -547,9 +696,20 @@ function ChatPage() {
                         ))}
                     </div>
                 )}
+
+                {/* Отображение аудио */}
+                {msg.audioUrl && (
+                    <div className="audio-player">
+                        <audio controls>
+                            <source src={msg.audioUrl} type="audio/mpeg" />
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                )}
             </div>
         );
     };
+
 
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
@@ -614,8 +774,13 @@ function ChatPage() {
                                     <Tooltip title="Send File">
                                         <Button icon={<FileOutlined />} shape="circle" onClick={handleFileModalOpen} />
                                     </Tooltip>
-                                    <Tooltip title="Send Audio">
-                                        <Button icon={<AudioOutlined />} shape="circle" />
+                                    <Tooltip title={isRecording ? "Stop Recording" : "Start Recording"}>
+                                        <Button
+                                            icon={isRecording ? <StopOutlined /> : <AudioOutlined />}
+                                            shape="circle"
+                                            onClick={isRecording ? stopRecording : startRecording}
+                                            type={isRecording ? "danger" : "default"}
+                                        />
                                     </Tooltip>
                                     <Button
                                         type="primary"

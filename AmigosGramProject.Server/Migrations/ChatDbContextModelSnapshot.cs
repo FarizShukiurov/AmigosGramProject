@@ -30,6 +30,12 @@ namespace AmigosGramProject.Server.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AudioUrlForReceiver")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AudioUrlForSender")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("EncryptedForReceiver")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

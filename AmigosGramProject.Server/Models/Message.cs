@@ -4,7 +4,8 @@
     {
         Text,      
         Image,
-        File
+        File,
+        Audio
     }
 
     public class Message
@@ -20,6 +21,8 @@
         public List<string>? FileUrlsForSender { get; set; } = null;
         public List<string>? MediaUrlsForReceiver { get; set; } = null;
         public List<string>? FileUrlsForReceiver { get; set; } = null;
+        public string? AudioUrlForSender { get; set; } = null;
+        public string? AudioUrlForReceiver { get; set; } = null;
     }
 
 }

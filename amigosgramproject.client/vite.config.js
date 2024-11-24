@@ -131,6 +131,10 @@ export default defineConfig({
                 target,
                 secure: false
             },
+            '^/api/Files/uploadAudio': {
+                target,
+                secure: false
+            },
             '^/api/files/upload': {
                 target,
                 secure: false

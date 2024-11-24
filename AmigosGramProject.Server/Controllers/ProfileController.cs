@@ -60,6 +60,28 @@ namespace AmigosGramProject.Server.Controllers
 
             return Ok(new { avatarUrl = user.AvatarUrl });
         }
+        [HttpPost("set-avatar-url")]
+        public async Task<IActionResult> SetAvatarUrl([FromBody] SetAvatarUrlRequest request)
+        {
+            if (string.IsNullOrEmpty(request.AvatarUrl))
+                return BadRequest("Avatar URL is required.");
+
+            var user = GetCurrentUser();
+            if (user == null)
+                return Unauthorized();
+
+            user.AvatarUrl = request.AvatarUrl;
+            _dbContext.Update(user);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok(new { avatarUrl = user.AvatarUrl });
+        }
+
+        public class SetAvatarUrlRequest
+        {
+            public string AvatarUrl { get; set; }
+        }
+
 
         // Получение данных пользователя
         [HttpGet("get-user-data")]

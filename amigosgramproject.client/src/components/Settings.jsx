@@ -44,6 +44,69 @@ const Settings = () => {
 
         fetchUserData();
     }, []);
+    const DEFAULT_AVATARS = [
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png", alt: "Amigos Black" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlue.png", alt: "Amigos Blue" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBrown.png", alt: "Amigos Brown" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkBlue.png", alt: "Amigos Dark Blue" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkRed.png", alt: "Amigos Dark Red" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosGreen.png", alt: "Amigos Green" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosOrange.png", alt: "Amigos Orange" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosPurple.png", alt: "Amigos Purple" },
+        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosRed.png", alt: "Amigos Red" },
+    ];
+
+    const handleSelectDefaultAvatar = async (avatarSrc) => {
+        try {
+            let response;
+
+            if (avatarSrc instanceof File) {
+                // Если выбран файл, загружаем его через FormData
+                const formData = new FormData();
+                formData.append("file", avatarSrc);
+
+                response = await fetch("/api/Profile/upload-avatar", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Добавляем токен
+                    },
+                    body: formData,
+                });
+            } else {
+                // Если выбран URL из списка, отправляем как JSON
+                response = await fetch("/api/Profile/set-avatar-url", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Добавляем токен
+                    },
+                    body: JSON.stringify({ avatarUrl: avatarSrc }),
+                });
+            }
+
+            if (response.ok) {
+                const data = await response.json();
+                setAvatarUrl(data.avatarUrl);
+                notification.success({
+                    message: "Avatar Updated",
+                    description: "Avatar updated successfully!",
+                });
+                setVisible(false); // Закрываем модалку
+            } else {
+                notification.error({
+                    message: "Avatar Update Failed",
+                    description: "Failed to set or upload avatar.",
+                });
+            }
+        } catch (error) {
+            console.error("Error updating avatar", error);
+            notification.error({
+                message: "Unexpected Error",
+                description: "An unexpected error occurred.",
+            });
+        }
+    };
+
 
     const getTokenFromCookies = () => {
         const cookies = document.cookie.split(";");
@@ -230,22 +293,32 @@ const Settings = () => {
                         action="/api/Profile/upload-avatar"
                         onChange={handleFileChange}
                         showUploadList={false}
+                        beforeUpload={(file) => {
+                            const isImage = file.type.startsWith("image/");
+                            if (!isImage) {
+                                notification.error({
+                                    message: "Invalid File Type",
+                                    description: "You can only upload image files.",
+                                });
+                            }
+                            return isImage;
+                        }}
                     >
                         <Button>Upload New Avatar</Button>
                     </Upload>
-                    {/* Add your default avatars as images */}
+
+
                     <div className="default-avatars">
-                        <img
-                            src="default-avatar1.png"
-                            alt="Default Avatar 1"
-                            onClick={() => setAvatarUrl("default-avatar1.png")}
-                        />
-                        <img
-                            src="default-avatar2.png"
-                            alt="Default Avatar 2"
-                            onClick={() => setAvatarUrl("default-avatar2.png")}
-                        />
-                        {/* Add more default avatars as needed */}
+                        {DEFAULT_AVATARS.map((avatar) => (
+                            <img
+                                key={avatar.src}
+                                src={avatar.src}
+                                alt={avatar.alt}
+                                className="default-avatar"
+                                onClick={() => handleSelectDefaultAvatar(avatar.src)}
+                                style={{ cursor: "pointer", margin: "5px" }}
+                            />
+                        ))}
                     </div>
                 </Modal>
             </div>

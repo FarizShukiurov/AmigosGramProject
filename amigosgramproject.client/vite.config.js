@@ -103,6 +103,10 @@ export default defineConfig({
                 target,
                 secure: false
             },
+            '^/api/Profile/set-avatar-url': {
+                target,
+                secure: false
+            },
             '^/Chat/GetChats': {
                 target,
                 secure: false

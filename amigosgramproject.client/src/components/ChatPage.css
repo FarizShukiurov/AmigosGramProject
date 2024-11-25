@@ -233,6 +233,82 @@
     margin-left: 16px;
     color: white; /* Set the color to white */
 }
+.recording-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffeaea;
+    border: 1px solid red;
+    border-radius: 5px;
+    padding: 10px;
+    margin: 10px 0;
+    font-size: 16px;
+}
+/* Аудиосообщения */
+.audio-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.7); /* Черный с прозрачностью */
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Полупрозрачная граница */
+    border-radius: 10px;
+    padding: 10px;
+    max-width: 70%;
+    margin-top: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Тень */
+    transition: transform 0.2s ease-in-out;
+}
+
+    .audio-message.received {
+        background: rgba(255, 255, 255, 0.9);
+        color: black;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .audio-message.sent {
+        align-self: flex-end;
+    }
+
+    .audio-message.received {
+        align-self: flex-start;
+    }
+
+    .audio-message:hover {
+        transform: scale(1.02); /* Легкое увеличение */
+    }
+
+    .audio-message audio {
+        width: 100%;
+        outline: none;
+        border-radius: 5px;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+.audio-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2); /* Полупрозрачный фон */
+    border-radius: 50%;
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+    .audio-icon:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+.audio-timestamp {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
 
 @keyframes fade-in {
     from {

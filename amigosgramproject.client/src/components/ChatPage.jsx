@@ -90,8 +90,22 @@ function ChatPage() {
                         ? receivedMessage.audioUrlForSender
                         : receivedMessage.audioUrlForReceiver;
 
-                // Расшифровываем данные
-                receivedMessage.content = await decryptMessage(encryptedContent);
+                // Проверки и расшифровка данных
+                var contentTemp;
+                if (encryptedContent != null) {
+                    receivedMessage.content = await decryptMessage(encryptedContent);
+                    contentTemp = receivedMessage.content;
+                } else if (encryptedAudioUrl != null) {
+                    contentTemp = "Audio";
+                } else if (encryptedMediaUrls != null && encryptedMediaUrls.length > 0) {
+                    contentTemp = "Media";
+                } else if (encryptedFileUrls != null && encryptedFileUrls.length > 0) {
+                    contentTemp = "File";
+                } else {
+                    receivedMessage.content = receivedMessage.content || "[Unable to decrypt message]";
+                    contentTemp = receivedMessage.content;
+                }
+
                 receivedMessage.mediaUrls = encryptedMediaUrls
                     ? await decryptArray(encryptedMediaUrls)
                     : [];
@@ -112,12 +126,13 @@ function ChatPage() {
             }
 
             // Обновляем состояние
+            console.log("HUY:", receivedMessage.content);
             setMessages((prevMessages) => [...prevMessages, receivedMessage]);
             setLastMessages((prevLastMessages) => ({
                 ...prevLastMessages,
                 [receivedMessage.senderId === currentUserId
                     ? receivedMessage.receiverId
-                    : receivedMessage.senderId]: receivedMessage.content,
+                    : receivedMessage.senderId]: contentTemp,
             }));
         });
 
@@ -171,8 +186,22 @@ function ChatPage() {
                                 lastMessage.senderId === currentUserId
                                     ? lastMessage.encryptedForSender
                                     : lastMessage.encryptedForReceiver;
+                            var decryptedContent;
+                            console.log(lastMessage.mediaUrlsForReceiver)
+                            if (encryptedContent != null) {
+                                decryptedContent = await decryptMessage(encryptedContent);
+                            }
+                            else if(lastMessage.audioUrlForReceiver != null){
+                                decryptedContent = "Audio"                       
+                            }
+                            else if (lastMessage.mediaUrlsForReceiver != null && lastMessage.mediaUrlsForReceiver.length > 0) {
+                                decryptedContent = "Media"
+                            }
+                            else if (lastMessage.fileUrlsForReceiver != null && lastMessage.fileUrlsForReceiver.length > 0) {
+                                decryptedContent = "File"
+                            }
+                          
 
-                            const decryptedContent = await decryptMessage(encryptedContent);
 
                             setLastMessages((prev) => ({
                                 ...prev,
@@ -564,7 +593,7 @@ function ChatPage() {
                     [selectedChatId]: message || "", // Отображаем текст или ничего
                 }));
                 setMessage(null);
-                setUploadedImageUrls([]);
+                setUploadedImageUrls([]); 
                 setUploadedFileUrls([]);
             } else {
                 console.error("Error sending message:", response.status);
@@ -772,7 +801,7 @@ function ChatPage() {
                             <List.Item.Meta
                                 avatar={<Avatar src={chat.avatarUrl} />}
                                 title={chat.userName}
-                                description={lastMessages[chat.id] || "Loading..."}
+                                description={lastMessages[chat.id]}
                             />
                         </List.Item>
                     )}

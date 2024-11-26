@@ -105,7 +105,10 @@ namespace AmigosGramProject.Server.Controllers
                 lastMessage.ReceiverId,
                 lastMessage.Timestamp,
                 lastMessage.EncryptedForSender,
-                lastMessage.EncryptedForReceiver
+                lastMessage.EncryptedForReceiver,
+                lastMessage.AudioUrlForReceiver,
+                lastMessage.FileUrlsForReceiver,
+                lastMessage.MediaUrlsForReceiver,
             });
         }
 

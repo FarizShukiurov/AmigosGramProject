@@ -13,8 +13,8 @@
         public int Id { get; set; }                 
         public string SenderId { get; set; }        
         public string ReceiverId { get; set; }      
-        public string EncryptedForSender { get; set; }
-        public string EncryptedForReceiver { get; set; }    
+        public string? EncryptedForSender { get; set; }
+        public string? EncryptedForReceiver { get; set; }    
         public DateTime Timestamp { get; set; }     
         public MessageType MessageType { get; set; }
         public List<string>? MediaUrlsForSender { get; set; } = null;

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+п»їimport { useState, useEffect, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import {
     Input,
@@ -31,7 +31,7 @@ function ChatPage() {
     const [selectedChatId, setSelectedChatId] = useState(null);
     const [lastMessages, setLastMessages] = useState({});
     const [hubConnection, setHubConnection] = useState(null);
-    const [message, setMessage] = useState("");
+    const [message, setMessage] = useState(null);
     const [messages, setMessages] = useState([]);
     const [currentUserId, setCurrentUserId] = useState();
     const [isImageModalVisible, setIsImageModalVisible] = useState(false);
@@ -41,7 +41,7 @@ function ChatPage() {
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const audioChunks = useRef([]);
-    const timerRef = useRef(null); // Счетчик времени запис
+    const timerRef = useRef(null); // РЎС‡РµС‚С‡РёРє РІСЂРµРјРµРЅРё Р·Р°РїРёСЃ
     const [recordingTime, setRecordingTime] = useState(0);
     const messagesEndRef = useRef(null);
 
@@ -69,7 +69,7 @@ function ChatPage() {
                     return;
                 }
 
-                // Определяем, какие данные нужно расшифровать
+                // РћРїСЂРµРґРµР»СЏРµРј, РєР°РєРёРµ РґР°РЅРЅС‹Рµ РЅСѓР¶РЅРѕ СЂР°СЃС€РёС„СЂРѕРІР°С‚СЊ
                 const encryptedContent =
                     receivedMessage.senderId === currentUserId
                         ? receivedMessage.encryptedForSender
@@ -90,7 +90,7 @@ function ChatPage() {
                         ? receivedMessage.audioUrlForSender
                         : receivedMessage.audioUrlForReceiver;
 
-                // Расшифровываем данные
+                // Р Р°СЃС€РёС„СЂРѕРІС‹РІР°РµРј РґР°РЅРЅС‹Рµ
                 receivedMessage.content = await decryptMessage(encryptedContent);
                 receivedMessage.mediaUrls = encryptedMediaUrls
                     ? await decryptArray(encryptedMediaUrls)
@@ -104,14 +104,14 @@ function ChatPage() {
             } catch (error) {
                 console.error(`Error decrypting incoming message:`, error);
 
-                // Устанавливаем значения по умолчанию в случае ошибки
+                // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р·РЅР°С‡РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІ СЃР»СѓС‡Р°Рµ РѕС€РёР±РєРё
                 receivedMessage.content = "[Error: Unable to decrypt message]";
                 receivedMessage.mediaUrls = [];
                 receivedMessage.fileUrls = [];
                 receivedMessage.audioUrl = null;
             }
 
-            // Обновляем состояние
+            // РћР±РЅРѕРІР»СЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ
             setMessages((prevMessages) => [...prevMessages, receivedMessage]);
             setLastMessages((prevLastMessages) => ({
                 ...prevLastMessages,
@@ -161,12 +161,11 @@ function ChatPage() {
             const contactData = await response.json();
             setChats(contactData);
 
-            // Загрузка и обработка последнего сообщения для каждого чата
+            // Р—Р°РіСЂСѓР·РєР° Рё РѕР±СЂР°Р±РѕС‚РєР° РїРѕСЃР»РµРґРЅРµРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ РґР»СЏ РєР°Р¶РґРѕРіРѕ С‡Р°С‚Р°
             await Promise.all(
                 contactData.map(async (chat) => {
                     try {
                         const lastMessage = await fetchLastMessage(chat.id, currentUserId);
-                        console.log(lastMessage);
                         if (lastMessage) {
                             const encryptedContent =
                                 lastMessage.senderId === currentUserId
@@ -251,19 +250,21 @@ function ChatPage() {
                                     ? msg.audioUrlForSender
                                     : msg.audioUrlForReceiver;
 
-                            // Расшифровка контента
-                            msg.content = await decryptMessage(encryptedContent);
+                            // Р Р°СЃС€РёС„СЂРѕРІРєР° РєРѕРЅС‚РµРЅС‚Р°
+                            if (encryptedContent != null) {
+                                msg.content = await decryptMessage(encryptedContent);
+                            }
 
-                            // Расшифровка медиа и файловых ссылок
+                            // Р Р°СЃС€РёС„СЂРѕРІРєР° РјРµРґРёР° Рё С„Р°Р№Р»РѕРІС‹С… СЃСЃС‹Р»РѕРє
                             msg.mediaUrls = encryptedMediaUrls ? await decryptArray(encryptedMediaUrls) : [];
                             msg.fileUrls = encryptedFileUrls ? await decryptArray(encryptedFileUrls) : [];
 
-                            // Расшифровка аудиоссылки
+                            // Р Р°СЃС€РёС„СЂРѕРІРєР° Р°СѓРґРёРѕСЃСЃС‹Р»РєРё
                             msg.audioUrl = encryptedAudioUrl ? await decryptMessage(encryptedAudioUrl) : null;
                         } catch (error) {
                             console.error(`Error decrypting message with ID ${msg.id}:`, error);
 
-                            // Устанавливаем значения по умолчанию в случае ошибки
+                            // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј Р·РЅР°С‡РµРЅРёСЏ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РІ СЃР»СѓС‡Р°Рµ РѕС€РёР±РєРё
                             msg.content = "[Error: Unable to decrypt message]";
                             msg.mediaUrls = [];
                             msg.fileUrls = [];
@@ -308,7 +309,7 @@ function ChatPage() {
 
     const handleImageChange = (info) => {
         if (info.file.status === "done") {
-            const uploadedUrl = info.file.response.url; // Предполагается, что сервер возвращает URL
+            const uploadedUrl = info.file.response.url; // РџСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ, С‡С‚Рѕ СЃРµСЂРІРµСЂ РІРѕР·РІСЂР°С‰Р°РµС‚ URL
             setUploadedImageUrls((prev) => [...prev, uploadedUrl]);
             console.log("Image uploaded:", uploadedUrl);
         }
@@ -317,7 +318,7 @@ function ChatPage() {
 
     const handleImageRemove = async (file) => {
         try {
-            // Отправляем запрос на удаление
+            // РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ РЅР° СѓРґР°Р»РµРЅРёРµ
             console.log(file.response.fileId);
             const response = await fetch(`/api/files/delete/${file.response.fileId}`, {
                 method: 'DELETE',
@@ -338,7 +339,7 @@ function ChatPage() {
 
     const handleFileChange = (info) => {
         if (info.file.status === "done") {
-            const uploadedUrl = info.file.response.url; // Предполагается, что сервер возвращает URL
+            const uploadedUrl = info.file.response.url; // РџСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ, С‡С‚Рѕ СЃРµСЂРІРµСЂ РІРѕР·РІСЂР°С‰Р°РµС‚ URL
             setUploadedFileUrls((prev) => [...prev, uploadedUrl]);
             console.log("File uploaded:", uploadedUrl);
         }
@@ -347,7 +348,7 @@ function ChatPage() {
 
     const handleFileRemove = async (file) => {
         try {
-            // Отправляем запрос на удаление
+            // РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ РЅР° СѓРґР°Р»РµРЅРёРµ
             console.log(file.response.fileId);
             const response = await fetch(`/api/files/delete/${file.response.fileId}`, {
                 method: 'DELETE',
@@ -368,10 +369,10 @@ function ChatPage() {
 
     const encryptMessage = async (message, publicKeyBase64) => {
         try {
-            // Декодируем Base64 в ArrayBuffer
+            // Р”РµРєРѕРґРёСЂСѓРµРј Base64 РІ ArrayBuffer
             const publicKeyBuffer = Uint8Array.from(atob(publicKeyBase64), (c) => c.charCodeAt(0)).buffer;
 
-            // Импортируем публичный ключ
+            // РРјРїРѕСЂС‚РёСЂСѓРµРј РїСѓР±Р»РёС‡РЅС‹Р№ РєР»СЋС‡
             const publicKey = await window.crypto.subtle.importKey(
                 "spki",
                 publicKeyBuffer,
@@ -383,7 +384,7 @@ function ChatPage() {
                 ["encrypt"]
             );
 
-            // Шифруем сообщение
+            // РЁРёС„СЂСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ
             const encoder = new TextEncoder();
             const encodedMessage = encoder.encode(message);
 
@@ -395,7 +396,7 @@ function ChatPage() {
                 encodedMessage
             );
 
-            // Кодируем результат в Base64 для отправки
+            // РљРѕРґРёСЂСѓРµРј СЂРµР·СѓР»СЊС‚Р°С‚ РІ Base64 РґР»СЏ РѕС‚РїСЂР°РІРєРё
             return btoa(String.fromCharCode(...new Uint8Array(encryptedMessage)));
         } catch (error) {
             console.error("Error encrypting message:", error);
@@ -415,26 +416,26 @@ function ChatPage() {
     const decryptMessage = async (encryptedMessageBase64) => {
         try {
             console.log("Starting decryption...");
-            // Декодируем Base64 в ArrayBuffer для зашифрованного сообщения
+            // Р”РµРєРѕРґРёСЂСѓРµРј Base64 РІ ArrayBuffer РґР»СЏ Р·Р°С€РёС„СЂРѕРІР°РЅРЅРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ
             const encryptedMessageBuffer = Uint8Array.from(atob(encryptedMessageBase64), (c) => c.charCodeAt(0)).buffer;
             console.log("Encrypted message buffer:", encryptedMessageBuffer);
   
-            // Извлекаем приватный ключ из localStorage
+            // РР·РІР»РµРєР°РµРј РїСЂРёРІР°С‚РЅС‹Р№ РєР»СЋС‡ РёР· localStorage
             const privateKeyBase64 = localStorage.getItem("privateKey");
             if (!privateKeyBase64) {
                 throw new Error("Private key not found in localStorage");
             }
 
-            // Декодируем Base64 в ArrayBuffer для приватного ключа
+            // Р”РµРєРѕРґРёСЂСѓРµРј Base64 РІ ArrayBuffer РґР»СЏ РїСЂРёРІР°С‚РЅРѕРіРѕ РєР»СЋС‡Р°
             const privateKeyBuffer = Uint8Array.from(atob(privateKeyBase64), (c) => c.charCodeAt(0)).buffer;
             console.log("Private key buffer:", privateKeyBuffer);
 
-            // Проверка длины приватного ключа
+            // РџСЂРѕРІРµСЂРєР° РґР»РёРЅС‹ РїСЂРёРІР°С‚РЅРѕРіРѕ РєР»СЋС‡Р°
             if (privateKeyBuffer.byteLength < 1200) {
                 throw new Error("Private key is too short, invalid format.");
             }
 
-            // Импортируем приватный ключ
+            // РРјРїРѕСЂС‚РёСЂСѓРµРј РїСЂРёРІР°С‚РЅС‹Р№ РєР»СЋС‡
             const privateKey = await window.crypto.subtle.importKey(
                 "pkcs8",
                 privateKeyBuffer,
@@ -447,14 +448,14 @@ function ChatPage() {
             );
             console.log("Private key imported successfully.");
 
-            // Дешифруем сообщение
+            // Р”РµС€РёС„СЂСѓРµРј СЃРѕРѕР±С‰РµРЅРёРµ
             const decryptedBuffer = await window.crypto.subtle.decrypt(
                 { name: "RSA-OAEP" },
                 privateKey,
                 encryptedMessageBuffer
             );
             console.log("Decrypted buffer:", decryptedBuffer);
-            // Преобразуем ArrayBuffer в строку
+            // РџСЂРµРѕР±СЂР°Р·СѓРµРј ArrayBuffer РІ СЃС‚СЂРѕРєСѓ
             const decoder = new TextDecoder();
             const decryptedMessage = decoder.decode(decryptedBuffer);
             console.log("Decrypted message:", decryptedMessage);
@@ -476,7 +477,7 @@ function ChatPage() {
     };
 
     const sendMessage = async () => {
-        // Проверка на пустое сообщение
+        // РџСЂРѕРІРµСЂРєР° РЅР° РїСѓСЃС‚РѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
         if (!message && uploadedImageUrls.length === 0 && uploadedFileUrls.length === 0) {
             console.warn("No content to send");
             return;
@@ -487,7 +488,7 @@ function ChatPage() {
         console.log("Uploaded file URLs:", uploadedFileUrls);
 
         try {
-            // Получение публичных ключей
+            // РџРѕР»СѓС‡РµРЅРёРµ РїСѓР±Р»РёС‡РЅС‹С… РєР»СЋС‡РµР№
             const receiverKeyResponse = await fetch(`/api/Keys/getPublicKey/${selectedChatId}`);
             const senderKeyResponse = await fetch(`/api/Keys/getPublicKey/${currentUserId}`);
 
@@ -498,15 +499,15 @@ function ChatPage() {
             const receiverPublicKey = await receiverKeyResponse.text();
             const senderPublicKey = await senderKeyResponse.text();
 
-            // Шифрование текстового сообщения
+            // РЁРёС„СЂРѕРІР°РЅРёРµ С‚РµРєСЃС‚РѕРІРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ
             const encryptedForReceiver = message
                 ? await encryptMessage(message, receiverPublicKey)
-                : "";
+                : null;
             const encryptedForSender = message
                 ? await encryptMessage(message, senderPublicKey)
-                : "";
+                : null;
 
-            // Шифрование мультимедиа и файлов
+            // РЁРёС„СЂРѕРІР°РЅРёРµ РјСѓР»СЊС‚РёРјРµРґРёР° Рё С„Р°Р№Р»РѕРІ
             const encryptedMediaUrlsForReceiver = uploadedImageUrls.length > 0
                 ? await encryptArray(uploadedImageUrls, receiverPublicKey)
                 : [];
@@ -520,7 +521,7 @@ function ChatPage() {
                 ? await encryptArray(uploadedFileUrls, senderPublicKey)
                 : [];
 
-            // Определение типа сообщения (1 - медиа, 2 - файлы, 0 - текст)
+            // РћРїСЂРµРґРµР»РµРЅРёРµ С‚РёРїР° СЃРѕРѕР±С‰РµРЅРёСЏ (1 - РјРµРґРёР°, 2 - С„Р°Р№Р»С‹, 0 - С‚РµРєСЃС‚)
             const messageType = uploadedImageUrls.length > 0
                 ? 1
                 : uploadedFileUrls.length > 0
@@ -551,7 +552,7 @@ function ChatPage() {
                 const localDecryptedMessage = {
                     senderId: currentUserId,
                     receiverId: selectedChatId,
-                    content: message || "", // Не добавляем текст, если его нет
+                    content: message, // РќРµ РґРѕР±Р°РІР»СЏРµРј С‚РµРєСЃС‚, РµСЃР»Рё РµРіРѕ РЅРµС‚
                     isEncrypted: false,
                     mediaUrls: uploadedImageUrls,
                     fileUrls: uploadedFileUrls,
@@ -560,9 +561,9 @@ function ChatPage() {
                 setMessages((prevMessages) => [...prevMessages, localDecryptedMessage]);
                 setLastMessages((prevLastMessages) => ({
                     ...prevLastMessages,
-                    [selectedChatId]: message || "", // Отображаем текст или ничего
+                    [selectedChatId]: message || "", // РћС‚РѕР±СЂР°Р¶Р°РµРј С‚РµРєСЃС‚ РёР»Рё РЅРёС‡РµРіРѕ
                 }));
-                setMessage("");
+                setMessage(null);
                 setUploadedImageUrls([]);
                 setUploadedFileUrls([]);
             } else {
@@ -581,7 +582,7 @@ function ChatPage() {
         formData.append("audioFile", audioBlob);
 
         try {
-            // Шаг 1: Загрузка аудиофайла
+            // РЁР°Рі 1: Р—Р°РіСЂСѓР·РєР° Р°СѓРґРёРѕС„Р°Р№Р»Р°
             console.log(audioBlob);
             const uploadResponse = await fetch("/api/Files/uploadAudio", {
                 method: "POST",
@@ -595,7 +596,7 @@ function ChatPage() {
 
             const { url: audioUrl } = await uploadResponse.json();
 
-            // Шаг 2: Получение публичных ключей
+            // РЁР°Рі 2: РџРѕР»СѓС‡РµРЅРёРµ РїСѓР±Р»РёС‡РЅС‹С… РєР»СЋС‡РµР№
             const receiverKeyResponse = await fetch(`/api/Keys/getPublicKey/${selectedChatId}`);
             const senderKeyResponse = await fetch(`/api/Keys/getPublicKey/${currentUserId}`);
 
@@ -606,22 +607,20 @@ function ChatPage() {
             const receiverPublicKey = await receiverKeyResponse.text();
             const senderPublicKey = await senderKeyResponse.text();
 
-            // Шаг 3: Шифрование ссылки на аудио
+            // РЁР°Рі 3: РЁРёС„СЂРѕРІР°РЅРёРµ СЃСЃС‹Р»РєРё РЅР° Р°СѓРґРёРѕ
             const encryptedAudioUrlForReceiver = await encryptMessage(audioUrl, receiverPublicKey);
             const encryptedAudioUrlForSender = await encryptMessage(audioUrl, senderPublicKey);
 
-            // Шаг 4: Создание DTO
+            // РЁР°Рі 4: РЎРѕР·РґР°РЅРёРµ DTO
             const messageDto = {
                 senderId: currentUserId,
                 receiverId: selectedChatId,
-                encryptedForSender: "", // Не добавляем текст
-                encryptedForReceiver: "", // Не добавляем текст
-                messageType: 3, // Указываем тип сообщения как аудио
-                audioUrlForSender: encryptedAudioUrlForSender, // Зашифрованная ссылка на аудио для отправителя
-                audioUrlForReceiver: encryptedAudioUrlForReceiver, // Зашифрованная ссылка на аудио для получателя
+                messageType: 3, // РЈРєР°Р·С‹РІР°РµРј С‚РёРї СЃРѕРѕР±С‰РµРЅРёСЏ РєР°Рє Р°СѓРґРёРѕ
+                audioUrlForSender: encryptedAudioUrlForSender, // Р—Р°С€РёС„СЂРѕРІР°РЅРЅР°СЏ СЃСЃС‹Р»РєР° РЅР° Р°СѓРґРёРѕ РґР»СЏ РѕС‚РїСЂР°РІРёС‚РµР»СЏ
+                audioUrlForReceiver: encryptedAudioUrlForReceiver, // Р—Р°С€РёС„СЂРѕРІР°РЅРЅР°СЏ СЃСЃС‹Р»РєР° РЅР° Р°СѓРґРёРѕ РґР»СЏ РїРѕР»СѓС‡Р°С‚РµР»СЏ
             };
 
-            // Шаг 5: Отправка сообщения на сервер
+            // РЁР°Рі 5: РћС‚РїСЂР°РІРєР° СЃРѕРѕР±С‰РµРЅРёСЏ РЅР° СЃРµСЂРІРµСЂ
             const createMessageResponse = await fetch("/api/Message/createMessage", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -630,13 +629,13 @@ function ChatPage() {
 
             if (createMessageResponse.ok) {
                 const newMessage = {
-                    id: Date.now(), // Временный уникальный ID, можно заменить, если сервер возвращает ID
+                    id: Date.now(), // Р’СЂРµРјРµРЅРЅС‹Р№ СѓРЅРёРєР°Р»СЊРЅС‹Р№ ID, РјРѕР¶РЅРѕ Р·Р°РјРµРЅРёС‚СЊ, РµСЃР»Рё СЃРµСЂРІРµСЂ РІРѕР·РІСЂР°С‰Р°РµС‚ ID
                     senderId: currentUserId,
                     receiverId: selectedChatId,
-                    content: "", // Оставляем пустым
-                    audioUrl: audioUrl, // Добавляем незашифрованную ссылку на аудио
-                    messageType: 3, // Тип сообщения - аудио
-                    timestamp: new Date().toISOString(), // Добавляем временную метку
+                    content: "", // РћСЃС‚Р°РІР»СЏРµРј РїСѓСЃС‚С‹Рј
+                    audioUrl: audioUrl, // Р”РѕР±Р°РІР»СЏРµРј РЅРµР·Р°С€РёС„СЂРѕРІР°РЅРЅСѓСЋ СЃСЃС‹Р»РєСѓ РЅР° Р°СѓРґРёРѕ
+                    messageType: 3, // РўРёРї СЃРѕРѕР±С‰РµРЅРёСЏ - Р°СѓРґРёРѕ
+                    timestamp: new Date().toISOString(), // Р”РѕР±Р°РІР»СЏРµРј РІСЂРµРјРµРЅРЅСѓСЋ РјРµС‚РєСѓ
                 };
                 setMessages((prevMessages) => [...prevMessages, newMessage]);
                 console.log("Audio message sent!");
@@ -651,7 +650,7 @@ function ChatPage() {
 
     const startRecording = async () => {
         try {
-            // Запрос на доступ к микрофону
+            // Р—Р°РїСЂРѕСЃ РЅР° РґРѕСЃС‚СѓРї Рє РјРёРєСЂРѕС„РѕРЅСѓ
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             const recorder = new MediaRecorder(stream);
             setMediaRecorder(recorder);
@@ -665,17 +664,17 @@ function ChatPage() {
                 setRecordingTime(0);
 
                 const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
-                audioChunks.current = []; // Очистка временного хранилища
-                sendAudioMessage(audioBlob); // Отправка записанного аудио
+                audioChunks.current = []; // РћС‡РёСЃС‚РєР° РІСЂРµРјРµРЅРЅРѕРіРѕ С…СЂР°РЅРёР»РёС‰Р°
+                sendAudioMessage(audioBlob); // РћС‚РїСЂР°РІРєР° Р·Р°РїРёСЃР°РЅРЅРѕРіРѕ Р°СѓРґРёРѕ
 
-                // Остановить поток, чтобы освободить микрофон
+                // РћСЃС‚Р°РЅРѕРІРёС‚СЊ РїРѕС‚РѕРє, С‡С‚РѕР±С‹ РѕСЃРІРѕР±РѕРґРёС‚СЊ РјРёРєСЂРѕС„РѕРЅ
                 stream.getTracks().forEach((track) => track.stop());
             };
 
             recorder.start();
             setIsRecording(true);
 
-            // Запуск таймера
+            // Р—Р°РїСѓСЃРє С‚Р°Р№РјРµСЂР°
             timerRef.current = setInterval(() => {
                 setRecordingTime((prev) => prev + 1);
             }, 1000);
@@ -728,7 +727,7 @@ function ChatPage() {
                         ))}
                     </div>
                 )}
-                {/* Отображение аудио */}
+                {/* РћС‚РѕР±СЂР°Р¶РµРЅРёРµ Р°СѓРґРёРѕ */}
                 {msg.audioUrl && (
                     <div className="audio-player">
                         <audio controls>
@@ -844,7 +843,7 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
-                    accept="image/*"
+                    accept="image/*, .mp4"
                     action="/api/files/upload"
                     onRemove={handleImageRemove}
                     onChange={handleImageChange}

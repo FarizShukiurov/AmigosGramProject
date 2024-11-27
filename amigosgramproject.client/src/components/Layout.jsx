@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { Tooltip } from "antd";
-import { LogoutOutlined, SettingOutlined, MessageOutlined, UserOutlined } from '@ant-design/icons';
+import { LogoutOutlined, SettingOutlined, MessageOutlined, UserOutlined, TeamOutlined } from '@ant-design/icons';
 import AuthorizeView from "./AuthorizeView.jsx";
 import "./Layout.css";
 
 function Layout() {
     const [avatarUrl, setAvatarUrl] = useState(""); // ”берите значение по умолчанию
     const navigate = useNavigate();
+
     useEffect(() => {
         const fetchUserData = async () => {
             try {
@@ -29,7 +30,7 @@ function Layout() {
                     setAvatarUrl(data.avatarUrl); // ”становите URL, полученный из API
                 } else {
                     console.error("No avatar URL found in the response, using default avatar.");
-                    setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AvatarDefault.svg"); // «адайте значение по умолчанию, если не найдено
+                    setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png"); // «адайте значение по умолчанию, если не найдено
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
@@ -59,6 +60,7 @@ function Layout() {
             console.error("Error during logout:", error);
         }
     };
+
     return (
         <AuthorizeView>
             <div className="app-layout animated-layout">
@@ -83,6 +85,11 @@ function Layout() {
                                 <MessageOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </Link>
                         </button>
+                        <button className="menu-item">
+                            <Link to="/group-chats">
+                                <TeamOutlined style={{ fontSize: '24px', color: 'white' }} />
+                            </Link>
+                        </button>
                         <div className="menu-spacer" />
                         <button className="menu-item">
                             <Link to="/settings">
@@ -93,7 +100,6 @@ function Layout() {
                             <LogoutOutlined style={{ fontSize: '24px', color: 'white' }} />
                         </button>
                     </nav>
-
                 </aside>
                 <main className="content animated-content">
                     <Outlet />

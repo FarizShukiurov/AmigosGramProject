@@ -593,18 +593,18 @@ function ChatPage() {
                     [selectedChatId]: message || "", // Отображаем текст или ничего
                 }));
                 setMessage(null);
-                setUploadedImageUrls([]); 
-                setUploadedFileUrls([]);
             } else {
                 console.error("Error sending message:", response.status);
             }
         } catch (error) {
             console.error("Error sending message:", error);
+        } finally {
+            setUploadedImageUrls([]); // Очистка изображений
+            setUploadedFileUrls([]); // Очистка файлов
+            setIsImageModalVisible(false); // Закрытие модального окна изображений
+            setIsFileModalVisible(false); // Закрытие модального окна файлов
         }
     };
-
-
-
 
     const sendAudioMessage = async (audioBlob) => {
         const formData = new FormData();
@@ -774,9 +774,12 @@ function ChatPage() {
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
     const handleModalClose = () => {
-        setIsImageModalVisible(false);
-        setIsFileModalVisible(false);
+        setUploadedImageUrls([]); // Очистка изображений
+        setUploadedFileUrls([]); // Очистка файлов
+        setIsImageModalVisible(false); // Закрытие окна выбора изображения
+        setIsFileModalVisible(false); // Закрытие окна выбора файлов
     };
+
 
 
     return (

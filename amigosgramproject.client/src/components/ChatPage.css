@@ -12,12 +12,40 @@
         display: flex;
         flex-direction: column;
         backdrop-filter: blur(10px);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Добавлена легкая тень */
         transition: width 0.3s ease;
     }
-
-.sidebar:hover {
-    width: 320px;
+.context-menu {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 8px 0;
+    border-radius: 8px;
+    min-width: 140px;
+    z-index: 1000;
 }
+
+.context-menu-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    color: white;
+    transition: background 0.2s;
+}
+
+.context-menu-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.context-menu-item.danger {
+    color: #e63946;
+}
+
+.context-menu-item.danger:hover {
+    background: rgba(230, 57, 70, 0.2);
+}
+
+
 
 .search-bar input {
     width: 100%;
@@ -37,15 +65,21 @@
 .chat-item {
     display: flex;
     align-items: center;
-    padding: 10px;
-    cursor: pointer;
+    padding: 12px;
+    margin: 5px 10px;
     border-radius: 10px;
-    transition: background 0.3s ease;
+    transition: background 0.3s, transform 0.2s;
+    cursor: pointer;
+}
+.chat-item.active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.02); /* Увеличение активного элемента */
 }
 
     .chat-item:hover {
         background: rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
+        transform: translateY(-2px); /* Легкий эффект "подъема" */
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Тень при наведении */
     }
 
 
@@ -107,27 +141,29 @@
     flex-direction: column;
     gap: 10px;
     animation: fade-in 0.5s ease;
+    scroll-behavior: smooth;
 }
 
 .message {
     max-width: 70%;
     padding: 12px;
     border-radius: 15px;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease, background 0.3s ease;
+    font-size: 1rem;
+    line-height: 1.4;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Добавлена тень */
 }
 
 .message-sent {
     align-self: flex-end;
-    background: rgba(0, 0, 0, 0.7); /* Transparent black */
+    background: rgba(0, 123, 255, 0.8); /* Синий фон */
     color: white;
-    text-align: right;
 }
 
 .message-received {
     align-self: flex-start;
-    background: white;
+    background: rgba(245, 245, 245, 0.9); /* Светло-серый фон */
     color: black;
-    text-align: left;
 }
 
 .message-image {
@@ -143,11 +179,15 @@
 
 .sidebar {
     width: 300px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     flex-direction: column;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: width 0.3s ease;
 }
-
+.sidebar:hover {
+    width: 350px; /* Увеличение ширины при наведении */
+}
 .search-bar {
     padding: 10px;
 }
@@ -186,11 +226,49 @@
 }
 
 .chat-input {
-    padding: 10px;
-    background: #fff;
-    border-top: 1px solid #e0e0e0;
     display: flex;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
 }
+
+.chat-input input {
+    flex-grow: 1;
+    padding: 12px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    margin-right: 10px;
+    outline: none;
+    transition: background 0.3s ease;
+}
+
+.chat-input input:focus {
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Подсветка */
+}
+
+.chat-input button {
+    padding: 10px 15px;
+    border-radius: 20px;
+    background: #3498db;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.chat-input button:hover {
+    background: #2980b9;
+    transform: scale(1.1); /* Увеличение кнопки */
+}
+
+
 
 .message {
     max-width: 70%;

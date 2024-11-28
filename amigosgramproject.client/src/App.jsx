@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Layout from './components/Layout';
 import Contacts from './components/Contacts';
 import Settings from './components/Settings';
+import GroupChatPage from "./components/GroupChatPage.jsx";
 import ChatPage from './components/ChatPage';
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
                 <Route path="/" element={<Layout />}>
                     <Route path="contacts" element={<Contacts />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="group-chats" element={<GroupChatPage />} />
                     <Route path="chats" element={<ChatPage/> } />
                 </Route>
                 <Route path="*" element={"Not found" }></Route>

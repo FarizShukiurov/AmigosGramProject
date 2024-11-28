@@ -1,0 +1,249 @@
+.group-chat-page {
+    display: flex;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+}
+
+    .group-chat-page .sidebar {
+        width: 300px;
+        background: rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(10px);
+        transition: width 0.3s ease;
+    }
+
+        .group-chat-page .sidebar:hover {
+            width: 320px;
+        }
+
+    .group-chat-page .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        margin-bottom: 10px;
+    }
+
+        .group-chat-page .header h2 {
+            margin: 0;
+            color: white;
+        }
+
+.group-search-bar input {
+    width: 100%;
+    padding: 8px;
+    margin: 10px 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    outline: none;
+}
+
+    .group-search-bar input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+.group-chat-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+    .group-chat-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+    }
+
+.group-chat-avatar {
+    padding: 10px;
+    margin-right: 25px;
+}
+
+.group-chat-info h4 {
+    margin: 0;
+    font-weight: bold;
+}
+
+.group-chat-info p {
+    margin: 5px 0 0;
+    color: #ffff;
+    font-size: 14px;
+}
+
+.group-chat-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+}
+
+.group-chat-input {
+    display: flex;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+    .group-chat-input input {
+        flex-grow: 1;
+        padding: 10px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        margin-right: 10px;
+        outline: none;
+    }
+
+        .group-chat-input input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            border-block-color: black;
+        }
+
+.group-chat-messages {
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fade-in 0.5s ease;
+}
+
+.group-message {
+    max-width: 70%;
+    padding: 12px;
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+}
+
+.group-message-sent {
+    align-self: flex-end;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    text-align: right;
+}
+
+.group-message-received {
+    align-self: flex-start;
+    background: white;
+    color: black;
+    text-align: left;
+}
+
+.group-message-image {
+    max-width: 100%;
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+/* Аудиосообщения */
+.group-audio-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    max-width: 70%;
+    margin-top: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease-in-out;
+}
+
+    .group-audio-message.received {
+        background: rgba(255, 255, 255, 0.9);
+        color: black;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .group-audio-message.sent {
+        align-self: flex-end;
+    }
+
+    .group-audio-message.received {
+        align-self: flex-start;
+    }
+
+    .group-audio-message:hover {
+        transform: scale(1.02);
+    }
+
+    .group-audio-message audio {
+        width: 100%;
+        outline: none;
+        border-radius: 5px;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+.group-audio-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+    .group-audio-icon:hover {
+        background: rgba(255, 255, 255, 0.4);
+    }
+
+.group-audio-timestamp {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.custom-modal-title {
+    margin-left: 16px;
+    color: white;
+}
+.chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+    .chat-header .group-name {
+        flex-grow: 1;
+        margin-left: 10px;
+        font-size: 18px;
+        color: white;
+    }
+
+.create-group-button,
+.add-participants-button {
+    margin-left: 10px;
+}

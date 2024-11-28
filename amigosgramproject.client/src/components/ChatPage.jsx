@@ -44,6 +44,174 @@ function ChatPage() {
     const timerRef = useRef(null); // Счетчик времени запис
     const [recordingTime, setRecordingTime] = useState(0);
     const messagesEndRef = useRef(null);
+    ///
+    const [contextMenuVisible, setContextMenuVisible] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+    const [selectedMessage, setSelectedMessage] = useState(null);
+    const [editedText, setEditedText] = useState("");
+    const [editingMessage, setEditingMessage] = useState(null);
+
+    const handleContextMenu = (event, message) => {
+        if (message.senderId !== currentUserId) return; // Только для своих сообщений
+        event.preventDefault(); // Отключить стандартное меню браузера
+
+        const OFFSET_X = 200; // Смещение меню влево (в пикселях)
+        setSelectedMessage(message);
+        setMenuPosition({ x: event.clientX - OFFSET_X, y: event.clientY });
+        setContextMenuVisible(true);
+    };
+
+    useEffect(() => {
+        return () => {
+            // При удалении компонента или смене чата
+            if (hubConnection && selectedChatId) {
+                hubConnection.invoke("LeaveGroup", selectedChatId.toString());
+            }
+        };
+    }, [selectedChatId]);
+
+    const handleCloseContextMenu = () => {
+        setContextMenuVisible(false);
+    };
+
+    const handleEditMessage = (messageId) => {
+        const messageToEdit = messages.find((msg) => msg.id === messageId);
+        if (messageToEdit) {
+            setEditingMessage(messageToEdit); // Устанавливаем редактируемое сообщение
+            setEditedText(messageToEdit.content); // Заполняем текст для редактирования
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        const isContentEmpty = !editedText || !editedText.trim();
+        const hasMediaOrFiles =
+            editingMessage.mediaUrlsForSender?.length > 0 ||
+            editingMessage.fileUrlsForSender?.length > 0 ||
+            editingMessage.audioUrlForSender;
+
+        if (isContentEmpty && !hasMediaOrFiles) {
+            antdMessage.error("Сообщение не может быть пустым, если нет медиа, файлов или аудио.");
+            return;
+        }
+
+        try {
+            const receiverKeyResponse = await fetch(`/api/Keys/getPublicKey/${selectedChatId}`);
+            const senderKeyResponse = await fetch(`/api/Keys/getPublicKey/${currentUserId}`);
+
+            if (!receiverKeyResponse.ok || !senderKeyResponse.ok) {
+                throw new Error("Не удалось получить публичные ключи.");
+            }
+
+            const receiverPublicKey = await receiverKeyResponse.text();
+            const senderPublicKey = await senderKeyResponse.text();
+
+            const encryptedForSender = isContentEmpty ? null : await encryptMessage(editedText, senderPublicKey);
+            const encryptedForReceiver = isContentEmpty ? null : await encryptMessage(editedText, receiverPublicKey);
+
+            const response = await fetch(`/api/Message/editMessageById/${editingMessage.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    encryptedForSender,
+                    encryptedForReceiver,
+                    mediaUrlsForSender: editingMessage.mediaUrlsForSender || [],
+                    fileUrlsForSender: editingMessage.fileUrlsForSender || [],
+                    audioUrlForSender: editingMessage.audioUrlForSender || null,
+                    mediaUrlsForReceiver: editingMessage.mediaUrlsForReceiver || [],
+                    fileUrlsForReceiver: editingMessage.fileUrlsForReceiver || [],
+                    audioUrlForReceiver: editingMessage.audioUrlForReceiver || null,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Ошибка при обновлении сообщения на сервере.");
+            }
+
+            const updatedMessage = await response.json();
+
+            // Обновляем только изменённые поля локально, чтобы не затереть медиа
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) =>
+                    msg.id === updatedMessage.id
+                        ? {
+                            ...msg, // Сохраняем старые данные
+                            content: isContentEmpty ? "" : editedText, // Обновляем текст
+                            mediaUrls: msg.mediaUrls, // Сохраняем существующие медиа
+                            fileUrls: msg.fileUrls, // Сохраняем файлы
+                            audioUrl: msg.audioUrl, // Сохраняем аудио
+                        }
+                        : msg
+                )
+            );
+
+            setEditingMessage(null);
+            setEditedText("");
+            antdMessage.success("Сообщение успешно отредактировано.");
+        } catch (error) {
+            console.error("Ошибка редактирования сообщения:", error);
+            antdMessage.error("Ошибка при редактировании сообщения.");
+        }
+    };
+
+
+    const handleDeleteMessage = async (message) => {
+        try {
+            console.log("Message object:", message);
+
+            // Расшифровываем ссылки на медиа
+            const decryptedMediaUrls = message.mediaUrlsForSender?.length
+                ? await decryptArray(message.mediaUrlsForSender)
+                : [];
+            console.log(decryptedMediaUrls.length > 0 ? "Decrypted Media URLs:" : "No Media URLs to decrypt.", decryptedMediaUrls);
+
+            // Расшифровываем ссылки на файлы
+            const decryptedFileUrls = message.fileUrlsForSender?.length
+                ? await decryptArray(message.fileUrlsForSender)
+                : [];
+            console.log(decryptedFileUrls.length > 0 ? "Decrypted File URLs:" : "No File URLs to decrypt.", decryptedFileUrls);
+
+            // Расшифровываем ссылку на аудио
+            const decryptedAudioUrl = message.audioUrlForSender
+                ? await decryptMessage(message.audioUrlForSender)
+                : null;
+            console.log(decryptedAudioUrl ? "Decrypted Audio URL:" : "No Audio URL to decrypt.", decryptedAudioUrl);
+
+
+            // Формируем DTO с расшифрованными ссылками
+            const payload = {
+                mediaUrls: decryptedMediaUrls,
+                fileUrls: decryptedFileUrls,
+                audioUrl: decryptedAudioUrl,
+            };
+
+            console.log("Payload being sent:", payload);
+
+            const response = await fetch(`/api/Message/deleteMessageById/${message.id}`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to delete message");
+            }
+
+            antdMessage.success("Сообщение успешно удалено.");
+        } catch (error) {
+            console.error("Ошибка при удалении сообщения:", error);
+            antdMessage.error("Ошибка при удалении сообщения.");
+        }
+    };
+
+
+
+
+
+
+    ///
+
 
     // Scroll to the bottom of the message list whenever messages update
     const scrollToBottom = () => {
@@ -136,6 +304,60 @@ function ChatPage() {
             }));
         });
 
+        newConnection.on("UpdateMessage", async (updatedMessage) => {
+            console.log("Received updated message via SignalR:", updatedMessage);
+
+            // Если сообщение зашифровано, расшифровываем текст
+            if (updatedMessage.encryptedForSender && updatedMessage.senderId === currentUserId) {
+                updatedMessage.content = await decryptMessage(updatedMessage.encryptedForSender);
+            } else if (updatedMessage.encryptedForReceiver && updatedMessage.receiverId === currentUserId) {
+                updatedMessage.content = await decryptMessage(updatedMessage.encryptedForReceiver);
+            }
+
+            // Расшифровываем медиа, файлы и аудио
+            if (updatedMessage.mediaUrlsForSender && updatedMessage.senderId === currentUserId) {
+                updatedMessage.mediaUrls = await decryptArray(updatedMessage.mediaUrlsForSender);
+            } else if (updatedMessage.mediaUrlsForReceiver && updatedMessage.receiverId === currentUserId) {
+                updatedMessage.mediaUrls = await decryptArray(updatedMessage.mediaUrlsForReceiver);
+            }
+
+            if (updatedMessage.fileUrlsForSender && updatedMessage.senderId === currentUserId) {
+                updatedMessage.fileUrls = await decryptArray(updatedMessage.fileUrlsForSender);
+            } else if (updatedMessage.fileUrlsForReceiver && updatedMessage.receiverId === currentUserId) {
+                updatedMessage.fileUrls = await decryptArray(updatedMessage.fileUrlsForReceiver);
+            }
+
+            if (updatedMessage.audioUrlForSender && updatedMessage.senderId === currentUserId) {
+                updatedMessage.audioUrl = await decryptMessage(updatedMessage.audioUrlForSender);
+            } else if (updatedMessage.audioUrlForReceiver && updatedMessage.receiverId === currentUserId) {
+                updatedMessage.audioUrl = await decryptMessage(updatedMessage.audioUrlForReceiver);
+            }
+
+            // Обновляем состояние сообщений
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) =>
+                    msg.id === updatedMessage.id ? updatedMessage : msg
+                )
+            );
+        });
+        newConnection.on("MessageDeleted", (messageId) => {
+            console.log("Message deleted:", messageId);
+
+            setMessages((prevMessages) =>
+                prevMessages.filter((msg) => msg.id !== messageId)
+            );
+        });
+        newConnection.onclose(async () => {
+            console.warn("SignalR connection lost. Reconnecting...");
+            try {
+                await hubConnection.start();
+                console.log("SignalR reconnected.");
+            } catch (err) {
+                console.error("Failed to reconnect to SignalR:", err);
+            }
+        });
+
+
         newConnection
             .start()
             .then(() => {
@@ -191,8 +413,8 @@ function ChatPage() {
                             if (encryptedContent != null) {
                                 decryptedContent = await decryptMessage(encryptedContent);
                             }
-                            else if(lastMessage.audioUrlForReceiver != null){
-                                decryptedContent = "Audio"                       
+                            else if (lastMessage.audioUrlForReceiver != null) {
+                                decryptedContent = "Audio"
                             }
                             else if (lastMessage.mediaUrlsForReceiver != null && lastMessage.mediaUrlsForReceiver.length > 0) {
                                 decryptedContent = "Media"
@@ -200,7 +422,7 @@ function ChatPage() {
                             else if (lastMessage.fileUrlsForReceiver != null && lastMessage.fileUrlsForReceiver.length > 0) {
                                 decryptedContent = "File"
                             }
-                          
+
 
 
                             setLastMessages((prev) => ({
@@ -331,10 +553,23 @@ function ChatPage() {
         }
     };
 
-    const handleChatClick = (chatId) => {
-        setSelectedChatId(chatId);
-        fetchMessages(chatId);
+    const handleChatClick = async (receiverId) => {
+        setSelectedChatId(receiverId);
+        fetchMessages(receiverId);
+
+        // Формируем chatId из текущего пользователя (SenderId) и получателя (ReceiverId)
+        const chatId = currentUserId < receiverId
+            ? `${currentUserId}-${receiverId}`
+            : `${receiverId}-${currentUserId}`;
+
+        // Подключение к группе
+        if (hubConnection) {
+            await hubConnection.invoke("JoinGroup", chatId);
+            console.log(`Joined group: ${chatId}`);
+        }
     };
+
+
 
     const handleImageChange = (info) => {
         if (info.file.status === "done") {
@@ -448,7 +683,7 @@ function ChatPage() {
             // Декодируем Base64 в ArrayBuffer для зашифрованного сообщения
             const encryptedMessageBuffer = Uint8Array.from(atob(encryptedMessageBase64), (c) => c.charCodeAt(0)).buffer;
             console.log("Encrypted message buffer:", encryptedMessageBuffer);
-  
+
             // Извлекаем приватный ключ из localStorage
             const privateKeyBase64 = localStorage.getItem("privateKey");
             if (!privateKeyBase64) {
@@ -578,33 +813,24 @@ function ChatPage() {
             });
 
             if (response.ok) {
-                const localDecryptedMessage = {
-                    senderId: currentUserId,
-                    receiverId: selectedChatId,
-                    content: message, // Не добавляем текст, если его нет
-                    isEncrypted: false,
-                    mediaUrls: uploadedImageUrls,
-                    fileUrls: uploadedFileUrls,
-                    messageType,
-                };
-                setMessages((prevMessages) => [...prevMessages, localDecryptedMessage]);
+                fetchMessages(selectedChatId);
                 setLastMessages((prevLastMessages) => ({
                     ...prevLastMessages,
                     [selectedChatId]: message || "", // Отображаем текст или ничего
                 }));
                 setMessage(null);
+                setUploadedImageUrls([]);
+                setUploadedFileUrls([]);
             } else {
                 console.error("Error sending message:", response.status);
             }
         } catch (error) {
             console.error("Error sending message:", error);
-        } finally {
-            setUploadedImageUrls([]); // Очистка изображений
-            setUploadedFileUrls([]); // Очистка файлов
-            setIsImageModalVisible(false); // Закрытие модального окна изображений
-            setIsFileModalVisible(false); // Закрытие модального окна файлов
         }
     };
+
+
+
 
     const sendAudioMessage = async (audioBlob) => {
         const formData = new FormData();
@@ -657,16 +883,7 @@ function ChatPage() {
             });
 
             if (createMessageResponse.ok) {
-                const newMessage = {
-                    id: Date.now(), // Временный уникальный ID, можно заменить, если сервер возвращает ID
-                    senderId: currentUserId,
-                    receiverId: selectedChatId,
-                    content: "", // Оставляем пустым
-                    audioUrl: audioUrl, // Добавляем незашифрованную ссылку на аудио
-                    messageType: 3, // Тип сообщения - аудио
-                    timestamp: new Date().toISOString(), // Добавляем временную метку
-                };
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                fetchMessages(selectedChatId);
                 console.log("Audio message sent!");
             } else {
                 console.error("Failed to send audio message:", createMessageResponse.status);
@@ -725,44 +942,129 @@ function ChatPage() {
         const isCurrentUserSender = msg.senderId === currentUserId;
 
         return (
-            <div key={msg.id} className={`message ${isCurrentUserSender ? "sent" : "received"}`}>
-                {msg.content && <p>{msg.content}</p>}
-                {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                    <div className="image-gallery">
-                        {msg.mediaUrls.map((url, index) => (
-                            <Image
-                                key={index}
-                                width={200}
-                                src={url}
-                                alt={`Uploaded media ${index + 1}`}
-                                style={{ margin: '8px 0' }}
-                            />
-                        ))}
-                    </div>
-                )}
-                {msg.fileUrls && msg.fileUrls.length > 0 && (
-                    <div className="file-list">
-                        {msg.fileUrls.map((url, index) => (
-                            <Button
-                                key={index}
-                                type="link"
-                                href={url}
-                                target="_blank"
-                                icon={<FileOutlined />}
-                                style={{ display: 'block', margin: '4px 0' }}
-                            >
-                                Download File {index + 1}
+            <div
+                key={msg.id}
+                className={`message ${isCurrentUserSender ? "sent" : "received"}`}
+                onContextMenu={(e) => handleContextMenu(e, msg)} // Показываем контекстное меню при клике правой кнопкой
+            >
+                {editingMessage && editingMessage.id === msg.id ? (
+                    <div className="edit-message-container">
+                        <Input.TextArea
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            rows={3}
+                            style={{ marginBottom: "8px" }}
+                        />
+                        <Space>
+                            <Button type="primary" onClick={handleSaveEdit}>
+                                Сохранить
                             </Button>
-                        ))}
+                            <Button
+                                onClick={() => {
+                                    setEditingMessage(null);
+                                    setEditedText("");
+                                }}
+                            >
+                                Отменить
+                            </Button>
+                        </Space>
                     </div>
+                ) : (
+                    <>
+                        {/* Текстовое сообщение */}
+                        {msg.content && <p>{msg.content}</p>}
+
+                        {/* Медиа сообщения */}
+                        {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                            <div className="image-gallery">
+                                {msg.mediaUrls.map((url, index) => (
+                                    <Image
+                                        key={index}
+                                        width={200}
+                                        src={url}
+                                        alt={`Uploaded media ${index + 1}`}
+                                        style={{ margin: "8px 0" }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Файловые сообщения */}
+                        {msg.fileUrls && msg.fileUrls.length > 0 && (
+                            <div className="file-list">
+                                {msg.fileUrls.map((url, index) => (
+                                    <Button
+                                        key={index}
+                                        type="link"
+                                        href={url}
+                                        target="_blank"
+                                        icon={<FileOutlined />}
+                                        style={{ display: "block", margin: "4px 0" }}
+                                    >
+                                        Download File {index + 1}
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Аудио сообщения */}
+                        {msg.audioUrl && (
+                            <div className="audio-player">
+                                <audio controls>
+                                    <source src={msg.audioUrl} type="audio/mpeg" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        )}
+                    </>
                 )}
-                {/* Отображение аудио */}
-                {msg.audioUrl && (
-                    <div className="audio-player">
-                        <audio controls>
-                            <source src={msg.audioUrl} type="audio/mpeg" />
-                            Your browser does not support the audio element.
-                        </audio>
+
+                {/* Контекстное меню */}
+                {contextMenuVisible && selectedMessage?.id === msg.id && (
+                    <div
+                        className="context-menu"
+                        style={{
+                            position: "absolute",
+                            top: `${menuPosition.y}px`,
+                            left: `${menuPosition.x}px`,
+                            zIndex: 1000,
+                            background: "#fff",
+                            border: "1px solid #ccc",
+                            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
+                            padding: "8px 0",
+                            borderRadius: "8px",
+                            minWidth: "120px",
+                            fontSize: "14px",
+                        }}
+                    >
+                        <div
+                            className="context-menu-item"
+                            onClick={() => handleEditMessage(msg.id)} // Вызываем редактирование
+                            style={{
+                                padding: "10px 16px",
+                                cursor: "pointer",
+                                color: "#333",
+                                transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                            ✏️ Редактировать
+                        </div>
+                        <div
+                            className="context-menu-item"
+                            onClick={() => handleDeleteMessage(msg)} // Удаляем сообщение
+                            style={{
+                                padding: "10px 16px",
+                                cursor: "pointer",
+                                color: "#e63946",
+                                transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#ffe5e5")}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                        >
+                            🗑️ Удалить
+                        </div>
                     </div>
                 )}
             </div>
@@ -770,16 +1072,12 @@ function ChatPage() {
     };
 
 
-
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
     const handleModalClose = () => {
-        setUploadedImageUrls([]); // Очистка изображений
-        setUploadedFileUrls([]); // Очистка файлов
-        setIsImageModalVisible(false); // Закрытие окна выбора изображения
-        setIsFileModalVisible(false); // Закрытие окна выбора файлов
+        setIsImageModalVisible(false);
+        setIsFileModalVisible(false);
     };
-
 
 
     return (
@@ -813,7 +1111,7 @@ function ChatPage() {
 
             <Layout>
                 <Content className="chat-content">
-                    <div className="chat-messages">
+                    <div className="chat-messages" onClick={handleCloseContextMenu}>
                         {messages.map((msg) => renderMessage(msg))}
                         {/* Reference to keep the scroll at the bottom */}
                         <div ref={messagesEndRef} />
@@ -824,7 +1122,7 @@ function ChatPage() {
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) { 
+                                if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
                                     sendMessage();
                                 }
@@ -855,11 +1153,7 @@ function ChatPage() {
                                         </div>
                                     )}
 
-                                    <Button
-                                        type="primary"
-                                        icon={<SendOutlined />}
-                                        onClick={sendMessage}
-                                    />
+                                    <Button type="primary" icon={<SendOutlined />} onClick={sendMessage} />
                                 </Space>
                             }
                         />
@@ -867,6 +1161,7 @@ function ChatPage() {
                 </Content>
             </Layout>
 
+            {/* Модальные окна */}
             <Modal
                 title={<span className="custom-modal-title">Select Image</span>}
                 visible={isImageModalVisible}
@@ -900,10 +1195,9 @@ function ChatPage() {
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
-
-
         </Layout>
     );
+
 }
 
 export default ChatPage;

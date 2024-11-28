@@ -160,6 +160,12 @@ export default defineConfig({
             },'^/api/Keys/getPublicKey': {
                 target,
                 secure: false
+            },'^/api/Message/deleteMessageById': {
+                target,
+                secure: false
+            },'^/api/Message/editMessageById': {
+                target,
+                secure: false
             },
             
         },

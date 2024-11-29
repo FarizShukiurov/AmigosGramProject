@@ -46,6 +46,7 @@ function ChatPage() {
     const timerRef = useRef(null); // Счетчик времени запис
     const [recordingTime, setRecordingTime] = useState(0);
     const messagesEndRef = useRef(null);
+    const [previousChatId, setPreviousChatId] = useState(null); 
     ///
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -66,9 +67,40 @@ function ChatPage() {
         }
     };
 
+    const getChatGroupId = (senderId, receiverId) => {
+        return senderId.localeCompare(receiverId) < 0
+            ? `${senderId}-${receiverId}`
+            : `${receiverId}-${senderId}`;
+    };
 
+    useEffect(() => {
+        if (!hubConnection || !currentUserId) return;
 
-   
+        const switchGroup = async () => {
+            try {
+                // Покидаем предыдущую группу, если есть
+                if (previousChatId) {
+                    await hubConnection.invoke("LeaveGroup", previousChatId);
+                    console.log(`Left group: ${previousChatId}`);
+                }
+
+                // Присоединяемся к новой группе
+                if (selectedChatId) {
+                    const newGroupId = getChatGroupId(currentUserId, selectedChatId);
+                    await hubConnection.invoke("JoinGroup", newGroupId);
+                    console.log(`Joined group: ${newGroupId}`);
+
+                    // Сохраняем идентификатор текущей группы
+                    setPreviousChatId(newGroupId);
+                }
+            } catch (error) {
+                console.error("Error switching groups:", error);
+            }
+        };
+
+        switchGroup();
+    }, [hubConnection, selectedChatId, currentUserId]);
+
 
 
     const handleContextMenu = (event, message) => {
@@ -81,14 +113,6 @@ function ChatPage() {
         setContextMenuVisible(true);
     };
 
-    useEffect(() => {
-        return () => {
-            // При удалении компонента или смене чата
-            if (hubConnection && selectedChatId) {
-                hubConnection.invoke("LeaveGroup", selectedChatId.toString());
-            }
-        };
-    }, [selectedChatId]);
 
     const handleCloseContextMenu = () => {
         setContextMenuVisible(false);
@@ -226,9 +250,33 @@ function ChatPage() {
     };
 
 
+    useEffect(() => {
+        if (!hubConnection || !currentUserId) return;
 
+        const switchGroup = async () => {
+            try {
+                // Покидаем предыдущую группу, если есть
+                if (previousChatId) {
+                    await hubConnection.invoke("LeaveGroup", previousChatId);
+                    console.log(`Left group: ${previousChatId}`);
+                }
 
+                // Присоединяемся к новой группе
+                if (selectedChatId) {
+                    const newGroupId = getChatGroupId(currentUserId, selectedChatId);
+                    await hubConnection.invoke("JoinGroup", newGroupId);
+                    console.log(`Joined group: ${newGroupId}`);
 
+                    // Сохраняем идентификатор текущей группы
+                    setPreviousChatId(newGroupId);
+                }
+            } catch (error) {
+                console.error("Error switching groups:", error);
+            }
+        };
+
+        switchGroup();
+    }, [hubConnection, selectedChatId, currentUserId]);
 
     ///
 
@@ -495,64 +543,74 @@ function ChatPage() {
                 { method: "GET", headers: { "Content-Type": "application/json" } }
             );
 
-            if (response.ok) {
-                const messagesData = await response.json();
-
-                const decryptedMessages = await Promise.all(
-                    messagesData.map(async (msg) => {
-                        try {
-                            const encryptedContent =
-                                msg.senderId === currentUserId
-                                    ? msg.encryptedForSender
-                                    : msg.encryptedForReceiver;
-
-                            const encryptedMediaUrls =
-                                msg.senderId === currentUserId
-                                    ? msg.mediaUrlsForSender
-                                    : msg.mediaUrlsForReceiver;
-
-                            const encryptedFileUrls =
-                                msg.senderId === currentUserId
-                                    ? msg.fileUrlsForSender
-                                    : msg.fileUrlsForReceiver;
-
-                            const encryptedAudioUrl =
-                                msg.senderId === currentUserId
-                                    ? msg.audioUrlForSender
-                                    : msg.audioUrlForReceiver;
-
-                            // Расшифровка контента
-                            if (encryptedContent != null) {
-                                msg.content = await decryptMessage(encryptedContent);
-                            }
-
-                            // Расшифровка медиа и файловых ссылок
-                            msg.mediaUrls = encryptedMediaUrls ? await decryptArray(encryptedMediaUrls) : [];
-                            msg.fileUrls = encryptedFileUrls ? await decryptArray(encryptedFileUrls) : [];
-
-                            // Расшифровка аудиоссылки
-                            msg.audioUrl = encryptedAudioUrl ? await decryptMessage(encryptedAudioUrl) : null;
-                        } catch (error) {
-                            console.error(`Error decrypting message with ID ${msg.id}:`, error);
-
-                            // Устанавливаем значения по умолчанию в случае ошибки
-                            msg.content = "[Error: Unable to decrypt message]";
-                            msg.mediaUrls = [];
-                            msg.fileUrls = [];
-                            msg.audioUrl = null;
-                        }
-                        return msg;
-                    })
-                );
-
-                setMessages(decryptedMessages || []);
-            } else {
+            if (!response.ok) {
                 console.error("Error fetching messages:", response.status);
+                return;
             }
+
+            // Проверяем, есть ли тело ответа
+            const messagesData = response.status !== 204 ? await response.json() : [];
+
+            if (!messagesData || messagesData.length === 0) {
+                console.warn("No messages to process.");
+                setMessages([]);
+                return;
+            }
+
+            const decryptedMessages = await Promise.all(
+                messagesData.map(async (msg) => {
+                    try {
+                        const encryptedContent =
+                            msg.senderId === currentUserId
+                                ? msg.encryptedForSender
+                                : msg.encryptedForReceiver;
+
+                        const encryptedMediaUrls =
+                            msg.senderId === currentUserId
+                                ? msg.mediaUrlsForSender
+                                : msg.mediaUrlsForReceiver;
+
+                        const encryptedFileUrls =
+                            msg.senderId === currentUserId
+                                ? msg.fileUrlsForSender
+                                : msg.fileUrlsForReceiver;
+
+                        const encryptedAudioUrl =
+                            msg.senderId === currentUserId
+                                ? msg.audioUrlForSender
+                                : msg.audioUrlForReceiver;
+
+                        // Расшифровка контента
+                        if (encryptedContent != null) {
+                            msg.content = await decryptMessage(encryptedContent);
+                        }
+
+                        // Расшифровка медиа и файловых ссылок
+                        msg.mediaUrls = encryptedMediaUrls ? await decryptArray(encryptedMediaUrls) : [];
+                        msg.fileUrls = encryptedFileUrls ? await decryptArray(encryptedFileUrls) : [];
+
+                        // Расшифровка аудиоссылки
+                        msg.audioUrl = encryptedAudioUrl ? await decryptMessage(encryptedAudioUrl) : null;
+                    } catch (error) {
+                        console.error(`Error decrypting message with ID ${msg.id}:`, error);
+
+                        // Устанавливаем значения по умолчанию в случае ошибки
+                        msg.content = "[Error: Unable to decrypt message]";
+                        msg.mediaUrls = [];
+                        msg.fileUrls = [];
+                        msg.audioUrl = null;
+                    }
+                    return msg;
+                })
+            );
+
+            setMessages(decryptedMessages || []);
         } catch (error) {
             console.error("An error occurred:", error);
         }
     };
+
+
 
 
     const fetchCurrentUserId = async () => {
@@ -1097,6 +1155,44 @@ function ChatPage() {
         );
     };
 
+    const renderMessagesOrPlaceholder = () => {
+        if (!messages || messages.length === 0) {
+            return (
+                <div className="no-messages-placeholder">
+                    <img
+                        src="/src/assets/EmptyChat.svg" // Укажите путь к вашему изображению
+                        alt="No messages"
+                        style={{ width: "200px", marginBottom: "10px" }}
+                    />
+                    <p style={{ color: "#888", fontSize: "18px", textAlign: "center" }}>
+                        Напишите свое первое сообщение!
+                    </p>
+                </div>
+            );
+        }
+
+        // Если есть сообщения, отображаем их
+        return messages.map((msg) => renderMessage(msg));
+    };
+    const renderChatPlaceholder = () => {
+        if (!selectedChatId) {
+            return (
+                <div className="no-chat-placeholder">
+                    <img
+                        src="/src/assets/SelectChat.svg"
+                        alt="No chat selected"
+                    />
+                    <p>
+                        Начните общение!
+                    </p>
+                </div>
+            );
+        }
+
+        // Если чат выбран, отобразим сообщения
+        return renderMessagesOrPlaceholder();
+    };
+
 
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
@@ -1138,7 +1234,8 @@ function ChatPage() {
             <Layout>
                 <Content className="chat-content" >
                     <div className="chat-messages" onClick={handleCloseContextMenu}>
-                        {messages.map((msg) => renderMessage(msg))}
+
+                        {renderChatPlaceholder()}
                         {/* Reference to keep the scroll at the bottom */}
                         <div ref={messagesEndRef} />
                     </div>

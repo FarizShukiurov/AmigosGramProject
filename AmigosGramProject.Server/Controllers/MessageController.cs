@@ -90,7 +90,7 @@ namespace AmigosGramProject.Server.Controllers
 
             try
             {
-                await _hubContext.Clients.User(message.ReceiverId).SendAsync("ReceiveMessage", message);
+                await _hubContext.Clients.Group(GetChatGroupId(messageDto.SenderId, messageDto.ReceiverId)).SendAsync("ReceiveMessage", message);
             }
             catch (Exception ex)
             {
@@ -120,11 +120,12 @@ namespace AmigosGramProject.Server.Controllers
 
             if (messages.Count == 0)
             {
-                return Ok(null);
+                return Ok(new List<Message>()); // Возвращаем пустой массив вместо null
             }
 
             return Ok(messages);
         }
+
 
         [HttpGet("getLastMessageBetweenUsers")]
         public async Task<IActionResult> GetLastMessageBetweenUsers(string userId1, string userId2)

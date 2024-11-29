@@ -306,6 +306,18 @@
     flex-wrap: wrap;
     gap: 8px;
 }
+.emoji-picker {
+    position: absolute; /* Абсолютное позиционирование */
+    right: 30px; /* Отступ от правой границы контейнера */
+    bottom: 70px; /* Расположение над текстовым полем */
+    z-index: 1000; /* Установите высокий z-index, чтобы компонент был поверх остальных элементов */
+    background: white; /* Белый фон */
+    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); /* Легкая тень */
+    border-radius: 8px; /* Закругление углов */
+    max-width: 350px; /* Максимальная ширина */
+    overflow-y: auto; /* Прокрутка для длинных списков */
+}
+
 
 .custom-modal-title {
     margin-left: 16px;
@@ -323,69 +335,6 @@
     font-size: 16px;
 }
 /* Аудиосообщения */
-.audio-message {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(0, 0, 0, 0.7); /* Черный с прозрачностью */
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Полупрозрачная граница */
-    border-radius: 10px;
-    padding: 10px;
-    max-width: 70%;
-    margin-top: 10px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Тень */
-    transition: transform 0.2s ease-in-out;
-}
-
-    .audio-message.received {
-        background: rgba(255, 255, 255, 0.9);
-        color: black;
-        border: 1px solid rgba(0, 0, 0, 0.1);
-    }
-
-    .audio-message.sent {
-        align-self: flex-end;
-    }
-
-    .audio-message.received {
-        align-self: flex-start;
-    }
-
-    .audio-message:hover {
-        transform: scale(1.02); /* Легкое увеличение */
-    }
-
-    .audio-message audio {
-        width: 100%;
-        outline: none;
-        border-radius: 5px;
-        background: rgba(0, 0, 0, 0.1);
-    }
-
-.audio-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 50px;
-    height: 50px;
-    background: rgba(255, 255, 255, 0.2); /* Полупрозрачный фон */
-    border-radius: 50%;
-    font-size: 24px;
-    color: white;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-    .audio-icon:hover {
-        background: rgba(255, 255, 255, 0.4);
-    }
-
-.audio-timestamp {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    margin-left: 8px;
-    white-space: nowrap;
-}
 
 
 @keyframes fade-in {

@@ -14,6 +14,7 @@ import {
     message as antdMessage,
 } from "antd";
 import {
+    SmileOutlined,
     SendOutlined,
     StopOutlined,
     FileOutlined,
@@ -21,6 +22,7 @@ import {
     AudioOutlined,
     SearchOutlined,
 } from "@ant-design/icons";
+import Picker from "emoji-picker-react"
 import "./ChatPage.css";
 
 const { Sider, Content } = Layout;
@@ -50,6 +52,24 @@ function ChatPage() {
     const [selectedMessage, setSelectedMessage] = useState(null);
     const [editedText, setEditedText] = useState("");
     const [editingMessage, setEditingMessage] = useState(null);
+
+    const [imageModalKey, setImageModalKey] = useState(0);
+    const [fileModalKey, setFileModalKey] = useState(0);
+
+    const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
+
+    const handleEmojiClick = (emojiObject) => {
+        if (emojiObject?.emoji) {
+            setMessage((prevMessage) => (prevMessage || "") + emojiObject.emoji);
+        } else {
+            console.error("Invalid emojiObject:", emojiObject);
+        }
+    };
+
+
+
+   
+
 
     const handleContextMenu = (event, message) => {
         if (message.senderId !== currentUserId) return; // Только для своих сообщений
@@ -821,6 +841,10 @@ function ChatPage() {
                 setMessage(null);
                 setUploadedImageUrls([]);
                 setUploadedFileUrls([]);
+
+                setImageModalKey((prev) => prev + 1);
+                setFileModalKey((prev) => prev + 1);
+
             } else {
                 console.error("Error sending message:", response.status);
             }
@@ -834,6 +858,7 @@ function ChatPage() {
 
     const sendAudioMessage = async (audioBlob) => {
         const formData = new FormData();
+
         formData.append("audioFile", audioBlob);
 
         try {
@@ -947,6 +972,7 @@ function ChatPage() {
                 className={`message ${isCurrentUserSender ? "sent" : "received"}`}
                 onContextMenu={(e) => handleContextMenu(e, msg)} // Показываем контекстное меню при клике правой кнопкой
             >
+                
                 {editingMessage && editingMessage.id === msg.id ? (
                     <div className="edit-message-container">
                         <Input.TextArea
@@ -973,7 +999,7 @@ function ChatPage() {
                     <>
                         {/* Текстовое сообщение */}
                         {msg.content && <p>{msg.content}</p>}
-
+                        
                         {/* Медиа сообщения */}
                         {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                             <div className="image-gallery">
@@ -1110,12 +1136,21 @@ function ChatPage() {
             </Sider>
 
             <Layout>
-                <Content className="chat-content">
+                <Content className="chat-content" >
                     <div className="chat-messages" onClick={handleCloseContextMenu}>
                         {messages.map((msg) => renderMessage(msg))}
                         {/* Reference to keep the scroll at the bottom */}
                         <div ref={messagesEndRef} />
                     </div>
+                    {isEmojiPickerVisible && (
+                        <div className="emoji-picker">
+                            <Picker
+                                onEmojiClick={(emojiObject) => {
+                                    console.log("Emoji selected:", emojiObject);
+                                    handleEmojiClick(emojiObject);
+                                }}/>
+                        </div>
+                    )}
                     <div className="chat-input">
                         <Input
                             placeholder="Type your message..."
@@ -1152,12 +1187,16 @@ function ChatPage() {
                                             </Button>
                                         </div>
                                     )}
-
+                                    <Button
+                                        icon={<SmileOutlined />}
+                                        onClick={() => setIsEmojiPickerVisible(!isEmojiPickerVisible)}
+                                    />
                                     <Button type="primary" icon={<SendOutlined />} onClick={sendMessage} />
                                 </Space>
                             }
                         />
                     </div>
+                    
                 </Content>
             </Layout>
 
@@ -1170,6 +1209,7 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
+                    key={imageModalKey} 
                     accept="image/*, .mp4"
                     action="/api/files/upload"
                     onRemove={handleImageRemove}
@@ -1187,6 +1227,7 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
+                    key={fileModalKey}
                     accept=".txt, .pdf, .doc, .docx, .zip, .rar, .7z"
                     action="/api/files/upload"
                     onRemove={handleFileRemove}

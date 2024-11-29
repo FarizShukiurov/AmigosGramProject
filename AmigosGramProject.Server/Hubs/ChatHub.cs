@@ -5,9 +5,9 @@ namespace AmigosGramProject.Server.Hubs
 {
     public class ChatHub : Hub
     {
-        public async Task SendMessageToUserAsync(string message, string userId)
+        public async Task SendMessageToUserAsync(string message, string chatId)
         {
-            await this.Clients.User(userId).SendAsync("ReceiveMessage", message);
+            await Clients.Group(chatId).SendAsync("ReceiveMessage", message);
         }
         public async Task JoinGroup(string chatId)
         {

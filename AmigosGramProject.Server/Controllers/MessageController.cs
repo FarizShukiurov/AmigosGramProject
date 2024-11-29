@@ -68,32 +68,31 @@ namespace AmigosGramProject.Server.Controllers
         [HttpPost("createMessage")]
         public async Task<IActionResult> CreateMessage([FromBody] MessageDTO messageDto)
         {
-            // Создаем новое сообщение на основе DTO (переданных данных)
             var message = new Message
             {
                 SenderId = messageDto.SenderId,
                 ReceiverId = messageDto.ReceiverId,
-                EncryptedForReceiver = messageDto.EncryptedForReceiver,
                 EncryptedForSender = messageDto.EncryptedForSender,
+                EncryptedForReceiver = messageDto.EncryptedForReceiver,
                 MessageType = messageDto.MessageType,
                 Timestamp = DateTime.Now,
-                MediaUrlsForReceiver = messageDto.MediaUrlsForReceiver, 
-                FileUrlsForReceiver = messageDto.FileUrlsForReceiver,
                 MediaUrlsForSender = messageDto.MediaUrlsForSender,
                 FileUrlsForSender = messageDto.FileUrlsForSender,
+                MediaUrlsForReceiver = messageDto.MediaUrlsForReceiver,
+                FileUrlsForReceiver = messageDto.FileUrlsForReceiver,
+                AudioUrlForSender = messageDto.AudioUrlForSender,
                 AudioUrlForReceiver = messageDto.AudioUrlForReceiver,
-                AudioUrlForSender = messageDto.AudioUrlForSender
+                StickerUrl = messageDto.StickerUrl // Обрабатываем стикер
             };
 
-            // Сохраняем сообщение в базе данных
             _context.Messages.Add(message);
             await _context.SaveChangesAsync();
 
-            // Отправляем сообщение получателю через SignalR
             try
             {
                 await _hubContext.Clients.User(message.ReceiverId).SendAsync("ReceiveMessage", message);
-            }catch (Exception ex) 
+            }
+            catch (Exception ex)
             {
                 Console.WriteLine($"SignalR error: {ex.Message}");
                 return StatusCode(500, $"SignalR error: {ex.Message}");
@@ -101,6 +100,7 @@ namespace AmigosGramProject.Server.Controllers
 
             return Ok(message);
         }
+
 
         [HttpGet("getAllMessages")]
         public async Task<IActionResult> GetAllMessages()

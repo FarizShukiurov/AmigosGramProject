@@ -15,5 +15,6 @@ namespace AmigosGramProject.Server.DTOs
         public List<string>? FileUrlsForReceiver { get; set; } = null;
         public string? AudioUrlForSender { get; set; } = null;
         public string? AudioUrlForReceiver { get; set; } = null;
+        public string? StickerUrl { get; set; } = null;
     }
 }

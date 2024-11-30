@@ -4,6 +4,7 @@
     height: 100vh;
     background: rgba(0, 0, 0, 0.9);
     color: white;
+    font-size: 16px; /* Увеличиваем базовый размер текста */
 }
 
     .chat-page .sidebar {
@@ -88,16 +89,7 @@
     margin-right: 25px;
 }
 
-.chat-info h4 {
-    margin: 0;
-    font-weight: bold;
-}
 
-.chat-info p {
-    margin: 5px 0 0;
-    color: #ffff;
-    font-size: 14px;
-}
 
 .chat-area {
     flex-grow: 1;
@@ -217,12 +209,12 @@
 }
 
 .chat-messages {
+    padding: 20px;
     flex-grow: 1;
-    padding: 10px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px; /* Увеличиваем расстояние между сообщениями */
 }
 
 .chat-input {
@@ -237,20 +229,20 @@
 
 .chat-input input {
     flex-grow: 1;
-    padding: 12px;
+    padding: 15px; 
     border-radius: 20px;
     background: rgba(255, 255, 255, 0.2);
     border: none;
     color: white;
     margin-right: 10px;
     outline: none;
+    font-size: 1rem; 
     transition: background 0.3s ease;
 }
-
 .chat-input input:focus {
     background: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); /* Подсветка */
-}
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    }
 
 .chat-input button {
     padding: 10px 15px;
@@ -271,12 +263,14 @@
 
 
 .message {
-    max-width: 70%;
-    padding: 12px;
+    max-width: 60%;
+    padding: 15px;
     border-radius: 15px;
-    transition: transform 0.2s ease;
-    font-size: 1.1rem;
-    line-height: 1.4; 
+    font-size: 1.2rem;
+    line-height: 1.6;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 
@@ -377,6 +371,11 @@
 }
 /* Аудиосообщения */
 
+.chat-item .ant-list-item-meta-description {
+    white-space: nowrap; /* Запрещаем перенос строк */
+    overflow: hidden; /* Скрываем лишний текст */
+    text-overflow: ellipsis; /* Добавляем многоточие, если текст не помещается */
+}
 
 @keyframes fade-in {
     from {

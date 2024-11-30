@@ -44,7 +44,7 @@ html, body {
     width: 50%;
     padding: 50px;
     background: rgba(0, 0, 0, 0.7);
-    color: white; /* Текст белый по умолчанию */
+    color: white;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -61,18 +61,15 @@ html, body {
     animation: slideOut 0.7s cubic-bezier(0.68, -0.55, 0.27, 1.55) forwards;
 }
 
-/* Анимации для слайдов */
 @keyframes slideIn {
     0% {
         transform: translateX(50%);
         opacity: 0;
     }
-
     75% {
         transform: translateX(-5%);
         opacity: 1;
     }
-
     100% {
         transform: translateX(0);
         opacity: 1;
@@ -84,7 +81,6 @@ html, body {
         transform: translateX(0);
         opacity: 1;
     }
-
     100% {
         transform: translateX(-50%);
         opacity: 0;
@@ -97,72 +93,59 @@ html, body {
     color: #fff;
 }
 
-    .switch-form a {
-        color: black;
-    }
+.switch-form a {
+    color: black;
+}
 
 /* Стили для полей ввода */
-.panel input[type="password"],
-.panel input[type="text"],
-.panel input[type="email"] {
-    background-color: rgba(255, 255, 255, 0.2); /* Легкий затемненный фон */
-    color: white; /* Белый текст */
-    border-color: white; /* Белая граница */
+.panel input {
+    background-color: rgba(255, 255, 255, 0.2);
+    border: 1px solid white;
+    color: white;
+    transition: all 0.3s ease;
 }
 
-    /* Фокус на поле ввода */
-    .panel input[type="password"]:focus,
-    .panel input[type="text"]:focus,
-    .panel input[type="email"]:focus {
-        background-color: rgba(255, 255, 255, 0.1); /* Легкий затемненный фон */
-        color: white; /* Белый текст */
-        border-color: white; /* Белая граница */
-        outline: none;
-    }
-
-/* Поле пароля, когда оно показывается */
+/* Поле пароля */
 .panel input[type="password"] {
-    background-color: rgba(255, 255, 255, 0.2) !important; /* Легкий затемненный фон */
-    color: black !important; /* Черный текст для пароля */
-    border-color: white !important; /* Белая граница */
+    color: black !important; /* Черный текст для поля пароля */
 }
 
-    /* Когда фокус на поле пароля */
-    .panel input[type="password"]:focus {
-        background-color: rgba(255, 255, 255, 0.2) !important; /* Фон немного темнее */
-        border-color: white !important;
-        color: black !important; /* Черный текст */
-    }
+/* Поле пароля в режиме текста (показ пароля) */
+.panel input[type="text"].password-visible {
+    color: black !important; /* Черный текст, когда пароль отображается */
+}
 
-    .panel input[type="password"]: {
-        background-color: rgba(255, 255, 255, 0.2) !important; /* Фон немного темнее */
-        border-color: black !important;
-        color: black !important; /* Черный текст */
-    }
+/* Фокус на любом поле */
+.panel input:focus {
+    outline: none;
+    border-color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
 /* Стили для кнопок */
 .custom-button {
     background-color: white !important;
     color: black !important;
-    border: 1px solid #d9d9d9 !important; /* Граница кнопки */
+    border: 1px solid #d9d9d9 !important;
 }
 
-    .custom-button:hover {
-        background-color: #f0f0f0 !important;
-        transition: 0.5s;
-        border: 1px solid darkgray !important;
-        color: darkgray !important;
-    }
+.custom-button:hover {
+    background-color: #f0f0f0 !important;
+    transition: 0.5s;
+    border: 1px solid darkgray !important;
+    color: darkgray !important;
+}
 
-/* Стили для элементов формы */
+/* Стили для текста и заголовков */
 .panel label,
 .panel .ant-checkbox-wrapper,
 .panel .ant-form-item-label > label,
 .panel p,
-.panel .ant-typography {
-    color: white !important; /* Белый цвет для всех текстов */
-}
-
-/* Стили для ссылок и заголовков */
-.panel h1, .panel h2, .panel h3, .panel p, .panel a {
-    color: white !important; /* Белый цвет для всех заголовков и ссылок */
+.panel .ant-typography,
+.panel h1,
+.panel h2,
+.panel h3,
+.panel p,
+.panel a {
+    color: white !important;
 }

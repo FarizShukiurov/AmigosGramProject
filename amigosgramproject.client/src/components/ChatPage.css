@@ -157,6 +157,18 @@
     background: rgba(245, 245, 245, 0.9); /* Светло-серый фон */
     color: black;
 }
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #888;
+    margin-left: 8px;
+    white-space: nowrap;
+}
 
 .message-image {
     max-width: 100%;

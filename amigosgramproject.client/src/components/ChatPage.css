@@ -139,7 +139,7 @@
 .message {
     max-width: 70%;
     padding: 12px;
-    border-radius: 15px;
+    border-radius: 5px;
     transition: transform 0.2s ease, background 0.3s ease;
     font-size: 1rem;
     line-height: 1.4;

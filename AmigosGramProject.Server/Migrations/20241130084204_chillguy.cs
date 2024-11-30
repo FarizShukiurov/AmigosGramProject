@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace AmigosGramProject.Server.Migrations
 {
     /// <inheritdoc />
-    public partial class audio : Migration
+    public partial class chillguy : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,8 +19,8 @@ namespace AmigosGramProject.Server.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     SenderId = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ReceiverId = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EncryptedForSender = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    EncryptedForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    EncryptedForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    EncryptedForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
                     MessageType = table.Column<int>(type: "int", nullable: false),
                     MediaUrlsForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -28,7 +28,8 @@ namespace AmigosGramProject.Server.Migrations
                     MediaUrlsForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     FileUrlsForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     AudioUrlForSender = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AudioUrlForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    AudioUrlForReceiver = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StickerUrl = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -44,7 +45,7 @@ namespace AmigosGramProject.Server.Migrations
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     PublicKey = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Bio = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     EmailConfirmed = table.Column<bool>(type: "bit", nullable: false)
                 },
@@ -79,7 +80,8 @@ namespace AmigosGramProject.Server.Migrations
                 columns: table => new
                 {
                     UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    ContactId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    ContactId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

@@ -33,6 +33,9 @@ namespace AmigosGramProject.Server.Models
                 .WithMany()
                 .HasForeignKey(uc => uc.ContactId)
                 .OnDelete(DeleteBehavior.Restrict);
+            builder.Entity<UserContact>()
+                .Property(uc => uc.Status)
+                .IsRequired();
         }
     }
 }

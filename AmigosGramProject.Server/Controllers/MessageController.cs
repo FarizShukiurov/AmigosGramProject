@@ -31,6 +31,7 @@ namespace AmigosGramProject.Server.Controllers
                 ? $"{senderId}-{receiverId}"
                 : $"{receiverId}-{senderId}";
         }
+        [HttpDelete("delete-file")]
         public async Task<bool> DeleteFileFromStorage(string blobUrl)
         {
             try

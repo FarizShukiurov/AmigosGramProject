@@ -1,95 +1,95 @@
-/* Contacts container styling */
-.contacts-container {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.5);
-    max-width: 600px;
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+}
+
+.contacts-page {
+    max-width: 900px;
     margin: 0 auto;
-    color: #e0e0e0;
+    padding: 20px;
+    background-color: #1e1e1e;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
 }
 
-    /* Search input with improved hover and focus background for visibility */
-    .contacts-container .ant-input-search {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-        border-radius: 6px;
-        transition: background-color 0.3s, color 0.3s;
-    }
-
-        .contacts-container .ant-input-search:hover,
-        .contacts-container .ant-input-search:focus {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: #ffffff;
-        }
-
-    /* List item with contrasting hover and focused background colors */
-    .contacts-container .ant-list-item {
-        background: rgba(0, 0, 0, 0.3);
-        border-radius: 8px;
-        padding: 10px;
-        margin-bottom: 10px;
-        transition: transform 0.2s, background-color 0.3s;
-    }
-
-        .contacts-container .ant-list-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #e0e0e0;
-            transform: scale(1.02);
-        }
-
-    /* Avatar styling with color for better contrast */
-    .contacts-container .contact-avatar {
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        cursor: pointer;
-        transition: border-color 0.3s, transform 0.2s;
-    }
-
-        .contacts-container .contact-avatar:hover {
-            border-color: #00bfa5;
-            transform: scale(1.1);
-        }
-
-    /* Modal content with high contrast text and background */
-    .contacts-container .ant-modal-content {
-        background-color: rgba(0, 0, 0, 0.85);
-        color: #e0e0e0 !important;
-        border-radius: 12px;
-    }
-
-    .contacts-container .ant-modal-header {
-        background: rgba(0, 0, 0, 0.5);
-        border-bottom: none;
-        color: #ffffff;
-    }
-
-    /* Footer buttons with enhanced background contrast */
-    .contacts-container .ant-modal-footer button {
-        background: rgba(255, 255, 255, 0.15);
-        color: #e0e0e0;
-        border: none;
-        transition: background-color 0.3s;
-    }
-
-        .contacts-container .ant-modal-footer button:hover {
-            background-color: rgba(255, 255, 255, 0.3);
-        }
-
-    /* Profile and detail avatar styling */
-    .contacts-container .detail-avatar {
-        border: 2px solid #00bfa5;
-        border-radius: 50%;
-        margin-bottom: 10px;
-    }
-
-    /* Ensuring all text elements have high contrast on different backgrounds */
-    .contacts-container,
-    .contacts-container .ant-input-search,
-    .contacts-container .ant-modal-content,
-    .contacts-container .ant-list-item {
-        color: #e0e0e0;
-    }
-
-.custom-modal-title {
-    color: white; /* Change the text color to white */
+.page-title {
+    text-align: center;
+    font-size: 28px;
+    color: #4caf50;
+    margin-bottom: 20px;
 }
+
+.tabs-container {
+    background-color: transparent;
+}
+
+.ant-tabs-tab {
+    color: #ffffff !important;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+    .ant-tabs-tab:hover {
+        color: #4caf50 !important;
+    }
+
+.ant-tabs-ink-bar {
+    background-color: #4caf50 !important;
+}
+
+.search-input {
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #333;
+    border: 1px solid #444;
+    border-radius: 5px;
+    color: #fff;
+}
+
+    .search-input:focus {
+        outline: none;
+        border-color: #4caf50;
+        box-shadow: 0 0 5px #4caf50;
+    }
+
+.list-item {
+    background-color: #292929;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+    .list-item:hover {
+        background-color: #333;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+.profile-modal {
+    text-align: center;
+}
+
+.profile-content {
+    color: #ffffff;
+}
+
+.profile-name {
+    font-size: 22px;
+    margin: 10px 0;
+}
+
+.profile-email,
+.profile-bio {
+    font-size: 16px;
+    color: #bdbdbd;
+}
+.contacts-page .list-item .actions {
+    display: flex;
+    gap: 10px;
+}
+
+    .contacts-page .list-item .actions button {
+        font-size: 14px;
+    }

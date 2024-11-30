@@ -30,149 +30,175 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
     }
 }
 
-const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
-    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7015';
+const target = env.ASPNETCORE_HTTPS_PORT
+    ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}`
+    : env.ASPNETCORE_URLS
+        ? env.ASPNETCORE_URLS.split(';')[0]
+        : 'https://localhost:7015';
 
 // https://vitejs.dev/config/
 export default defineConfig({
     plugins: [plugin()],
     resolve: {
         alias: {
-            '@': fileURLToPath(new URL('./src', import.meta.url))
-        }
+            '@': fileURLToPath(new URL('./src', import.meta.url)),
+        },
     },
     server: {
         proxy: {
             '^/Account/ResetPasswordForm': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/SendResetPasswordLink': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/ResetPassword': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/pingauth': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/logout': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/SendEmailConfirmation': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/ConfirmEmail': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/ResendEmailConfirmation': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/SearchAccount': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Contacts/GetContacts': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Contacts/AddContact': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Contacts/DeleteContact': {
                 target,
-                secure: false
+                secure: false,
+            },
+            '^/api/Contacts/DeleteContactRequest': {
+                target,
+                secure: false,
             },
             '^/api/Profile/upload-avatar': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Profile/get-user-data': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Profile/change-username': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Profile/set-avatar-url': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Chat/GetChats': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Message/SendMessage': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Message/getLastMessageBetweenUsers': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Message/getMessagesBetweenUsers': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/GetCurrentUserId': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Message/createMessage': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/Files/uploadAudio': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/files/upload': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/api/files/delete/': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/register': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/login': {
                 target,
-                secure: false
+                secure: false,
             },
             '^/Account/refresh-token': {
                 target,
-                secure: false
-            },'^/api/Keys/storePublicKey': {
-                target,
-                secure: false
-            },'^/api/Keys/getPublicKey': {
-                target,
-                secure: false
-            },'^/api/Message/deleteMessageById': {
-                target,
-                secure: false
-            },'^/api/Message/editMessageById': {
-                target,
-                secure: false
+                secure: false,
             },
-            
+            '^/api/Keys/storePublicKey': {
+                target,
+                secure: false,
+            },
+            '^/api/Keys/getPublicKey': {
+                target,
+                secure: false,
+            },
+            '^/api/Message/deleteMessageById': {
+                target,
+                secure: false,
+            },
+            '^/api/Message/editMessageById': {
+                target,
+                secure: false,
+            },
+            '^/api/Contacts/SendContactRequest': {
+                target,
+                secure: false,
+            },
+            '^/api/Contacts/RespondToContactRequest': {
+                target,
+                secure: false,
+            },
+            '^/api/Contacts/GetContactRequests': {
+                target,
+                secure: false,
+            },
+            '^/api/Contacts/GetContactDetails': {
+                target,
+                secure: false,
+            },
         },
         port: 5173,
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
-        }
-    }
-})
+        },
+    },
+});

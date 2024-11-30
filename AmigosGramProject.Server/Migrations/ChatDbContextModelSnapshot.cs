@@ -145,6 +145,9 @@ namespace AmigosGramProject.Server.Migrations
                     b.Property<string>("ContactId")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.HasKey("UserId", "ContactId");
 
                     b.HasIndex("ContactId");

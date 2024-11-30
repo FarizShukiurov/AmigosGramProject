@@ -6,6 +6,7 @@ using AmigosGramProject.Server.DTOs;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data;
+using static System.Net.WebRequestMethods;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -42,11 +43,30 @@ namespace AmigosGramProject.Server.Controllers
                 return BadRequest("Username or email already exists.");
             }
 
+            // Список доступных аватарок
+            var avatarUrls = new List<string>
+            {
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBrown.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkBlue.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkRed.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosGreen.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosOrange.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosPurple.png",
+                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosRed.png"
+                };
+
+            // Выбор случайной аватарки
+            var random = new Random();
+            var randomAvatarUrl = avatarUrls[random.Next(avatarUrls.Count)];
+
+            // Создание нового пользователя
             var user = new User
             {
                 UserName = model.UserName,
                 Email = model.Email,
-                PasswordHash = _passwordHasher.Generate(model.Password)
+                PasswordHash = _passwordHasher.Generate(model.Password),
+                AvatarUrl = randomAvatarUrl // Установка случайного URL аватарки
             };
 
             _context.Users.Add(user);
@@ -67,8 +87,9 @@ namespace AmigosGramProject.Server.Controllers
             var confirmationLink = Url.Action(nameof(ConfirmEmail), "Account", new { userId = user.Id }, Request.Scheme);
             await _emailSender.SendEmailAsync(model.Email, "Email Confirmation", $"Please confirm your email by clicking this link: <a href='{confirmationLink}'>link</a>");
 
-            return Ok(new { userId = user.Id, accessToken });
+            return Ok(new { userId = user.Id, accessToken, avatarUrl = user.AvatarUrl });
         }
+
 
         // Логин пользователя
         [HttpPost("Login")]

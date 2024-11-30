@@ -10,7 +10,7 @@ namespace AmigosGramProject.Server.Models
         public string Email { get; set; }
         public string PasswordHash { get; set; }
         public string? PublicKey { get; set; }
-        public string AvatarUrl { get; set; } = "https://blobcontaineramigos.blob.core.windows.net/avatars/AvatarDefault.svg";
+        public string? AvatarUrl { get; set; }
         public string Bio { get; set; } = "Hi, This is my bio";
         public bool EmailConfirmed { get; set; } = false;
         public List<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();

@@ -1232,11 +1232,9 @@ function ChatPage() {
             </Sider>
 
             <Layout>
-                <Content className="chat-content" >
+                <Content className="chat-content">
                     <div className="chat-messages" onClick={handleCloseContextMenu}>
-
                         {renderChatPlaceholder()}
-                        {/* Reference to keep the scroll at the bottom */}
                         <div ref={messagesEndRef} />
                     </div>
                     {isEmojiPickerVisible && (
@@ -1245,7 +1243,8 @@ function ChatPage() {
                                 onEmojiClick={(emojiObject) => {
                                     console.log("Emoji selected:", emojiObject);
                                     handleEmojiClick(emojiObject);
-                                }}/>
+                                }}
+                            />
                         </div>
                     )}
                     <div className="chat-input">
@@ -1293,7 +1292,6 @@ function ChatPage() {
                             }
                         />
                     </div>
-                    
                 </Content>
             </Layout>
 
@@ -1306,7 +1304,7 @@ function ChatPage() {
                 footer={null}
             >
                 <Upload
-                    key={imageModalKey} 
+                    key={imageModalKey}
                     accept="image/*, .mp4"
                     action="/api/files/upload"
                     onRemove={handleImageRemove}
@@ -1334,6 +1332,7 @@ function ChatPage() {
                 </Upload>
             </Modal>
         </Layout>
+
     );
 
 }

@@ -22,6 +22,7 @@ import {
     AudioOutlined,
     SearchOutlined,
 } from "@ant-design/icons";
+import format from "date-fns/format";
 import Picker from "emoji-picker-react"
 import "./ChatPage.css";
 
@@ -535,6 +536,10 @@ function ChatPage() {
         }
     };
 
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return "";
+        return format(new Date(timestamp), "HH:mm"); // Например, формат "12:30"
+    };
 
     const fetchMessages = async (chatId) => {
         try {
@@ -580,6 +585,7 @@ function ChatPage() {
                                 ? msg.audioUrlForSender
                                 : msg.audioUrlForReceiver;
 
+                        msg.timestamp = new Date(msg.timestamp);
                         // Расшифровка контента
                         if (encryptedContent != null) {
                             msg.content = await decryptMessage(encryptedContent);
@@ -1028,9 +1034,8 @@ function ChatPage() {
             <div
                 key={msg.id}
                 className={`message ${isCurrentUserSender ? "sent" : "received"}`}
-                onContextMenu={(e) => handleContextMenu(e, msg)} // Показываем контекстное меню при клике правой кнопкой
+                onContextMenu={(e) => handleContextMenu(e, msg)} // Context menu
             >
-                
                 {editingMessage && editingMessage.id === msg.id ? (
                     <div className="edit-message-container">
                         <Input.TextArea
@@ -1055,10 +1060,14 @@ function ChatPage() {
                     </div>
                 ) : (
                     <>
-                        {/* Текстовое сообщение */}
-                        {msg.content && <p>{msg.content}</p>}
-                        
-                        {/* Медиа сообщения */}
+                        <div className="message-header">
+                            {/* Text message */}
+                            {msg.content && <p>{msg.content}</p>}
+                            {/* Timestamp */}
+                            <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
+                        </div>
+
+                        {/* Media messages */}
                         {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                             <div className="image-gallery">
                                 {msg.mediaUrls.map((url, index) => (
@@ -1073,7 +1082,7 @@ function ChatPage() {
                             </div>
                         )}
 
-                        {/* Файловые сообщения */}
+                        {/* File messages */}
                         {msg.fileUrls && msg.fileUrls.length > 0 && (
                             <div className="file-list">
                                 {msg.fileUrls.map((url, index) => (
@@ -1091,7 +1100,7 @@ function ChatPage() {
                             </div>
                         )}
 
-                        {/* Аудио сообщения */}
+                        {/* Audio messages */}
                         {msg.audioUrl && (
                             <div className="audio-player">
                                 <audio controls>
@@ -1103,7 +1112,7 @@ function ChatPage() {
                     </>
                 )}
 
-                {/* Контекстное меню */}
+                {/* Context menu */}
                 {contextMenuVisible && selectedMessage?.id === msg.id && (
                     <div
                         className="context-menu"
@@ -1123,7 +1132,7 @@ function ChatPage() {
                     >
                         <div
                             className="context-menu-item"
-                            onClick={() => handleEditMessage(msg.id)} // Вызываем редактирование
+                            onClick={() => handleEditMessage(msg.id)} // Edit action
                             style={{
                                 padding: "10px 16px",
                                 cursor: "pointer",
@@ -1137,7 +1146,7 @@ function ChatPage() {
                         </div>
                         <div
                             className="context-menu-item"
-                            onClick={() => handleDeleteMessage(msg)} // Удаляем сообщение
+                            onClick={() => handleDeleteMessage(msg)} // Delete action
                             style={{
                                 padding: "10px 16px",
                                 cursor: "pointer",

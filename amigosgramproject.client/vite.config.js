@@ -194,6 +194,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '^/api/Contacts/UnblockContact': {
+                target,
+                secure: false,
+            },
         },
         port: 5173,
         https: {

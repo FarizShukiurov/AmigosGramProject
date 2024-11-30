@@ -39,17 +39,14 @@ namespace AmigosGramProject.Server.Controllers
             if (user == null)
                 return Unauthorized();
 
-            // Получаем список контактов, которые имеют статус "Принят"
-            var contactIds = user.Contacts
-                .Where(c => c.Status == ContactStatus.Accepted)
-                .Select(c => c.ContactId)
-                .ToList();
-
-            if (!contactIds.Any())
-                return Ok(new List<UserDTO>());
-
-            var contacts = await _context.Users
-                .Where(u => contactIds.Contains(u.Id) && u.Id != user.Id)
+            // Получаем список контактов, где текущий пользователь — либо отправитель, либо получатель, и статус "Accepted"
+            var contacts = await _context.UserContacts
+                .Where(c =>
+                    (c.UserId == user.Id || c.ContactId == user.Id) &&
+                    c.Status == ContactStatus.Accepted)
+                .Select(c => c.UserId == user.Id
+                    ? c.Contact // Если текущий пользователь — отправитель, берем получателя
+                    : c.User)   // Если текущий пользователь — получатель, берем отправителя
                 .Select(u => new UserDTO
                 {
                     Id = u.Id,
@@ -57,11 +54,11 @@ namespace AmigosGramProject.Server.Controllers
                     Email = u.Email,
                     AvatarUrl = u.AvatarUrl
                 })
+                .Distinct() // Убираем дубли
                 .ToListAsync();
 
             return Ok(contacts);
         }
-
 
         [HttpPost("SendContactRequest")]
         public async Task<ActionResult> SendContactRequest([FromBody] ContactRequestDTO contactRequestDTO)
@@ -91,9 +88,16 @@ namespace AmigosGramProject.Server.Controllers
                     return Conflict("Request already sent.");
                 if (existingContact.Status == ContactStatus.Accepted)
                     return Conflict("You are already friends.");
+                if (existingContact.Status == ContactStatus.Declined)
+                {
+                    // Update the status to Pending and resend the request
+                    existingContact.Status = ContactStatus.Pending;
+                    await _context.SaveChangesAsync();
+                    return Ok("Request re-sent.");
+                }
             }
 
-            // Добавление нового запроса
+            // Adding a new request
             var userContact = new UserContact
             {
                 UserId = user.Id,
@@ -107,10 +111,33 @@ namespace AmigosGramProject.Server.Controllers
             return Ok("Request sent.");
         }
 
+        [HttpPost("UnblockContact")]
+        public async Task<ActionResult> UnblockContact([FromBody] UnblockRequestDTO request)
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+                return Unauthorized();
+
+            var contact = await _context.UserContacts
+                .FirstOrDefaultAsync(c =>
+                    (c.UserId == user.Id && c.ContactId == request.ContactId) ||
+                    (c.ContactId == user.Id && c.UserId == request.ContactId));
+
+            if (contact == null)
+                return NotFound("Contact not found.");
+
+            if (contact.Status != ContactStatus.Blocked)
+                return Conflict("This contact is not blocked.");
+
+            contact.Status = ContactStatus.Declined; // Или удаляем запись, если нужно полностью убрать блокировку 
+            await _context.SaveChangesAsync();
+
+            return Ok("User unblocked.");
+        }
 
 
-        // Ответ на запрос добавления в контакт
-        [HttpPost("RespondToContactRequest")]
+                // Ответ на запрос добавления в контакт
+                [HttpPost("RespondToContactRequest")]
         public async Task<ActionResult> RespondToContactRequest([FromBody] RespondToRequestDTO request)
         {
             var user = await GetCurrentUserAsync();
@@ -137,9 +164,8 @@ namespace AmigosGramProject.Server.Controllers
             return Ok($"Request {request.Action.ToLower()}ed.");
         }
 
-
         [HttpGet("GetContactRequests")]
-        public async Task<ActionResult<IEnumerable<ContactRequestDTO>>> GetContactRequests()
+        public async Task<ActionResult> GetContactRequests()
         {
             var user = await GetCurrentUserAsync();
             if (user == null)
@@ -152,7 +178,8 @@ namespace AmigosGramProject.Server.Controllers
                 {
                     ContactId = c.UserId,
                     UserName = c.User.UserName,
-                    AvatarUrl = c.User.AvatarUrl
+                    AvatarUrl = c.User.AvatarUrl,
+                    Status = c.Status // Добавляем статус
                 })
                 .ToListAsync();
 
@@ -163,11 +190,30 @@ namespace AmigosGramProject.Server.Controllers
                 {
                     ContactId = c.ContactId,
                     UserName = c.Contact.UserName,
-                    AvatarUrl = c.Contact.AvatarUrl
+                    AvatarUrl = c.Contact.AvatarUrl,
+                    Status = c.Status // Добавляем статус
                 })
                 .ToListAsync();
 
-            return Ok(new { Incoming = incomingRequests, Outgoing = outgoingRequests });
+            // Заблокированные пользователи
+            var blockedUsers = await _context.UserContacts
+                .Where(c => (c.UserId == user.Id || c.ContactId == user.Id) && c.Status == ContactStatus.Blocked)
+                .Select(c => new ContactRequestDTO
+                {
+                    ContactId = c.UserId == user.Id ? c.ContactId : c.UserId, // Определяем, кто был заблокирован
+                    UserName = c.UserId == user.Id ? c.Contact.UserName : c.User.UserName, // Имя заблокированного пользователя
+                    AvatarUrl = c.UserId == user.Id ? c.Contact.AvatarUrl : c.User.AvatarUrl, // Аватар заблокированного пользователя
+                    Status = c.Status// Добавляем статус
+                })
+                .ToListAsync();
+
+            // Формируем итоговый ответ
+            return Ok(new
+            {
+                Incoming = incomingRequests,
+                Outgoing = outgoingRequests,
+                Blocked = blockedUsers
+            });
         }
 
 

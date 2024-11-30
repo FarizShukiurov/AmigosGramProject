@@ -16,8 +16,6 @@ const Contacts = () => {
     const [loading, setLoading] = useState(false);
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
-    const [selectedContact, setSelectedContact] = useState(null);
-
 
     useEffect(() => {
         console.log("Incoming Requests:", incomingRequests);
@@ -84,28 +82,30 @@ const Contacts = () => {
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
             });
-            if (!response.ok) throw new Error('Failed to fetch contact requests');
-            const data = await response.json();
-            console.log('Fetched data:', data); // Логирование полученных данных
 
-            // Правильная деструктуризация
+            if (!response.ok) {
+                throw new Error('Failed to fetch contact requests');
+            }
+
+            const data = await response.json();
+            console.log('Fetched data:', data);
+
             const { incoming, outgoing, blocked } = data;
 
-            // Логируем каждую переменную
             console.log('Incoming:', incoming);
             console.log('Outgoing:', outgoing);
             console.log('Blocked:', blocked);
 
-            // Устанавливаем состояние
-            setIncomingRequests(incoming);
-            setOutgoingRequests(outgoing);
-            setBlockedUsers(blocked);
+            setIncomingRequests(incoming || []);
+            setOutgoingRequests(outgoing || []);
+            setBlockedUsers(blocked || []); // Убедитесь, что блокированные пользователи обновляются
         } catch (error) {
             console.error('Error fetching contact requests:', error);
         } finally {
             setLoading(false);
         }
     };
+
 
 
 
@@ -142,8 +142,11 @@ const Contacts = () => {
             setLoading(false);
         }
     };
+
     const handleRespondToRequest = async (requestId, action) => {
         setLoading(true);
+        console.log(requestId, "Handling request action:", action);
+
         try {
             const response = await fetch('/api/Contacts/RespondToContactRequest', {
                 method: 'POST',
@@ -155,19 +158,44 @@ const Contacts = () => {
                 }),
             });
 
+            const responseBody = await response.text();
+            let result;
+
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Failed to respond to contact request: ${errorText}`);
+                throw new Error(`Failed to respond to contact request: ${responseBody}`);
             }
 
-            // После успешного ответа обновляем состояние
-            fetchContactRequests();  // Перезагружаем запросы контактов
+            try {
+                result = JSON.parse(responseBody);
+            } catch (jsonError) {
+                console.log("Server returned non-JSON response. Using fallback.");
+                result = { message: responseBody };
+            }
+
+            if (action === "Block") {
+                const blockedUser = result.blockedUser || { contactId: requestId };
+                console.log("Adding to blockedUsers:", blockedUser);
+
+                setBlockedUsers((prevBlockedUsers) => {
+                    if (!Array.isArray(prevBlockedUsers)) {
+                        console.warn("blockedUsers was not an array. Reinitializing as empty array.");
+                        return [blockedUser];
+                    }
+                    return [...prevBlockedUsers, blockedUser];
+                });
+            }
+
+            fetchContactRequests(); // Обновляем данные
         } catch (error) {
             console.error('Error responding to contact request:', error);
         } finally {
             setLoading(false);
         }
     };
+
+
+
+
     // Функция для удаления отправленного запроса
     const handleDeleteRequest = async (contactId) => {
         console.log("Deleting request with ID:", contactId);  // Логируем, какой ID передается
@@ -199,6 +227,41 @@ const Contacts = () => {
         }
     };
 
+    const handleUnblockUser = async (contactId) => {
+        if (!contactId) {
+            console.error("Invalid contactId provided for unblock.");
+            return;
+        }
+
+        setLoading(true); // Начинаем загрузку
+        try {
+            const response = await fetch('/api/Contacts/UnblockContact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ contactId }), // Передаём ID контакта
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to unblock user: ${errorText}`);
+            }
+
+            console.log(`User with contactId ${contactId} successfully unblocked.`);
+
+            // Удаляем пользователя из списка заблокированных
+            setBlockedUsers((prevBlockedUsers) =>
+                prevBlockedUsers.filter((user) => user.contactId !== contactId)
+            );
+
+            // Обновляем другие списки запросов и контактов
+            fetchContactRequests();
+        } catch (error) {
+            console.error('Error unblocking user:', error);
+        } finally {
+            setLoading(false); // Завершаем загрузку
+        }
+    };
 
 
 
@@ -220,11 +283,12 @@ const Contacts = () => {
 
         setLoading(true);
         try {
-            // Формируем DTO, которое соответствует ContactRequestDTO на сервере
+            // Формируем DTO, добавляя поле Status
             const contactRequestDTO = {
                 ContactId: contact.ContactId,   // ID контакта
                 UserName: contact.UserName,     // Имя пользователя
                 AvatarUrl: contact.AvatarUrl,   // URL аватара пользователя
+                Status: 0,              // Указываем статус запроса
             };
 
             console.log("DTO being sent:", contactRequestDTO); // Логируем DTO
@@ -242,6 +306,8 @@ const Contacts = () => {
                 throw new Error(`Failed to send contact request: ${errorText}`);
             }
 
+            console.log('Contact request successfully sent.');
+
             // После отправки запроса обновляем данные запросов
             fetchContactRequests(); // Обновляем список исходящих запросов
         } catch (error) {
@@ -254,11 +320,17 @@ const Contacts = () => {
 
 
 
+
     const renderList = (list, isContact = false) => (
         <List
             dataSource={list}
             renderItem={(contact) => {
-                console.log("Rendering contact:", contact);  // Логируем контакт перед рендером
+                console.log("Rendering contact:", contact); // Логируем контакт перед рендером
+
+                const isRequestSent = Array.isArray(outgoingRequests) && outgoingRequests.some((req) => req.contactId === contact.contactId);
+                const isIncomingRequest = Array.isArray(incomingRequests) && incomingRequests.some((req) => req.contactId === contact.contactId);
+                const isBlocked = Array.isArray(blockedUsers) && blockedUsers.some((blocked) => blocked.contactId === contact.contactId);
+
                 return (
                     <List.Item className="list-item">
                         <List.Item.Meta
@@ -268,14 +340,34 @@ const Contacts = () => {
                         />
                         <div className="actions">
                             <Button onClick={() => viewProfile(contact)}>View Profile</Button>
-                            {isContact ? (
+                            {isBlocked ? (
+                                // Блокированные пользователи
+                                <Tooltip title="Unblock user">
+                                    <Popconfirm
+                                        title="Are you sure you want to unblock this user?"
+                                        onConfirm={() => {
+                                            console.log("Unblocking user:", contact);
+                                            if (contact.contactId) {
+                                                handleUnblockUser(contact.contactId); // Разблокировать пользователя
+                                            } else {
+                                                console.error("No contactId available for unblock:", contact);
+                                            }
+                                        }}
+                                        okText="Yes"
+                                        cancelText="No"
+                                    >
+                                        <Button>Unblock</Button>
+                                    </Popconfirm>
+                                </Tooltip>
+                            ) : isContact ? (
+                                // Контакты
                                 <Tooltip title="Delete contact">
                                     <Popconfirm
                                         title="Are you sure you want to delete this contact?"
                                         onConfirm={() => {
                                             console.log("Contact being deleted:", contact);
-                                            if (contact.contactId) {  // Проверяем contactId
-                                                handleDeleteContact(contact.contactId);  // Передаем contactId
+                                            if (contact.id) {
+                                                handleDeleteContact(contact.id); // Удалить контакт
                                             } else {
                                                 console.error("No contactId available for this contact:", contact);
                                             }
@@ -286,74 +378,73 @@ const Contacts = () => {
                                         <Button icon={<DeleteOutlined />} danger />
                                     </Popconfirm>
                                 </Tooltip>
+                            ) : isIncomingRequest ? (
+                                // Входящие запросы
+                                <div>
+                                    <Button
+                                        onClick={() => {
+                                            console.log("Accepting request:", contact);
+                                            if (contact.contactId) {
+                                                handleRespondToRequest(contact.contactId, "Accept"); // Принять запрос
+                                            } else {
+                                                console.error("No contactId available for accept:", contact);
+                                            }
+                                        }}
+                                    >
+                                        Accept
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            console.log("Declining request:", contact);
+                                            if (contact.contactId) {
+                                                handleRespondToRequest(contact.contactId, "Decline"); // Отклонить запрос
+                                            } else {
+                                                console.error("No contactId available for decline:", contact);
+                                            }
+                                        }}
+                                    >
+                                        Decline
+                                    </Button>
+                                    <Button
+                                        onClick={() => {
+                                            console.log("Blocking request:", contact);
+                                            if (contact.contactId) {
+                                                handleRespondToRequest(contact.contactId, "Block"); // Заблокировать запрос
+                                            } else {
+                                                console.error("No contactId available for block:", contact);
+                                            }
+                                        }}
+                                    >
+                                        Block
+                                    </Button>
+                                </div>
+                            ) : isRequestSent ? (
+                                // Исходящие запросы
+                                <Button
+                                    onClick={() => {
+                                        console.log("Request being deleted:", contact);
+                                        if (contact.contactId) {
+                                            handleDeleteRequest(contact.contactId); // Удалить запрос
+                                        } else {
+                                            console.error("No contactId available for request:", contact);
+                                        }
+                                    }}
+                                >
+                                    Delete Request
+                                </Button>
                             ) : (
-                                // Входящие запросы (Incoming Requests)
-                                Array.isArray(incomingRequests) && incomingRequests.some((req) => req.contactId === contact.contactId) ? (
-                                    <div>
-                                        <Button
-                                            onClick={() => {
-                                                console.log("Accepting request:", contact);
-                                                if (contact.contactId) {
-                                                    handleRespondToRequest(contact.contactId, "Accept");  // Отправляем запрос на принятие
-                                                } else {
-                                                    console.error("No contactId available for accept:", contact);
-                                                }
-                                            }}
-                                        >
-                                            Accept
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                console.log("Declining request:", contact);
-                                                if (contact.contactId) {
-                                                    handleRespondToRequest(contact.contactId, "Decline");  // Отправляем запрос на отклонение
-                                                } else {
-                                                    console.error("No contactId available for decline:", contact);
-                                                }
-                                            }}
-                                        >
-                                            Decline
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                console.log("Blocking request:", contact);
-                                                if (contact.contactId) {
-                                                    handleRespondToRequest(contact.contactId, "Block");  // Отправляем запрос на блокировку
-                                                } else {
-                                                    console.error("No contactId available for block:", contact);
-                                                }
-                                            }}
-                                        >
-                                            Block
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    // Исходящие запросы (Outgoing Requests)
-                                    Array.isArray(outgoingRequests) && outgoingRequests.some((req) => req.contactId === contact.contactId) ? (
-                                        <Button
-                                            onClick={() => {
-                                                console.log("Request being deleted:", contact);  // Логируем перед удалением запроса
-                                                if (contact.contactId) {
-                                                    handleDeleteRequest(contact.contactId);  // Передаем contactId для удаления запроса
-                                                } else {
-                                                    console.error("No contactId available for request:", contact);
-                                                }
-                                            }}
-                                        >
-                                            Delete Request
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            onClick={() => sendContactRequest({
-                                                ContactId: contact.contactId,  // Используем contactId
-                                                UserName: contact.userName,
-                                                AvatarUrl: contact.avatarUrl,
-                                            })}
-                                        >
-                                            Send Request
-                                        </Button>
-                                    )
-                                )
+                                // Новый запрос
+                                <Button
+                                    onClick={() =>
+                                        sendContactRequest({
+                                            ContactId: contact.id,
+                                            UserName: contact.userName,
+                                            AvatarUrl: contact.avatarUrl,
+                                        })
+                                    }
+                                >
+                                    Send Request
+                                </Button>
                             )}
                         </div>
                     </List.Item>
@@ -361,11 +452,6 @@ const Contacts = () => {
             }}
         />
     );
-
-
-
-
-
 
 
     return (
@@ -383,17 +469,134 @@ const Contacts = () => {
                         onSearch={handleSearch}
                         className="search-input"
                     />
-                    {/* Кнопка отправки запроса на добавление контакта */}
-                    <Button
-                        type="primary"
-                        onClick={() => sendContactRequest(selectedContact)}
-                        disabled={!selectedContact}
-                        style={{ marginLeft: 8 }}
-                    >
-                        Send Request
-                    </Button>
-                    {loading ? <Spin size="large" /> : renderList(searchResults)}
+                    {loading ? (
+                        <Spin size="large" />
+                    ) : (
+                        <List
+                            dataSource={searchResults}
+                            renderItem={(contact) => {
+                                console.log("Rendering contact:", contact);
+
+                                // Проверяем массивы, чтобы определить состояние контакта
+                                if (contacts.some((c) => c.contactId === contact.contactId)) {
+                                    // Если контакт уже добавлен
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Button onClick={() => viewProfile(contact)}>
+                                                    View Profile
+                                                </Button>
+                                                <Tooltip title="Delete contact">
+                                                    <Popconfirm
+                                                        title="Are you sure you want to delete this contact?"
+                                                        onConfirm={() => handleDeleteContact(contact.contactId)}
+                                                        okText="Yes"
+                                                        cancelText="No"
+                                                    >
+                                                        <Button danger>Delete Contact</Button>
+                                                    </Popconfirm>
+                                                </Tooltip>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                } else if (
+                                    incomingRequests.some((req) => req.contactId === contact.contactId)
+                                ) {
+                                    // Если это входящий запрос
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Button onClick={() => handleRespondToRequest(contact.id, "Accept")}>
+                                                    Accept
+                                                </Button>
+                                                <Button onClick={() => handleRespondToRequest(contact.id, "Decline")}>
+                                                    Decline
+                                                </Button>
+                                                <Button onClick={() => handleRespondToRequest(contact.id, "Block")}>
+                                                    Block
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                } else if (
+                                    outgoingRequests.some((req) => req.contactId === contact.id)
+                                ) {
+                                    // Если это исходящий запрос
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Button onClick={() => handleDeleteRequest(contact.id)}>
+                                                    Delete Request
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                } else {
+                                    // Если контакт не в списках (новый запрос)
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Button
+                                                    onClick={() =>
+                                                        sendContactRequest({
+                                                            ContactId: contact.id,
+                                                            UserName: contact.userName,
+                                                            AvatarUrl: contact.avatarUrl,
+                                                        })
+                                                    }
+                                                >
+                                                    Send Request
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                }
+                            }}
+                        />
+                    )}
                 </TabPane>
+
+
                 <TabPane tab="Outgoing Requests" key="outgoing">
                     {loading ? <Spin size="large" /> : renderList(outgoingRequests)}
                 </TabPane>

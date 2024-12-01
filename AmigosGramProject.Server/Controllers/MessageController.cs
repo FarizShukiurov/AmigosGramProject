@@ -83,7 +83,6 @@ namespace AmigosGramProject.Server.Controllers
                 FileUrlsForReceiver = messageDto.FileUrlsForReceiver,
                 AudioUrlForSender = messageDto.AudioUrlForSender,
                 AudioUrlForReceiver = messageDto.AudioUrlForReceiver,
-                StickerUrl = messageDto.StickerUrl // Обрабатываем стикер
             };
 
             _context.Messages.Add(message);
@@ -92,6 +91,7 @@ namespace AmigosGramProject.Server.Controllers
             try
             {
                 await _hubContext.Clients.Group(GetChatGroupId(messageDto.SenderId, messageDto.ReceiverId)).SendAsync("ReceiveMessage", message);
+                await _hubContext.Clients.Group($"User_{messageDto.ReceiverId}").SendAsync("UpdateLastMessage", messageDto.SenderId, message);
             }
             catch (Exception ex)
             {

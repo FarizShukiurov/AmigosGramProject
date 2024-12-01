@@ -122,12 +122,14 @@ namespace AmigosGramProject.Server.Controllers
                 .FirstOrDefaultAsync(c =>
                     (c.UserId == user.Id && c.ContactId == request.ContactId) ||
                     (c.ContactId == user.Id && c.UserId == request.ContactId));
-
+            Console.WriteLine(contact.Status);
             if (contact == null)
                 return NotFound("Contact not found.");
 
             if (contact.Status != ContactStatus.Blocked)
+            {
                 return Conflict("This contact is not blocked.");
+            }
 
             contact.Status = ContactStatus.Declined; // Или удаляем запись, если нужно полностью убрать блокировку 
             await _context.SaveChangesAsync();
@@ -137,7 +139,7 @@ namespace AmigosGramProject.Server.Controllers
 
 
                 // Ответ на запрос добавления в контакт
-                [HttpPost("RespondToContactRequest")]
+        [HttpPost("RespondToContactRequest")]
         public async Task<ActionResult> RespondToContactRequest([FromBody] RespondToRequestDTO request)
         {
             var user = await GetCurrentUserAsync();
@@ -197,7 +199,7 @@ namespace AmigosGramProject.Server.Controllers
 
             // Заблокированные пользователи
             var blockedUsers = await _context.UserContacts
-                .Where(c => (c.UserId == user.Id || c.ContactId == user.Id) && c.Status == ContactStatus.Blocked)
+                .Where(c => (c.ContactId == user.Id) && c.Status == ContactStatus.Blocked)
                 .Select(c => new ContactRequestDTO
                 {
                     ContactId = c.UserId == user.Id ? c.ContactId : c.UserId, // Определяем, кто был заблокирован
@@ -250,19 +252,25 @@ namespace AmigosGramProject.Server.Controllers
             if (string.IsNullOrWhiteSpace(request.ContactId))
                 return BadRequest("ContactId must be provided.");
 
-            var user = await GetCurrentUserAsync();
-            if (user == null)
+            var currentUser = await GetCurrentUserAsync();
+            if (currentUser == null)
                 return Unauthorized();
 
-            var contact = user.Contacts.FirstOrDefault(c => c.ContactId == request.ContactId);
+            // Поиск контакта, где текущий пользователь участвует
+            var contact = await _context.UserContacts.FirstOrDefaultAsync(uc =>
+                (uc.UserId == currentUser.Id && uc.ContactId == request.ContactId) ||
+                (uc.ContactId == currentUser.Id && uc.UserId == request.ContactId));
+
             if (contact == null)
                 return NotFound("Contact not found.");
 
-            user.Contacts.Remove(contact);
+            // Удаляем запись контакта
+            _context.UserContacts.Remove(contact);
             await _context.SaveChangesAsync();
 
             return NoContent();
         }
+
 
         [HttpDelete("DeleteContactRequest")]
         public async Task<IActionResult> DeleteContactRequest([FromBody] DeleteContactRequestModel model)

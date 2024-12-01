@@ -477,9 +477,10 @@ const Contacts = () => {
                             renderItem={(contact) => {
                                 console.log("Rendering contact:", contact);
 
-                                // Проверяем массивы, чтобы определить состояние контакта
-                                if (contacts.some((c) => c.contactId === contact.contactId)) {
-                                    // Если контакт уже добавлен
+                                const contactId = contact.contactId || contact.id; // Универсальная проверка ключа ID
+
+                                // Проверяем, находится ли пользователь в списке контактов
+                                if (contacts.some((c) => c.contactId === contactId || c.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
                                             <List.Item.Meta
@@ -493,76 +494,44 @@ const Contacts = () => {
                                                 description={contact.email}
                                             />
                                             <div className="actions">
-                                                <Button onClick={() => viewProfile(contact)}>
-                                                    View Profile
-                                                </Button>
-                                                <Tooltip title="Delete contact">
+                                                <Button disabled>Already in Contacts</Button>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                }
+
+                                // Проверяем, находится ли пользователь в списке блокированных
+                                if (blockedUsers.some((blocked) => blocked.contactId === contactId || blocked.id === contactId)) {
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Tooltip title="Unblock user">
                                                     <Popconfirm
-                                                        title="Are you sure you want to delete this contact?"
-                                                        onConfirm={() => handleDeleteContact(contact.contactId)}
+                                                        title="Are you sure you want to unblock this user?"
+                                                        onConfirm={() => handleUnblockUser(contactId)}
                                                         okText="Yes"
                                                         cancelText="No"
                                                     >
-                                                        <Button danger>Delete Contact</Button>
+                                                        <Button>Unblock</Button>
                                                     </Popconfirm>
                                                 </Tooltip>
                                             </div>
                                         </List.Item>
                                     );
-                                } else if (
-                                    incomingRequests.some((req) => req.contactId === contact.contactId)
-                                ) {
-                                    // Если это входящий запрос
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={contact.userName}
-                                                description={contact.email}
-                                            />
-                                            <div className="actions">
-                                                <Button onClick={() => handleRespondToRequest(contact.id, "Accept")}>
-                                                    Accept
-                                                </Button>
-                                                <Button onClick={() => handleRespondToRequest(contact.id, "Decline")}>
-                                                    Decline
-                                                </Button>
-                                                <Button onClick={() => handleRespondToRequest(contact.id, "Block")}>
-                                                    Block
-                                                </Button>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                } else if (
-                                    outgoingRequests.some((req) => req.contactId === contact.id)
-                                ) {
-                                    // Если это исходящий запрос
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={contact.userName}
-                                                description={contact.email}
-                                            />
-                                            <div className="actions">
-                                                <Button onClick={() => handleDeleteRequest(contact.id)}>
-                                                    Delete Request
-                                                </Button>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                } else {
-                                    // Если контакт не в списках (новый запрос)
+                                }
+
+                                // Проверяем, если пользователь отправил входящий запрос
+                                if (incomingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
                                             <List.Item.Meta
@@ -577,25 +546,80 @@ const Contacts = () => {
                                             />
                                             <div className="actions">
                                                 <Button
-                                                    onClick={() =>
-                                                        sendContactRequest({
-                                                            ContactId: contact.id,
-                                                            UserName: contact.userName,
-                                                            AvatarUrl: contact.avatarUrl,
-                                                        })
-                                                    }
+                                                    onClick={() => handleRespondToRequest(contactId, "Accept")}
                                                 >
-                                                    Send Request
+                                                    Accept
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleRespondToRequest(contactId, "Decline")}
+                                                >
+                                                    Decline
+                                                </Button>
+                                                <Button
+                                                    onClick={() => handleRespondToRequest(contactId, "Block")}
+                                                >
+                                                    Block
                                                 </Button>
                                             </div>
                                         </List.Item>
                                     );
                                 }
+
+                                // Проверяем, если это исходящий запрос
+                                if (outgoingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
+                                    return (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={contact.userName}
+                                                description={contact.email}
+                                            />
+                                            <div className="actions">
+                                                <Button onClick={() => handleDeleteRequest(contactId)}>
+                                                    Delete Request
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    );
+                                }
+
+                                // Если пользователь новый (не в списках)
+                                return (
+                                    <List.Item className="list-item">
+                                        <List.Item.Meta
+                                            avatar={
+                                                <Avatar
+                                                    src={contact.avatarUrl}
+                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                                                />
+                                            }
+                                            title={contact.userName}
+                                            description={contact.email}
+                                        />
+                                        <div className="actions">
+                                            <Button
+                                                onClick={() =>
+                                                    sendContactRequest({
+                                                        ContactId: contactId,
+                                                        UserName: contact.userName,
+                                                        AvatarUrl: contact.avatarUrl,
+                                                    })
+                                                }
+                                            >
+                                                Send Request
+                                            </Button>
+                                        </div>
+                                    </List.Item>
+                                );
                             }}
                         />
                     )}
                 </TabPane>
-
 
                 <TabPane tab="Outgoing Requests" key="outgoing">
                     {loading ? <Spin size="large" /> : renderList(outgoingRequests)}
@@ -616,7 +640,11 @@ const Contacts = () => {
             >
                 {selectedProfile && (
                     <div className="profile-content">
-                        <Avatar size={80} src={selectedProfile.avatarUrl} icon={!selectedProfile.avatarUrl && <UserOutlined />} />
+                        <Avatar
+                            size={80}
+                            src={selectedProfile.avatarUrl}
+                            icon={!selectedProfile.avatarUrl && <UserOutlined />}
+                        />
                         <h2 className="profile-name">{selectedProfile.userName}</h2>
                         <p className="profile-email">{selectedProfile.email}</p>
                         <p className="profile-bio">{selectedProfile.bio}</p>
@@ -624,8 +652,9 @@ const Contacts = () => {
                 )}
             </Modal>
         </div>
-
     );
+
+
 };
 
 export default Contacts;

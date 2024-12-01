@@ -136,27 +136,7 @@
     scroll-behavior: smooth;
 }
 
-.message {
-    max-width: 70%;
-    padding: 12px;
-    border-radius: 5px;
-    transition: transform 0.2s ease, background 0.3s ease;
-    font-size: 1rem;
-    line-height: 1.4;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); /* Добавлена тень */
-}
 
-.message-sent {
-    align-self: flex-end;
-    background: rgba(0, 123, 255, 0.8); /* Синий фон */
-    color: white;
-}
-
-.message-received {
-    align-self: flex-start;
-    background: rgba(245, 245, 245, 0.9); /* Светло-серый фон */
-    color: black;
-}
 .message-header {
     display: flex;
     justify-content: space-between;
@@ -226,7 +206,7 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Увеличиваем расстояние между сообщениями */
+    gap: 10px; /* Увеличиваем расстояние между сообщениями */
 }
 
 .chat-input {
@@ -276,30 +256,52 @@
 
 .message {
     max-width: 60%;
-    padding: 15px;
-    border-radius: 15px;
+    padding: 10px;
     font-size: 1.2rem;
     line-height: 1.6;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
+.message-bubble {
+    background: rgba(0, 0, 0, 0.7); /* Серый цвет для сообщений */
+    color: white; /* Белый цвет текста */
+    padding: 12px 15px; /* Внутренние отступы */
+    border-radius: 10px; /* Закругленные углы */
+    position: relative; /* Относительное позиционирование */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); /* Увеличенная и более темная тень */
+}
 
+.message-time {
+    color: rgba(0, 0, 0, 1);
+    font-size: 13px;
+    font-weight:bold;
+}
+
+.received .message-bubble {
+    background: rgba(245, 245, 245, 0.9); /* Цвет полученных сообщений */
+    color: black;
+}
 
 .sent {
     align-self: flex-end;
-    background: rgba(0, 0, 0, 0.7);
     color: white;
 }
 
 .received {
     align-self: flex-start;
-    background: white;
     color: black;
 }
 
 .chat-messages {
-    overflow-y: scroll;
+    padding: 20px;
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    backdrop-filter: blur(10px); /* Сохранён эффект blur */
+    animation: fade-in 0.5s ease;
+    scroll-behavior: smooth;
 }
 
 .message img, .message .file-list {

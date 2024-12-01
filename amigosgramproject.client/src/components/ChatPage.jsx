@@ -298,6 +298,75 @@ function ChatPage() {
             .withUrl("https://localhost:7015/chat")
             .build();
 
+        newConnection.on("UpdateLastMessage",async (chatId, lastMessage) => {
+            try {
+                const currentUserPrivateKey = localStorage.getItem("privateKey");
+                if (!currentUserPrivateKey) {
+                    console.error("Private key not found for decryption");
+                    return;
+                }
+
+                // Определяем, какие данные нужно расшифровать
+                const encryptedContent =
+                    lastMessage.senderId === currentUserId
+                        ? lastMessage.encryptedForSender
+                        : lastMessage.encryptedForReceiver;
+
+                const encryptedMediaUrls =
+                    lastMessage.senderId === currentUserId
+                        ? lastMessage.mediaUrlsForSender
+                        : lastMessage.mediaUrlsForReceiver;
+
+                const encryptedFileUrls =
+                    lastMessage.senderId === currentUserId
+                        ? lastMessage.fileUrlsForSender
+                        : lastMessage.fileUrlsForReceiver;
+
+                const encryptedAudioUrl =
+                    lastMessage.senderId === currentUserId
+                        ? lastMessage.audioUrlForSender
+                        : lastMessage.audioUrlForReceiver;
+
+                // Проверки и расшифровка данных
+                var contentTemp;
+                if (encryptedContent != null) {
+                    lastMessage.content = await decryptMessage(encryptedContent);
+                    contentTemp = lastMessage.content;
+                } else if (encryptedAudioUrl != null) {
+                    contentTemp = "Audio";
+                } else if (encryptedMediaUrls != null && encryptedMediaUrls.length > 0) {
+                    contentTemp = "Media";
+                } else if (encryptedFileUrls != null && encryptedFileUrls.length > 0) {
+                    contentTemp = "File";
+                } else {
+                    lastMessage.content = lastMessage.content || "[Unable to decrypt message]";
+                    contentTemp = lastMessage.content;
+                }
+
+                lastMessage.mediaUrls = encryptedMediaUrls
+                    ? await decryptArray(encryptedMediaUrls)
+                    : [];
+                lastMessage.fileUrls = encryptedFileUrls
+                    ? await decryptArray(encryptedFileUrls)
+                    : [];
+                lastMessage.audioUrl = encryptedAudioUrl
+                    ? await decryptMessage(encryptedAudioUrl)
+                    : null;
+            } catch (error) {
+                console.error(`Error decrypting incoming message:`, error);
+
+                // Устанавливаем значения по умолчанию в случае ошибки
+                lastMessage.content = "[Error: Unable to decrypt message]";
+                lastMessage.mediaUrls = [];
+                lastMessage.fileUrls = [];
+                lastMessage.audioUrl = null;
+            }
+            setLastMessages((prevLastMessages) => ({
+                ...prevLastMessages,
+                [chatId]: contentTemp,
+            }));
+        });
+
         newConnection.on("ReceiveMessage", async (receivedMessage) => {
             try {
                 const currentUserPrivateKey = localStorage.getItem("privateKey");
@@ -1060,55 +1129,56 @@ function ChatPage() {
                     </div>
                 ) : (
                     <>
-                        <div className="message-header">
+                        <div className="message-bubble">
                             {/* Text message */}
-                            {msg.content && <p>{msg.content}</p>}
-                            {/* Timestamp */}
-                            <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
+                            {msg.content && <p className="message-content">{msg.content}</p>}
+
+                            {/* Media messages */}
+                            {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                                <div className="image-gallery">
+                                    {msg.mediaUrls.map((url, index) => (
+                                        <Image
+                                            key={index}
+                                            width={200}
+                                            src={url}
+                                            alt={`Uploaded media ${index + 1}`}
+                                            style={{ margin: "8px 0" }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* File messages */}
+                            {msg.fileUrls && msg.fileUrls.length > 0 && (
+                                <div className="file-list">
+                                    {msg.fileUrls.map((url, index) => (
+                                        <Button
+                                            key={index}
+                                            type="link"
+                                            href={url}
+                                            target="_blank"
+                                            icon={<FileOutlined />}
+                                            style={{ display: "block", margin: "4px 0" }}
+                                        >
+                                            Download File {index + 1}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Audio messages */}
+                            {msg.audioUrl && (
+                                <div className="audio-player">
+                                    <audio controls>
+                                        <source src={msg.audioUrl} type="audio/mpeg" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Media messages */}
-                        {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                            <div className="image-gallery">
-                                {msg.mediaUrls.map((url, index) => (
-                                    <Image
-                                        key={index}
-                                        width={200}
-                                        src={url}
-                                        alt={`Uploaded media ${index + 1}`}
-                                        style={{ margin: "8px 0" }}
-                                    />
-                                ))}
-                            </div>
-                        )}
-
-                        {/* File messages */}
-                        {msg.fileUrls && msg.fileUrls.length > 0 && (
-                            <div className="file-list">
-                                {msg.fileUrls.map((url, index) => (
-                                    <Button
-                                        key={index}
-                                        type="link"
-                                        href={url}
-                                        target="_blank"
-                                        icon={<FileOutlined />}
-                                        style={{ display: "block", margin: "4px 0" }}
-                                    >
-                                        Download File {index + 1}
-                                    </Button>
-                                ))}
-                            </div>
-                        )}
-
-                        {/* Audio messages */}
-                        {msg.audioUrl && (
-                            <div className="audio-player">
-                                <audio controls>
-                                    <source src={msg.audioUrl} type="audio/mpeg" />
-                                    Your browser does not support the audio element.
-                                </audio>
-                            </div>
-                        )}
+                        {/* Timestamp */}
+                        <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
                     </>
                 )}
 
@@ -1118,8 +1188,8 @@ function ChatPage() {
                         className="context-menu"
                         style={{
                             position: "absolute",
-                            top: `${menuPosition.y}px`,
-                            left: `${menuPosition.x}px`,
+                            top: `${menuPosition.y + 5}px`, // Добавляем небольшой сдвиг вниз
+                            left: `${menuPosition.x - 300}px`, // Добавляем небольшой сдвиг вправо
                             zIndex: 1000,
                             background: "#fff",
                             border: "1px solid #ccc",
@@ -1160,9 +1230,11 @@ function ChatPage() {
                         </div>
                     </div>
                 )}
+
             </div>
         );
     };
+
 
     const renderMessagesOrPlaceholder = () => {
         if (!messages || messages.length === 0) {

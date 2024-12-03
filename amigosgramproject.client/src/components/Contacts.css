@@ -1,95 +1,308 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
 body {
-    background-color: #121212;
+    background-color: #000000;
     color: #ffffff;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 
 .contacts-page {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    background-color: #1e1e1e;
-    border-radius: 10px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #121212;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(255, 255, 255, 0.1);
+    animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .page-title {
     text-align: center;
-    font-size: 28px;
-    color: #4caf50;
-    margin-bottom: 20px;
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
 }
 
 .tabs-container {
+    margin-top: 20px;
     background-color: transparent;
 }
 
 .ant-tabs-tab {
     color: #ffffff !important;
-    font-size: 16px;
+    font-size: 18px;
+    font-weight: 500;
+    text-align: center;
     transition: all 0.3s ease;
 }
 
     .ant-tabs-tab:hover {
-        color: #4caf50 !important;
+        color: #e0e0e0 !important;
+        transform: scale(1.1);
     }
 
 .ant-tabs-ink-bar {
-    background-color: #4caf50 !important;
+    background-color: #ffffff !important;
 }
 
 .search-input {
     width: 100%;
-    margin-bottom: 15px;
-    padding: 10px;
-    background-color: #333;
-    border: 1px solid #444;
-    border-radius: 5px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
     color: #fff;
+    font-size: 16px;
+    transition: all 0.3s ease;
 }
 
     .search-input:focus {
         outline: none;
-        border-color: #4caf50;
-        box-shadow: 0 0 5px #4caf50;
+        border-color: #ffffff;
+        box-shadow: 0 0 10px #ffffff;
+        background-color: #292929;
     }
 
 .list-item {
-    background-color: #292929;
-    padding: 15px;
-    border-radius: 5px;
-    margin-bottom: 10px;
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 15px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 20px;
 }
 
     .list-item:hover {
-        background-color: #333;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        background-color: #292929;
+        box-shadow: 0 6px 15px rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
     }
 
+    .list-item .ant-avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 30px;
+    }
+
+    .list-item .actions {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+        .list-item .actions button {
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: transparent;
+            color: #ffffff;
+            border: 1px solid #ffffff;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+            .list-item .actions button:hover {
+                background-color: #ffffff;
+                color: #000000;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 10px rgba(255, 255, 255, 0.3);
+            }
+
+            .list-item .actions button:active {
+                transform: translateY(0);
+            }
+
+        .list-item .actions .anticon {
+            font-size: 24px;
+            transition: all 0.3s ease;
+        }
+
+    .list-item:hover .anticon {
+        transform: scale(1.2);
+        color: #ffffff;
+    }
+
+.ant-tooltip-inner {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    font-size: 14px;
+    border-radius: 5px;
+    padding: 8px;
+}
+
+.ant-popover-inner {
+    background-color: #121212;
+    color: #ffffff;
+    border-radius: 10px;
+}
+
+.ant-popover-arrow {
+    border-color: #121212;
+}
+
 .profile-modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
     text-align: center;
+    background-color: rgba(0, 0, 0, 0.85); /* Полупрозрачный фон */
+    border-radius: 15px;
+    padding: 40px;
+    animation: zoomIn 0.8s ease;
+}
+
+@keyframes zoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 .profile-content {
+    max-width: 600px;
     color: #ffffff;
+    padding: 30px;
+    background-color: #1e1e1e;
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(255, 255, 255, 0.2);
+    animation: slideDown 0.6s ease;
 }
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.profile-avatar {
+    margin-bottom: 20px;
+}
+
+    .profile-avatar img {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        object-fit: cover;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .profile-avatar img:hover {
+            transform: scale(1.1);
+            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.4);
+        }
 
 .profile-name {
-    font-size: 22px;
+    font-size: 28px;
+    font-weight: 700;
     margin: 10px 0;
+    letter-spacing: 1px;
+    color: #ffffff !important; /* Белый цвет текста */
 }
 
-.profile-email,
+.profile-email {
+    font-size: 18px;
+    color: #d0d0d0;
+    margin: 8px 0;
+}
+
 .profile-bio {
     font-size: 16px;
     color: #bdbdbd;
-}
-.contacts-page .list-item .actions {
-    display: flex;
-    gap: 10px;
+    margin-top: 10px;
 }
 
-    .contacts-page .list-item .actions button {
-        font-size: 14px;
+.list-item .ant-list-item-meta-title {
+    color: #ffffff; /* Устанавливаем белый цвет для имени пользователя */
+    font-size: 18px;
+}
+
+
+.profile-section {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: 500;
+    text-align: left;
+    color: #ffffff;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+    .profile-actions button {
+        font-size: 16px;
+        padding: 12px 20px;
+        background-color: transparent;
+        color: #ffffff;
+        border: 1px solid #ffffff;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+        cursor: pointer;
     }
+
+        .profile-actions button:hover {
+            background-color: #ffffff;
+            color: #000000;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .profile-actions button:active {
+            transform: translateY(0);
+        }
+
+.profile-data {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 16px;
+    line-height: 1.8;
+    color: #bdbdbd;
+}
+
+.ant-modal-centered .ant-modal {
+    text-align: center;
+    background-color: #121212;
+    border-radius: 15px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
+.ant-modal-footer {
+    display: none; /* Убираем стандартные кнопки модального окна */
+}

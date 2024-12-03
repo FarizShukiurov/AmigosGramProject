@@ -1386,7 +1386,7 @@ function ChatPage() {
             >
                 <Upload
                     key={imageModalKey}
-                    accept="image/*, .mp4"
+                    accept="image/*"
                     action="/api/files/upload"
                     onRemove={handleImageRemove}
                     onChange={handleImageChange}
@@ -1404,7 +1404,7 @@ function ChatPage() {
             >
                 <Upload
                     key={fileModalKey}
-                    accept=".txt, .pdf, .doc, .docx, .zip, .rar, .7z"
+                    accept=".txt, .pdf, .doc, .docx, .zip, .rar, .7z, image/*"
                     action="/api/files/upload"
                     onRemove={handleFileRemove}
                     onChange={handleFileChange}

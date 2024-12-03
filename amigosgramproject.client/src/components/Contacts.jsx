@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+п»їimport { useState, useEffect } from 'react';
 import { Input, List, Avatar, Button, Spin, Tabs, Modal, Popconfirm, Tooltip } from 'antd';
-import { UserOutlined, DeleteOutlined } from '@ant-design/icons'; // Добавляем иконку корзины
+import { UserOutlined, DeleteOutlined } from '@ant-design/icons'; // Р”РѕР±Р°РІР»СЏРµРј РёРєРѕРЅРєСѓ РєРѕСЂР·РёРЅС‹
 import './Contacts.css';
 
 const { TabPane } = Tabs;
@@ -26,36 +26,36 @@ const Contacts = () => {
     }, []);
 
     const fetchContacts = async () => {
-    setLoading(true);
-    try {
-        const response = await fetch('/api/Contacts/GetContacts', {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-        });
+        setLoading(true);
+        try {
+            const response = await fetch('/api/Contacts/GetContacts', {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
 
-        if (!response.ok) {
-            throw new Error('Failed to fetch contacts');
+            if (!response.ok) {
+                throw new Error('Failed to fetch contacts');
+            }
+
+            const data = await response.json();
+            console.log("Fetched contacts:", data);  // Р›РѕРіРёСЂСѓРµРј РїРѕР»СѓС‡РµРЅРЅС‹Рµ РєРѕРЅС‚Р°РєС‚С‹
+
+            // РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ РєР°Р¶РґС‹Р№ РєРѕРЅС‚Р°РєС‚ РёРјРµРµС‚ ContactId
+            setContacts(data.map(contact => {
+                console.log(contact.ContactId);  // Р›РѕРіРёСЂСѓРµРј ContactId РєР°Р¶РґРѕРіРѕ РєРѕРЅС‚Р°РєС‚Р°
+                return contact;
+            }));
+        } catch (error) {
+            console.error('Error fetching contacts:', error);
+        } finally {
+            setLoading(false);
         }
-
-        const data = await response.json();
-        console.log("Fetched contacts:", data);  // Логируем полученные контакты
-
-        // Убедитесь, что каждый контакт имеет ContactId
-        setContacts(data.map(contact => {
-            console.log(contact.ContactId);  // Логируем ContactId каждого контакта
-            return contact;
-        }));
-    } catch (error) {
-        console.error('Error fetching contacts:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+    };
 
 
 
-    // Функция для удаления контакта
+    // Р¤СѓРЅРєС†РёСЏ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РєРѕРЅС‚Р°РєС‚Р°
     const handleDeleteContact = async (contactId) => {
         setLoading(true);
         try {
@@ -98,7 +98,7 @@ const Contacts = () => {
 
             setIncomingRequests(incoming || []);
             setOutgoingRequests(outgoing || []);
-            setBlockedUsers(blocked || []); // Убедитесь, что блокированные пользователи обновляются
+            setBlockedUsers(blocked || []); // РЈР±РµРґРёС‚РµСЃСЊ, С‡С‚Рѕ Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»Рё РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ
         } catch (error) {
             console.error('Error fetching contact requests:', error);
         } finally {
@@ -111,30 +111,42 @@ const Contacts = () => {
 
 
 
-    // Функция для обработки поиска
+    // Р¤СѓРЅРєС†РёСЏ РґР»СЏ РѕР±СЂР°Р±РѕС‚РєРё РїРѕРёСЃРєР°
     const handleSearch = async (value) => {
-        if (!value) return; // Если поисковое поле пустое, не выполнять запрос
+        if (!value) return;
         setLoading(true);
         try {
-            // Формируем строку запроса правильно
             const response = await fetch(`/Account/SearchAccount?nickname=${encodeURIComponent(value)}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
             });
 
-            // Проверка на успешность ответа
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Проверка на тип контента
             const contentType = response.headers.get('Content-Type');
             if (!contentType || !contentType.includes('application/json')) {
                 throw new Error('Server returned non-JSON response');
             }
 
             const data = await response.json();
-            setSearchResults(data);
+
+            // РџСЂРѕРІРµСЂСЏРµРј, С‡С‚РѕР±С‹ РёСЃРєР»СЋС‡РёС‚СЊ РґСѓР±Р»РёСЂРѕРІР°РЅРёРµ
+            const updatedResults = data.map((contact) => {
+                const isRequestSent = outgoingRequests.some((req) => req.contactId === contact.contactId);
+                const isIncomingRequest = incomingRequests.some((req) => req.contactId === contact.contactId);
+                const isBlocked = blockedUsers.some((blocked) => blocked.contactId === contact.contactId);
+
+                return {
+                    ...contact,
+                    isRequestSent,
+                    isIncomingRequest,
+                    isBlocked,
+                };
+            });
+
+            setSearchResults(updatedResults);
         } catch (error) {
             console.error('Error searching accounts:', error);
             alert('There was an issue with the search. Please try again later.');
@@ -185,24 +197,24 @@ const Contacts = () => {
                 });
             }
 
-            fetchContactRequests(); // Обновляем данные
+            fetchContactRequests(); // РћР±РЅРѕРІР»СЏРµРј РґР°РЅРЅС‹Рµ
         } catch (error) {
             console.error('Error responding to contact request:', error);
         } finally {
             setLoading(false);
         }
+
     };
 
 
 
-
-    // Функция для удаления отправленного запроса
+    // Р¤СѓРЅРєС†РёСЏ РґР»СЏ СѓРґР°Р»РµРЅРёСЏ РѕС‚РїСЂР°РІР»РµРЅРЅРѕРіРѕ Р·Р°РїСЂРѕСЃР°
     const handleDeleteRequest = async (contactId) => {
-        console.log("Deleting request with ID:", contactId);  // Логируем, какой ID передается
+        console.log("Deleting request with ID:", contactId);  // Р›РѕРіРёСЂСѓРµРј, РєР°РєРѕР№ ID РїРµСЂРµРґР°РµС‚СЃСЏ
 
         if (!contactId) {
             console.error("Error: contactId is undefined or invalid.");
-            return;  // Если ID не существует, прекращаем выполнение
+            return;  // Р•СЃР»Рё ID РЅРµ СЃСѓС‰РµСЃС‚РІСѓРµС‚, РїСЂРµРєСЂР°С‰Р°РµРј РІС‹РїРѕР»РЅРµРЅРёРµ
         }
 
         setLoading(true);
@@ -211,7 +223,7 @@ const Contacts = () => {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ contactId }),  // Отправляем contactId в теле запроса
+                body: JSON.stringify({ contactId }),  // РћС‚РїСЂР°РІР»СЏРµРј contactId РІ С‚РµР»Рµ Р·Р°РїСЂРѕСЃР°
             });
 
             if (!response.ok) {
@@ -219,7 +231,7 @@ const Contacts = () => {
                 throw new Error(`Failed to delete contact request: ${errorText}`);
             }
 
-            setOutgoingRequests((prevRequests) => prevRequests.filter((req) => req.contactId !== contactId));  // Удаляем запрос из состояния
+            setOutgoingRequests((prevRequests) => prevRequests.filter((req) => req.contactId !== contactId));  // РЈРґР°Р»СЏРµРј Р·Р°РїСЂРѕСЃ РёР· СЃРѕСЃС‚РѕСЏРЅРёСЏ
         } catch (error) {
             console.error('Error deleting contact request:', error);
         } finally {
@@ -233,13 +245,13 @@ const Contacts = () => {
             return;
         }
 
-        setLoading(true); // Начинаем загрузку
+        setLoading(true); // РќР°С‡РёРЅР°РµРј Р·Р°РіСЂСѓР·РєСѓ
         try {
             const response = await fetch('/api/Contacts/UnblockContact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify({ contactId }), // Передаём ID контакта
+                body: JSON.stringify({ contactId }), // РџРµСЂРµРґР°С‘Рј ID РєРѕРЅС‚Р°РєС‚Р°
             });
 
             if (!response.ok) {
@@ -249,56 +261,87 @@ const Contacts = () => {
 
             console.log(`User with contactId ${contactId} successfully unblocked.`);
 
-            // Удаляем пользователя из списка заблокированных
+            // РЈРґР°Р»СЏРµРј РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РёР· СЃРїРёСЃРєР° Р·Р°Р±Р»РѕРєРёСЂРѕРІР°РЅРЅС‹С…
             setBlockedUsers((prevBlockedUsers) =>
                 prevBlockedUsers.filter((user) => user.contactId !== contactId)
             );
 
-            // Обновляем другие списки запросов и контактов
+            // РћР±РЅРѕРІР»СЏРµРј РґСЂСѓРіРёРµ СЃРїРёСЃРєРё Р·Р°РїСЂРѕСЃРѕРІ Рё РєРѕРЅС‚Р°РєС‚РѕРІ
             fetchContactRequests();
         } catch (error) {
             console.error('Error unblocking user:', error);
         } finally {
-            setLoading(false); // Завершаем загрузку
+            setLoading(false); // Р—Р°РІРµСЂС€Р°РµРј Р·Р°РіСЂСѓР·РєСѓ
         }
     };
 
 
 
-    // Открытие профиля
-    const viewProfile = (profile) => {
-        setSelectedProfile(profile);
-        setProfileModalVisible(true);
+    // РћС‚РєСЂС‹С‚РёРµ РїСЂРѕС„РёР»СЏ
+    const viewProfile = async (contact) => {
+        setLoading(true);
+        try {
+            console.log(contact)
+            console.log(contact.ContactId)
+            // РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ РЅР° СЃРµСЂРІРµСЂ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РїРѕР»РЅРѕРіРѕ РїСЂРѕС„РёР»СЏ
+            const response = await fetch(`/api/Contacts/GetProfile?contactId=${contact.id}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to fetch profile data');
+            }
+
+            const profile = await response.json();
+
+            // РћР±РЅРѕРІР»СЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ СЃ РїРѕР»РЅС‹РјРё РґР°РЅРЅС‹РјРё РїСЂРѕС„РёР»СЏ
+            setSelectedProfile({
+                userName: profile.userName || contact.userName || 'Unknown User',
+                avatarUrl: profile.avatarUrl || contact.avatarUrl || 'https://via.placeholder.com/120',
+                email: profile.email || 'Not provided',
+                bio: profile.bio || 'Not available',
+            });
+
+            setProfileModalVisible(true);
+        } catch (error) {
+            console.error('Error fetching profile data:', error);
+            alert('Failed to load profile. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // Закрытие модального окна профиля
+
+    // Р—Р°РєСЂС‹С‚РёРµ РјРѕРґР°Р»СЊРЅРѕРіРѕ РѕРєРЅР° РїСЂРѕС„РёР»СЏ
     const closeProfileModal = () => {
         setProfileModalVisible(false);
         setSelectedProfile(null);
     };
 
-    // Функция для отправки запроса на добавление в контакт
+    // Р¤СѓРЅРєС†РёСЏ РґР»СЏ РѕС‚РїСЂР°РІРєРё Р·Р°РїСЂРѕСЃР° РЅР° РґРѕР±Р°РІР»РµРЅРёРµ РІ РєРѕРЅС‚Р°РєС‚
     const sendContactRequest = async (contact) => {
-        console.log("Sending request for contact:", contact); // Логируем контакт
+        console.log("Sending request for contact:", contact); // Р›РѕРіРёСЂСѓРµРј РєРѕРЅС‚Р°РєС‚
 
         setLoading(true);
         try {
-            // Формируем DTO, добавляя поле Status
+            // Р¤РѕСЂРјРёСЂСѓРµРј DTO, РґРѕР±Р°РІР»СЏСЏ РїРѕР»Рµ Status
             const contactRequestDTO = {
-                ContactId: contact.ContactId,   // ID контакта
-                UserName: contact.UserName,     // Имя пользователя
-                AvatarUrl: contact.AvatarUrl,   // URL аватара пользователя
-                Status: 0,              // Указываем статус запроса
+                ContactId: contact.ContactId,   // ID РєРѕРЅС‚Р°РєС‚Р°
+                UserName: contact.UserName,     // РРјСЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+                AvatarUrl: contact.AvatarUrl,   // URL Р°РІР°С‚Р°СЂР° РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
+                Status: 0,              // РЈРєР°Р·С‹РІР°РµРј СЃС‚Р°С‚СѓСЃ Р·Р°РїСЂРѕСЃР°
             };
 
-            console.log("DTO being sent:", contactRequestDTO); // Логируем DTO
+            console.log("DTO being sent:", contactRequestDTO); // Р›РѕРіРёСЂСѓРµРј DTO
 
-            // Отправляем запрос на сервер
+            // РћС‚РїСЂР°РІР»СЏРµРј Р·Р°РїСЂРѕСЃ РЅР° СЃРµСЂРІРµСЂ
             const response = await fetch('/api/Contacts/SendContactRequest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(contactRequestDTO), // Отправляем DTO
+                body: JSON.stringify(contactRequestDTO), // РћС‚РїСЂР°РІР»СЏРµРј DTO
             });
 
             if (!response.ok) {
@@ -308,8 +351,8 @@ const Contacts = () => {
 
             console.log('Contact request successfully sent.');
 
-            // После отправки запроса обновляем данные запросов
-            fetchContactRequests(); // Обновляем список исходящих запросов
+            // РџРѕСЃР»Рµ РѕС‚РїСЂР°РІРєРё Р·Р°РїСЂРѕСЃР° РѕР±РЅРѕРІР»СЏРµРј РґР°РЅРЅС‹Рµ Р·Р°РїСЂРѕСЃРѕРІ
+            fetchContactRequests(); // РћР±РЅРѕРІР»СЏРµРј СЃРїРёСЃРѕРє РёСЃС…РѕРґСЏС‰РёС… Р·Р°РїСЂРѕСЃРѕРІ
         } catch (error) {
             console.error('Error sending contact request:', error);
         } finally {
@@ -325,7 +368,7 @@ const Contacts = () => {
         <List
             dataSource={list}
             renderItem={(contact) => {
-                console.log("Rendering contact:", contact); // Логируем контакт перед рендером
+                console.log("Rendering contact:", contact); // Р›РѕРіРёСЂСѓРµРј РєРѕРЅС‚Р°РєС‚ РїРµСЂРµРґ СЂРµРЅРґРµСЂРѕРј
 
                 const isRequestSent = Array.isArray(outgoingRequests) && outgoingRequests.some((req) => req.contactId === contact.contactId);
                 const isIncomingRequest = Array.isArray(incomingRequests) && incomingRequests.some((req) => req.contactId === contact.contactId);
@@ -335,20 +378,20 @@ const Contacts = () => {
                     <List.Item className="list-item">
                         <List.Item.Meta
                             avatar={<Avatar src={contact.avatarUrl} icon={!contact.avatarUrl && <UserOutlined />} />}
-                            title={contact.userName}
-                            description={contact.email}
+                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                            description={<span style={{ color: 'white' }}>{contact.email}</span>}
                         />
                         <div className="actions">
-                            <Button onClick={() => viewProfile(contact)}>View Profile</Button>
+                            <Button onClick={() => viewProfile(contact)}>View Profile</Button>  
                             {isBlocked ? (
-                                // Блокированные пользователи
+                                // Р‘Р»РѕРєРёСЂРѕРІР°РЅРЅС‹Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»Рё
                                 <Tooltip title="Unblock user">
                                     <Popconfirm
                                         title="Are you sure you want to unblock this user?"
                                         onConfirm={() => {
                                             console.log("Unblocking user:", contact);
                                             if (contact.contactId) {
-                                                handleUnblockUser(contact.contactId); // Разблокировать пользователя
+                                                handleUnblockUser(contact.contactId); // Р Р°Р·Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
                                             } else {
                                                 console.error("No contactId available for unblock:", contact);
                                             }
@@ -360,14 +403,14 @@ const Contacts = () => {
                                     </Popconfirm>
                                 </Tooltip>
                             ) : isContact ? (
-                                // Контакты
+                                // РљРѕРЅС‚Р°РєС‚С‹
                                 <Tooltip title="Delete contact">
                                     <Popconfirm
                                         title="Are you sure you want to delete this contact?"
                                         onConfirm={() => {
                                             console.log("Contact being deleted:", contact);
                                             if (contact.id) {
-                                                handleDeleteContact(contact.id); // Удалить контакт
+                                                handleDeleteContact(contact.id); // РЈРґР°Р»РёС‚СЊ РєРѕРЅС‚Р°РєС‚
                                             } else {
                                                 console.error("No contactId available for this contact:", contact);
                                             }
@@ -379,13 +422,13 @@ const Contacts = () => {
                                     </Popconfirm>
                                 </Tooltip>
                             ) : isIncomingRequest ? (
-                                // Входящие запросы
+                                // Р’С…РѕРґСЏС‰РёРµ Р·Р°РїСЂРѕСЃС‹
                                 <div>
                                     <Button
                                         onClick={() => {
                                             console.log("Accepting request:", contact);
                                             if (contact.contactId) {
-                                                handleRespondToRequest(contact.contactId, "Accept"); // Принять запрос
+                                                handleRespondToRequest(contact.contactId, "Accept"); // РџСЂРёРЅСЏС‚СЊ Р·Р°РїСЂРѕСЃ
                                             } else {
                                                 console.error("No contactId available for accept:", contact);
                                             }
@@ -397,7 +440,7 @@ const Contacts = () => {
                                         onClick={() => {
                                             console.log("Declining request:", contact);
                                             if (contact.contactId) {
-                                                handleRespondToRequest(contact.contactId, "Decline"); // Отклонить запрос
+                                                handleRespondToRequest(contact.contactId, "Decline"); // РћС‚РєР»РѕРЅРёС‚СЊ Р·Р°РїСЂРѕСЃ
                                             } else {
                                                 console.error("No contactId available for decline:", contact);
                                             }
@@ -409,7 +452,7 @@ const Contacts = () => {
                                         onClick={() => {
                                             console.log("Blocking request:", contact);
                                             if (contact.contactId) {
-                                                handleRespondToRequest(contact.contactId, "Block"); // Заблокировать запрос
+                                                handleRespondToRequest(contact.contactId, "Block"); // Р—Р°Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ Р·Р°РїСЂРѕСЃ
                                             } else {
                                                 console.error("No contactId available for block:", contact);
                                             }
@@ -419,12 +462,12 @@ const Contacts = () => {
                                     </Button>
                                 </div>
                             ) : isRequestSent ? (
-                                // Исходящие запросы
+                                // РСЃС…РѕРґСЏС‰РёРµ Р·Р°РїСЂРѕСЃС‹
                                 <Button
                                     onClick={() => {
                                         console.log("Request being deleted:", contact);
                                         if (contact.contactId) {
-                                            handleDeleteRequest(contact.contactId); // Удалить запрос
+                                            handleDeleteRequest(contact.contactId); // РЈРґР°Р»РёС‚СЊ Р·Р°РїСЂРѕСЃ
                                         } else {
                                             console.error("No contactId available for request:", contact);
                                         }
@@ -433,7 +476,7 @@ const Contacts = () => {
                                     Delete Request
                                 </Button>
                             ) : (
-                                // Новый запрос
+                                // РќРѕРІС‹Р№ Р·Р°РїСЂРѕСЃ
                                 <Button
                                     onClick={() =>
                                         sendContactRequest({
@@ -445,8 +488,10 @@ const Contacts = () => {
                                 >
                                     Send Request
                                 </Button>
+
                             )}
                         </div>
+
                     </List.Item>
                 );
             }}
@@ -477,9 +522,9 @@ const Contacts = () => {
                             renderItem={(contact) => {
                                 console.log("Rendering contact:", contact);
 
-                                const contactId = contact.contactId || contact.id; // Универсальная проверка ключа ID
+                                const contactId = contact.contactId || contact.id; // Г“Г­ГЁГўГҐГ°Г±Г Г«ГјГ­Г Гї ГЇГ°Г®ГўГҐГ°ГЄГ  ГЄГ«ГѕГ·Г  ID
 
-                                // Проверяем, находится ли пользователь в списке контактов
+                                // ГЏГ°Г®ГўГҐГ°ГїГҐГ¬, Г­Г ГµГ®Г¤ГЁГІГ±Гї Г«ГЁ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Гў Г±ГЇГЁГ±ГЄГҐ ГЄГ®Г­ГІГ ГЄГІГ®Гў
                                 if (contacts.some((c) => c.contactId === contactId || c.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
@@ -490,8 +535,8 @@ const Contacts = () => {
                                                         icon={!contact.avatarUrl && <UserOutlined />}
                                                     />
                                                 }
-                                                title={contact.userName}
-                                                description={contact.email}
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                             />
                                             <div className="actions">
                                                 <Button disabled>Already in Contacts</Button>
@@ -500,7 +545,7 @@ const Contacts = () => {
                                     );
                                 }
 
-                                // Проверяем, находится ли пользователь в списке блокированных
+                                // ГЏГ°Г®ГўГҐГ°ГїГҐГ¬, Г­Г ГµГ®Г¤ГЁГІГ±Гї Г«ГЁ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Гў Г±ГЇГЁГ±ГЄГҐ ГЎГ«Г®ГЄГЁГ°Г®ГўГ Г­Г­Г»Гµ
                                 if (blockedUsers.some((blocked) => blocked.contactId === contactId || blocked.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
@@ -511,8 +556,8 @@ const Contacts = () => {
                                                         icon={!contact.avatarUrl && <UserOutlined />}
                                                     />
                                                 }
-                                                title={contact.userName}
-                                                description={contact.email}
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                             />
                                             <div className="actions">
                                                 <Tooltip title="Unblock user">
@@ -530,7 +575,7 @@ const Contacts = () => {
                                     );
                                 }
 
-                                // Проверяем, если пользователь отправил входящий запрос
+                                // ГЏГ°Г®ГўГҐГ°ГїГҐГ¬, ГҐГ±Г«ГЁ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Г®ГІГЇГ°Г ГўГЁГ« ГўГµГ®Г¤ГїГ№ГЁГ© Г§Г ГЇГ°Г®Г±
                                 if (incomingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
@@ -541,8 +586,8 @@ const Contacts = () => {
                                                         icon={!contact.avatarUrl && <UserOutlined />}
                                                     />
                                                 }
-                                                title={contact.userName}
-                                                description={contact.email}
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                             />
                                             <div className="actions">
                                                 <Button
@@ -565,7 +610,7 @@ const Contacts = () => {
                                     );
                                 }
 
-                                // Проверяем, если это исходящий запрос
+                                // ГЏГ°Г®ГўГҐГ°ГїГҐГ¬, ГҐГ±Г«ГЁ ГЅГІГ® ГЁГ±ГµГ®Г¤ГїГ№ГЁГ© Г§Г ГЇГ°Г®Г±
                                 if (outgoingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
                                     return (
                                         <List.Item className="list-item">
@@ -576,8 +621,8 @@ const Contacts = () => {
                                                         icon={!contact.avatarUrl && <UserOutlined />}
                                                     />
                                                 }
-                                                title={contact.userName}
-                                                description={contact.email}
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                             />
                                             <div className="actions">
                                                 <Button onClick={() => handleDeleteRequest(contactId)}>
@@ -588,7 +633,7 @@ const Contacts = () => {
                                     );
                                 }
 
-                                // Если пользователь новый (не в списках)
+                                // Г…Г±Г«ГЁ ГЇГ®Г«ГјГ§Г®ГўГ ГІГҐГ«Гј Г­Г®ГўГ»Г© (Г­ГҐ Гў Г±ГЇГЁГ±ГЄГ Гµ)
                                 return (
                                     <List.Item className="list-item">
                                         <List.Item.Meta
@@ -598,8 +643,8 @@ const Contacts = () => {
                                                     icon={!contact.avatarUrl && <UserOutlined />}
                                                 />
                                             }
-                                            title={contact.userName}
-                                            description={contact.email}
+                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                            description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                         />
                                         <div className="actions">
                                             <Button

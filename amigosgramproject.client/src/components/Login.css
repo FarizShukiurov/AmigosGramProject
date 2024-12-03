@@ -135,6 +135,25 @@ html, body {
     border: 1px solid darkgray !important;
     color: darkgray !important;
 }
+/* Стили только для полей email и username */
+input[name="username"]:hover,
+input[name="username"]:focus,
+input[name="email"]:hover,
+input[name="email"]:focus {
+    background-color: #141414 !important; /* Тёмный фон */
+    border-color: #555 !important; /* Цвет рамки */
+    color: white !important; /* Белый текст */
+    box-shadow: none !important; /* Убираем тень */
+}
+
+/* Общие стили для этих полей */
+input[name="username"],
+input[name="email"] {
+    background-color: #141414;
+    color: white;
+    border: 1px solid #333;
+    transition: all 0.3s ease;
+}
 
 /* Стили для текста и заголовков */
 .panel label,

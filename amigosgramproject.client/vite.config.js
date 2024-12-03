@@ -110,6 +110,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '^/api/Profile/change-biography': {
+                target,
+                secure: false,
+            },
             '^/api/Profile/set-avatar-url': {
                 target,
                 secure: false,
@@ -195,6 +199,10 @@ export default defineConfig({
                 secure: false,
             },
             '^/api/Contacts/UnblockContact': {
+                target,
+                secure: false,
+            },
+            '^/api/Contacts/GetProfile': {
                 target,
                 secure: false,
             },

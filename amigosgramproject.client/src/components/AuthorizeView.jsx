@@ -58,7 +58,6 @@ function AuthorizeView(props) {
             // Извлекаем токен из cookies
            
             const token = Cookies.get("accessToken");
-            console.log(token, "osman peyser")
             
             if (token) {
                 console.log("Access token from cookies:", token); // Логируем токен

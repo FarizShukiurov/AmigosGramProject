@@ -91,7 +91,6 @@ function Login() {
         if (name === "password") setPassword(value);
         if (name === "email") setEmail(value);
         if (name === "confirmPassword") setConfirmPassword(value);
-        if (name === "rememberme") setRememberme(e.target.checked);
     };
 
     const handleLoginSubmit = async () => {
@@ -266,9 +265,7 @@ function Login() {
                             />
                         </Form.Item>
                         <Form.Item>
-                            <Checkbox name="rememberme" checked={rememberme} onChange={handleChange}>
-                                Remember me
-                            </Checkbox>
+                            
                         </Form.Item>
                         <Button type="primary" htmlType="submit" block>
                             Log In

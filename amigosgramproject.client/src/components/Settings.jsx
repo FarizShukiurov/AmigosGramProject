@@ -1,3 +1,4 @@
+/// <reference path="layout.jsx" />
 import React, { useState, useEffect } from "react";
 import {
     Modal,

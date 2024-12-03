@@ -271,6 +271,28 @@ namespace AmigosGramProject.Server.Controllers
             return NoContent();
         }
 
+        [HttpGet("GetProfile")]
+        public async Task<IActionResult> GetProfile(string contactId)
+        {
+            if (string.IsNullOrWhiteSpace(contactId))
+                return BadRequest("ContactId must be provided.");
+
+            var contact = await _context.Users
+                .Where(u => u.Id == contactId)
+                .Select(u => new
+                {
+                    u.UserName,
+                    u.AvatarUrl,
+                    u.Email,
+                    u.Bio
+                })
+                .FirstOrDefaultAsync();
+
+            if (contact == null)
+                return NotFound("Contact not found.");
+
+            return Ok(contact);
+        }
 
         [HttpDelete("DeleteContactRequest")]
         public async Task<IActionResult> DeleteContactRequest([FromBody] DeleteContactRequestModel model)

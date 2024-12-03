@@ -85,11 +85,6 @@ function Layout() {
                                 <MessageOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </Link>
                         </button>
-                        <button className="menu-item">
-                            <Link to="/group-chats">
-                                <TeamOutlined style={{ fontSize: '24px', color: 'white' }} />
-                            </Link>
-                        </button>
                         <div className="menu-spacer" />
                         <button className="menu-item">
                             <Link to="/settings">

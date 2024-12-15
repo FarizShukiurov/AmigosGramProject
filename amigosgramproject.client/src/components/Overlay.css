@@ -1,0 +1,32 @@
+.overlay-container {
+    position: fixed;
+    top: 0;
+    right: 0; /* Модальное окно будет справа */
+    height: 100%;
+    width: 30%; /* Ширина модального окна */
+    background: #fff;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    z-index: 9999;
+    animation: slide-in 0.3s ease-out; /* Анимация появления */
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.overlay-content {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+body {
+    overflow-x: hidden; /* Убираем горизонтальный скролл для основной страницы */
+}

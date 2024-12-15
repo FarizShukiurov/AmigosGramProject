@@ -62,24 +62,24 @@ const Settings = () => {
             let response;
 
             if (avatarSrc instanceof File) {
-                // Если выбран файл, загружаем его через FormData
+                // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ FormData
                 const formData = new FormData();
                 formData.append("file", avatarSrc);
 
                 response = await fetch("/api/Profile/upload-avatar", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Добавляем токен
+                        "Authorization": `Bearer ${getTokenFromCookies()}`, // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                     },
                     body: formData,
                 });
             } else {
-                // Если выбран URL из списка, отправляем как JSON
+                // пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ URL пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ JSON
                 response = await fetch("/api/Profile/set-avatar-url", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Добавляем токен
+                        "Authorization": `Bearer ${getTokenFromCookies()}`, // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                     },
                     body: JSON.stringify({ avatarUrl: avatarSrc }),
                 });
@@ -92,7 +92,7 @@ const Settings = () => {
                     message: "Avatar Updated",
                     description: "Avatar updated successfully!",
                 });
-                setVisible(false); // Закрываем модалку
+                setVisible(false); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
             } else {
                 notification.error({
                     message: "Avatar Update Failed",
@@ -236,9 +236,9 @@ const Settings = () => {
             const response = await fetch("/Account/SendResetPasswordLink", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json", // Сервер ожидает JSON
+                    "Content-Type": "application/json", // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ JSON
                 },
-                body: JSON.stringify({ email }), // Отправляем email как JSON-объект
+                body: JSON.stringify({ email }), // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ email пїЅпїЅпїЅ JSON-пїЅпїЅпїЅпїЅпїЅпїЅ
             });
 
             if (response.ok) {
@@ -368,7 +368,7 @@ const Settings = () => {
                 <Button type="link" onClick={openResetPasswordModal}>Change Password</Button>
                 <Modal
                     title={<span className="custom-modal-title">Reset Your Password</span>}
-                    visible={showResetPasswordModal}
+                    open={showResetPasswordModal}
                     closable={false}
                     onCancel={closeResetPasswordModal}
                     footer={null}

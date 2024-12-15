@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { Link, Outlet, useNavigate } from "react-router-dom";
+import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { Tooltip } from "antd";
 import { LogoutOutlined, SettingOutlined, MessageOutlined, UserOutlined, TeamOutlined } from '@ant-design/icons';
 import AuthorizeView from "./AuthorizeView.jsx";
 import "./Layout.css";
 
 function Layout() {
-    const [avatarUrl, setAvatarUrl] = useState(""); // Уберите значение по умолчанию
+    const [avatarUrl, setAvatarUrl] = useState("");
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -27,14 +28,14 @@ function Layout() {
 
                 const data = await response.json();
                 if (data.avatarUrl) {
-                    setAvatarUrl(data.avatarUrl); // Установите URL, полученный из API
+                    setAvatarUrl(data.avatarUrl);
                 } else {
-                    console.error("No avatar URL found in the response, using default avatar.");
-                    setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png"); // Задайте значение по умолчанию, если не найдено
+                    console.error("No avatar URL found, using default avatar.");
+                    setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png");
                 }
             } catch (error) {
                 console.error("Error fetching user data:", error);
-                setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AvatarDefault.svg"); // Задайте значение по умолчанию в случае ошибки
+                setAvatarUrl("https://blobcontaineramigos.blob.core.windows.net/avatars/AvatarDefault.svg");
             }
         };
 
@@ -52,7 +53,7 @@ function Layout() {
             });
 
             if (response.ok) {
-                navigate("/login"); // Redirect to login page on success
+                navigate("/login");
             } else {
                 console.error("Logout failed");
             }
@@ -76,7 +77,8 @@ function Layout() {
                     </div>
                     <nav className="menu">
                         <button className="menu-item">
-                            <Link to="/contacts">
+                            {/* РџРµСЂРµРґР°РµРј СЃРѕСЃС‚РѕСЏРЅРёРµ РґР»СЏ РѕРІРµСЂР»РµСЏ */}
+                            <Link to="/contacts" state={{ modal: true, backgroundLocation: location }}>
                                 <UserOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </Link>
                         </button>
@@ -85,9 +87,14 @@ function Layout() {
                                 <MessageOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </Link>
                         </button>
+                        <button className="menu-item">
+                            <Link to="/group-chats">
+                                <TeamOutlined style={{ fontSize: '24px', color: 'white' }} />
+                            </Link>
+                        </button>
                         <div className="menu-spacer" />
                         <button className="menu-item">
-                            <Link to="/settings">
+                            <Link to="/settings" state={{ modal: true, backgroundLocation: location }}>
                                 <SettingOutlined style={{ fontSize: '24px', color: 'white' }} />
                             </Link>
                         </button>

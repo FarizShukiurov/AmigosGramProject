@@ -26,6 +26,7 @@ import {
     DeleteOutlined,
 } from "@ant-design/icons";
 import "./GroupChatPage.css";
+import { Checkbox } from "antd";
 
 const { Sider, Content } = Layout;
 
@@ -42,11 +43,9 @@ const GroupChatPage = () => {
     const [isFileModalVisible, setIsFileModalVisible] = useState(false);
     const [newGroupName, setNewGroupName] = useState("");
     const [newParticipants, setNewParticipants] = useState([]);
-    const [contacts, setContacts] = useState([
-        { id: "1", name: "Alice" },
-        { id: "2", name: "Bob" },
-        { id: "3", name: "Charlie" },
-    ]);
+    const [newGroupDescription, setNewGroupDescription] = useState("");
+    const [contacts, setContacts] = useState([]);
+    const [newGroupAvatar, setNewGroupAvatar] = useState(null);
     const [groupSettings, setGroupSettings] = useState({
         id: null,
         groupName: "",
@@ -57,19 +56,21 @@ const GroupChatPage = () => {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        // Загрузка сообщений для выбранного чата
-        if (selectedGroupChatId) {
-            const groupChat = groupChats.find((chat) => chat.id === selectedGroupChatId);
-            if (groupChat) {
-                // Здесь вы можете загружать сообщения из API, если они есть
-                setMessages([
-                    { id: 1, content: "Welcome to the group!", senderId: "system" },
-                    { id: 2, content: "Hello, Alice!", senderId: "currentUserId" },
-                    // Пример сообщений
-                ]);
+        const fetchContacts = async () => {
+            try {
+                const response = await fetch("/api/Contacts/GetContacts");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch contacts.");
+                }
+                const data = await response.json();
+                setContacts(data);
+            } catch (error) {
+                console.error("Failed to load contacts:", error);
+                antdMessage.error("Failed to load contacts.");
             }
-        }
-    }, [selectedGroupChatId, groupChats]);  // Перезагружать сообщения при изменении активного чата
+        };
+        fetchContacts();
+    }, []);
 
     // Функция для отправки сообщений
     const handleSendMessage = () => {
@@ -138,33 +139,35 @@ const GroupChatPage = () => {
         antdMessage.success("Group deleted successfully!");
     };
 
-    // Создание новой группы
-    const handleCreateGroup = () => {
-        if (!newGroupName.trim()) {
-            antdMessage.warning("Group name cannot be empty");
+    const handleCreateGroup = async () => {
+        if (!newGroupName.trim() || !newParticipants.length) {
+            antdMessage.warning("Group name and participants are required.");
             return;
         }
 
-        const newGroup = {
-            id: Date.now(),
-            groupName: newGroupName,
-            participants: newParticipants.length,
-        };
+        const formData = new FormData();
+        formData.append("name", newGroupName);
+        formData.append("description", newGroupDescription);
+        formData.append("participants", JSON.stringify(newParticipants));
+        if (newGroupAvatar) {
+            formData.append("avatar", newGroupAvatar);
+        }
 
-        setGroupChats((prevChats) => [...prevChats, newGroup]);
-        handleCloseNewGroupModal();  // Закрыть модальное окно после создания группы
-        antdMessage.success("Group created successfully!");
+        try {
+            await axios.post("/api/GroupChats/Create", formData);
+            antdMessage.success("Group created successfully!");
+            setNewGroupModalVisible(false);
+            setNewGroupName("");
+            setNewGroupDescription("");
+            setNewParticipants([]);
+            setNewGroupAvatar(null);
+        } catch (error) {
+            antdMessage.error("Failed to create group.");
+        }
     };
 
-    // Обработка аватарки
     const handleGroupAvatarChange = (file) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setGroupSettings((prev) => ({ ...prev, avatarUrl: reader.result }));
-        };
-        if (file) {
-            reader.readAsDataURL(file);
-        }
+        setNewGroupAvatar(file);
     };
 
     // Добавление участника
@@ -245,6 +248,14 @@ const GroupChatPage = () => {
             </Menu.Item>
         </Menu>
     );
+    const toggleParticipant = (contactId) => {
+        console.log("Toggling participant:", contactId);
+        setNewParticipants((prev) =>
+            prev.includes(contactId)
+                ? prev.filter((id) => id !== contactId)
+                : [...prev, contactId]
+        );
+    };
 
     return (
         <Layout className="group-chat-page">
@@ -376,32 +387,62 @@ const GroupChatPage = () => {
                 footer={null}
                 closable={false}
             >
-                <Input
-                    placeholder="Group Name"
-                    value={newGroupName}
-                    onChange={(e) => setNewGroupName(e.target.value)}
-                />
-                <List
-                    dataSource={contacts}
-                    renderItem={(contact) => (
-                        <List.Item
-                            onClick={() =>
-                                setNewParticipants((prev) =>
-                                    prev.includes(contact.id)
-                                        ? prev.filter((id) => id !== contact.id)
-                                        : [...prev, contact.id]
-                                )
-                            }
-                            className={newParticipants.includes(contact.id) ? "selected" : ""}
-                        >
-                            <List.Item.Meta
-                                avatar={<Avatar>{contact.name[0]}</Avatar>}
-                                title={contact.name}
-                            />
-                        </List.Item>
-                    )}
-                />
-                <Button type="primary" onClick={handleCreateGroup} style={{ marginTop: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", marginBottom: "10px" }}>
+                    <Upload
+                        accept="image/*"
+                        beforeUpload={(file) => {
+                            handleGroupAvatarChange(file);
+                            return false; // Prevent automatic upload
+                        }}
+                        showUploadList={false}
+                    >
+                        <Avatar
+                            src={newGroupAvatar ? URL.createObjectURL(newGroupAvatar) : null}
+                            size={64}
+                            icon={<EditOutlined />}
+                            style={{ marginRight: "10px" }}
+                        />
+                    </Upload>
+                    <div style={{ flex: 1 }}>
+                        <Input
+                            placeholder="Group Name"
+                            value={newGroupName}
+                            onChange={(e) => setNewGroupName(e.target.value)}
+                            style={{ marginBottom: "5px" }}
+                        />
+                        <Input.TextArea
+                            placeholder="Group Description"
+                            value={newGroupDescription}
+                            onChange={(e) => setNewGroupDescription(e.target.value)}
+                        />
+                    </div>
+                </div>
+                <div style={{ maxHeight: "150px", overflowY: "auto", marginTop: "10px" }}>
+                    <List
+                        dataSource={contacts}
+                        renderItem={(contact) => (
+                            <List.Item
+                                onClick={() => toggleParticipant(contact.id)}
+                                className={newParticipants.includes(contact.id) ? "selected" : ""}
+                            >
+                                <Checkbox
+                                    checked={newParticipants.includes(contact.id)}
+                                    onChange={() => toggleParticipant(contact.id)}
+                                    style={{ marginRight: "10px" }}
+                                />
+                                <List.Item.Meta
+                                    avatar={<Avatar>{contact.userName[0]}</Avatar>}
+                                    title={contact.userName}
+                                />
+                            </List.Item>
+                        )}
+                    />
+                </div>
+                <Button
+                    type="primary"
+                    onClick={handleCreateGroup}
+                    style={{ marginTop: "10px" }}
+                >
                     Create Group
                 </Button>
             </Modal>

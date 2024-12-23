@@ -42,9 +42,9 @@ const GroupChatPage = () => {
     const [isImageModalVisible, setIsImageModalVisible] = useState(false);
     const [isFileModalVisible, setIsFileModalVisible] = useState(false);
     const [newGroupName, setNewGroupName] = useState("");
-    const [newParticipants, setNewParticipants] = useState([]);
     const [newGroupDescription, setNewGroupDescription] = useState("");
     const [contacts, setContacts] = useState([]);
+    const [currentUserId, setCurrentUserId] = useState();
     const [newGroupAvatar, setNewGroupAvatar] = useState(null);
     const [groupSettings, setGroupSettings] = useState({
         id: null,
@@ -53,9 +53,11 @@ const GroupChatPage = () => {
         participants: [],
     });
     const [isRecording, setIsRecording] = useState(false);
+    const [newParticipants, setNewParticipants] = useState([]);
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
+
         const fetchContacts = async () => {
             try {
                 const response = await fetch("/api/Contacts/GetContacts");
@@ -71,6 +73,28 @@ const GroupChatPage = () => {
         };
         fetchContacts();
     }, []);
+
+    const fetchCurrentUserId = async () => {
+        try {
+            const response = await fetch("/Account/GetCurrentUserId", {
+                method: "GET",
+                headers: { Accept: "*/*" },
+            });
+
+            if (response.ok) {
+                const userId = await response.text();
+                setCurrentUserId(userId);
+            } else {
+                console.error("Error fetching user ID:", response.status);
+            }
+        } catch (error) {
+            console.error("An error occurred:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchCurrentUserId();
+    }, [currentUserId]);
 
     // Функция для отправки сообщений
     const handleSendMessage = () => {
@@ -139,32 +163,148 @@ const GroupChatPage = () => {
         antdMessage.success("Group deleted successfully!");
     };
 
+    const fetchUserPublicKey = async (userId) => {
+        try {
+            // Отправляем запрос на сервер
+            const response = await fetch(`/api/Keys/getPublicKey/${userId}`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch public key for user ${userId}`);
+            }
+
+            // Получаем публичный ключ в виде строки
+            const publicKeyBase64 = await response.text();
+
+            // Преобразуем Base64-строку в ArrayBuffer
+            const publicKeyBuffer = base64ToArrayBuffer(publicKeyBase64);
+
+            // Импортируем публичный ключ для использования в Web Crypto API
+            const userPublicKey = await window.crypto.subtle.importKey(
+                "spki",
+                publicKeyBuffer,
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256",
+                },
+                true,
+                ["encrypt"]
+            );
+
+            return userPublicKey; // Возвращаем импортированный ключ
+        } catch (error) {
+            console.error(`Error fetching public key for user ${userId}:`, error);
+            throw error; // Прокидываем ошибку выше
+        }
+    };
+
+
+    // шифровка из бейс в аррей
+    const base64ToArrayBuffer = (base64) => {
+        const binaryString = atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    };
+
+    // шифровка из аррей в бейс 
+    const arrayBufferToBase64 = (buffer) => {
+        let binary = "";
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return btoa(binary);
+    };
+
+    // шифровка груп ключа для юсера
+    const encryptGroupKeyForUser = async (groupKey, userPublicKey) => {
+        const encryptedKey = await window.crypto.subtle.encrypt(
+            {
+                name: "RSA-OAEP",
+            },
+            userPublicKey, // Публичный ключ участника
+            groupKey // Симметричный групповой ключ
+        );
+        return arrayBufferToBase64(encryptedKey); // Возвращаем зашифрованный ключ в Base64
+    };
+
+    // Генерация 256-битного симметричного ключа для группы
+    const generateGroupKey = () => {
+        const key = window.crypto.getRandomValues(new Uint8Array(32));
+        return key; // Uint8Array
+    };
+    //подготовка списка зашифрованнх ключей для участников 
+    const prepareEncryptedKeysForGroup = async (groupKey, participants) => {
+        const encryptedKeys = {};
+
+        for (const participantId of participants) {
+            // Получаем публичный ключ участника с сервера
+            const userPublicKey = await fetchUserPublicKey(participantId);
+
+            // Шифруем групповой ключ для участника
+            const encryptedKey = await encryptGroupKeyForUser(groupKey, userPublicKey);
+
+            encryptedKeys[participantId] = encryptedKey; // Сохраняем зашифрованный ключ
+        }
+
+        return encryptedKeys; // Возвращаем объект { userId: encryptedKey }
+    };
+
     const handleCreateGroup = async () => {
         if (!newGroupName.trim() || !newParticipants.length) {
             antdMessage.warning("Group name and participants are required.");
             return;
         }
 
-        const formData = new FormData();
-        formData.append("name", newGroupName);
-        formData.append("description", newGroupDescription);
-        formData.append("participants", JSON.stringify(newParticipants));
-        if (newGroupAvatar) {
-            formData.append("avatar", newGroupAvatar);
-        }
-
         try {
-            await axios.post("/api/GroupChats/Create", formData);
+            // Генерация группового ключа
+            const groupKey = generateGroupKey();
+
+            // Шифрование ключей участников
+            const allParticipants = [...newParticipants, currentUserId]; // Добавляем админа в список участников
+            const encryptedKeys = await prepareEncryptedKeysForGroup(groupKey, allParticipants);
+
+            // Формирование DTO
+            const groupDto = {
+                name: newGroupName,
+                description: newGroupDescription || "",
+                adminId: currentUserId,
+                participants: allParticipants.map((participantId) => ({
+                    userId: participantId,
+                    encryptedGroupKey: encryptedKeys[participantId],
+                })),
+            };
+
+            // Отправка DTO на сервер
+            const response = await fetch("/api/Group/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(groupDto),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Failed to create group: ${errorText}`);
+            }
+
             antdMessage.success("Group created successfully!");
+
+            // Очистка состояния
             setNewGroupModalVisible(false);
             setNewGroupName("");
             setNewGroupDescription("");
             setNewParticipants([]);
-            setNewGroupAvatar(null);
         } catch (error) {
+            console.error("Error creating group:", error);
             antdMessage.error("Failed to create group.");
         }
     };
+
+
+
 
     const handleGroupAvatarChange = (file) => {
         setNewGroupAvatar(file);

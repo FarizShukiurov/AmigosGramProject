@@ -205,6 +205,9 @@ export default defineConfig({
             '^/api/Contacts/GetProfile': {
                 target,
                 secure: false,
+            },'^/api/Group/create': {
+                target,
+                secure: false,
             },
         },
         port: 5173,

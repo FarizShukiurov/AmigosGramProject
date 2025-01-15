@@ -53,5 +53,33 @@ namespace AmigosGramProject.Server.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { groupId = group.Id });
         }
+
+
+        [HttpGet("user/{userId}/groups")]
+        public async Task<IActionResult> GetUserGroups(string userId)
+        {
+            // Находим группы, где пользователь является участником
+            var userGroups = await _context.GroupMembers
+                .Where(member => member.UserId == userId)
+                .Select(member => new
+                {
+                    GroupId = member.GroupId,
+                    GroupName = member.Group.Name,
+                    Description = member.Group.Description,
+                    AdminId = member.Group.AdminId,
+                    CreatedDate = member.Group.CreatedDate,
+                    ParticipantsCount = _context.GroupMembers.Count(m => m.GroupId == member.GroupId) // Количество участников
+                })
+                .Distinct()
+                .ToListAsync();
+
+            if (!userGroups.Any())
+            {
+                return NotFound("No groups found for this user.");
+            }
+
+            return Ok(userGroups);
+        }
+
     }
 }

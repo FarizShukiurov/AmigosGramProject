@@ -12,6 +12,7 @@ namespace AmigosGramProject.Server.Models
         public DbSet<Message> Messages { get; set; }
         public DbSet<Group> Groups { get; set; }
         public DbSet<GroupMember> GroupMembers { get; set; }
+        public DbSet<GroupMessage> GroupMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

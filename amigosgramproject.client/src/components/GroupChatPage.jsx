@@ -55,24 +55,35 @@ const GroupChatPage = () => {
     const [isRecording, setIsRecording] = useState(false);
     const [newParticipants, setNewParticipants] = useState([]);
     const messagesEndRef = useRef(null);
+    useEffect(() => {
+        console.log("Current groupChats state:", groupChats); // Логируйте состояние
+    }, [groupChats]);
 
     useEffect(() => {
 
-        const fetchContacts = async () => {
+        const fetchUserGroups = async () => {
+            if (!currentUserId) return;
+
             try {
-                const response = await fetch("/api/Contacts/GetContacts");
+                const response = await fetch(`/api/Group/GetUserGroups?userId=${currentUserId}`, {
+                    method: "GET",
+                    headers: { Accept: "application/json" },
+                });
+
                 if (!response.ok) {
-                    throw new Error("Failed to fetch contacts.");
+                    throw new Error("Failed to fetch user groups.");
                 }
-                const data = await response.json();
-                setContacts(data);
+
+                const groups = await response.json();
+                console.log("Fetched groups:", groups); // Логируйте данные
+                setGroupChats(groups); // Обновляем состояние
             } catch (error) {
-                console.error("Failed to load contacts:", error);
-                antdMessage.error("Failed to load contacts.");
+                console.error("Failed to load user groups:", error);
+                antdMessage.error("Failed to load user groups.");
             }
         };
-        fetchContacts();
-    }, []);
+        fetchUserGroups();
+    }, [currentUserId]);
 
     const fetchCurrentUserId = async () => {
         try {
@@ -260,14 +271,10 @@ const GroupChatPage = () => {
         }
 
         try {
-            // Генерация группового ключа
             const groupKey = generateGroupKey();
-
-            // Шифрование ключей участников
-            const allParticipants = [...newParticipants, currentUserId]; // Добавляем админа в список участников
+            const allParticipants = [...newParticipants, currentUserId];
             const encryptedKeys = await prepareEncryptedKeysForGroup(groupKey, allParticipants);
 
-            // Формирование DTO
             const groupDto = {
                 name: newGroupName,
                 description: newGroupDescription || "",
@@ -278,7 +285,6 @@ const GroupChatPage = () => {
                 })),
             };
 
-            // Отправка DTO на сервер
             const response = await fetch("/api/Group/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -290,9 +296,9 @@ const GroupChatPage = () => {
                 throw new Error(`Failed to create group: ${errorText}`);
             }
 
-            antdMessage.success("Group created successfully!");
+            const { groupId } = await response.json(); // Получаем идентификатор группы
+            antdMessage.success(`Group created successfully! ID: ${groupId}`);
 
-            // Очистка состояния
             setNewGroupModalVisible(false);
             setNewGroupName("");
             setNewGroupDescription("");
@@ -302,8 +308,6 @@ const GroupChatPage = () => {
             antdMessage.error("Failed to create group.");
         }
     };
-
-
 
 
     const handleGroupAvatarChange = (file) => {
@@ -423,23 +427,24 @@ const GroupChatPage = () => {
                 <List
                     itemLayout="horizontal"
                     dataSource={groupChats.filter((chat) =>
-                        chat.groupName.toLowerCase().includes(search.toLowerCase())
+                        chat.name?.toLowerCase().includes(search.toLowerCase())
                     )}
                     renderItem={(chat) => (
-                        <Dropdown overlay={renderGroupMenu(chat)} trigger={['contextMenu']}> 
-                        <List.Item
-                            onClick={() => setSelectedGroupChatId(chat.id)}  // Обновление активного чата
-                            className={`chat-item ${chat.id === selectedGroupChatId ? "active" : ""}`}
-                        >
-                            <List.Item.Meta
-                                avatar={<Avatar>{chat.groupName[0]}</Avatar>}  // Используйте первую букву группы как аватар
-                                title={chat.groupName}
-                                description={`${chat.participants} Participants`}
-                            />
-                        </List.Item>
+                        <Dropdown overlay={renderGroupMenu(chat)} trigger={["contextMenu"]}>
+                            <List.Item
+                                onClick={() => setSelectedGroupChatId(chat.id)}
+                                className={`chat-item ${chat.id === selectedGroupChatId ? "active" : ""}`}
+                            >
+                                <List.Item.Meta
+                                    avatar={<Avatar>{chat.name?.[0]}</Avatar>}
+                                    title={chat.name}
+                                    description={`${chat.participantsCount} Participants`}
+                                />
+                            </List.Item>
                         </Dropdown>
                     )}
                 />
+
             </Sider>
 
             <Layout>

@@ -2,6 +2,7 @@
 using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -25,6 +26,7 @@ namespace AmigosGramProject.Server.Controllers
                 return BadRequest("Group name and participants are required.");
             }
 
+            // Создаем объект группы
             var group = new Group
             {
                 Id = Guid.NewGuid(),
@@ -34,52 +36,52 @@ namespace AmigosGramProject.Server.Controllers
                 CreatedDate = DateTime.UtcNow
             };
 
-            _context.Groups.Add(group);
-
-            // Добавление участников
+            // Добавление участников в коллекцию группы
             foreach (var participant in dto.Participants)
             {
                 var member = new GroupMember
                 {
                     Id = Guid.NewGuid(),
                     GroupId = group.Id,
+                    GroupObj = group, // Связываем с группой
                     UserId = participant.UserId,
-                    EncryptedGroupKey = participant.EncryptedGroupKey, 
+                    EncryptedGroupKey = participant.EncryptedGroupKey,
                     JoinedAt = DateTime.UtcNow
                 };
-                _context.GroupMembers.Add(member);
+                group.Members.Add(member); // Добавляем в коллекцию группы
             }
 
+            // Сохраняем группу и участников
+            _context.Groups.Add(group);
             await _context.SaveChangesAsync();
+
             return Ok(new { groupId = group.Id });
         }
 
 
-        [HttpGet("user/{userId}/groups")]
+        [HttpGet("GetUserGroups")]
         public async Task<IActionResult> GetUserGroups(string userId)
         {
-            // Находим группы, где пользователь является участником
-            var userGroups = await _context.GroupMembers
-                .Where(member => member.UserId == userId)
-                .Select(member => new
-                {
-                    GroupId = member.GroupId,
-                    GroupName = member.Group.Name,
-                    Description = member.Group.Description,
-                    AdminId = member.Group.AdminId,
-                    CreatedDate = member.Group.CreatedDate,
-                    ParticipantsCount = _context.GroupMembers.Count(m => m.GroupId == member.GroupId) // Количество участников
-                })
-                .Distinct()
-                .ToListAsync();
-
-            if (!userGroups.Any())
+            if (string.IsNullOrEmpty(userId))
             {
-                return NotFound("No groups found for this user.");
+                return BadRequest("User ID is required.");
             }
 
-            return Ok(userGroups);
+            var groups = await _context.Groups
+                .Include(g => g.Members)
+                .Where(g => g.Members.Any(m => m.UserId == userId))
+                .Select(g => new
+                {
+                    g.Id,
+                    g.Name,
+                    g.Description,
+                    ParticipantsCount = g.Members.Count
+                })
+                .ToListAsync();
+
+            return Ok(groups);
         }
+
 
     }
 }

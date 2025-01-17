@@ -60,7 +60,20 @@ const GroupChatPage = () => {
     }, [groupChats]);
 
     useEffect(() => {
-
+        const fetchContacts = async () => {
+            try {
+                const response = await fetch("/api/Contacts/GetContacts");
+                if (!response.ok) {
+                    throw new Error("Failed to fetch contacts.");
+                }
+                const data = await response.json();
+                setContacts(data);
+            } catch (error) {
+                console.error("Failed to load contacts:", error);
+                antdMessage.error("Failed to load contacts.");
+            }
+        };
+        fetchContacts();
         const fetchUserGroups = async () => {
             if (!currentUserId) return;
 
@@ -138,8 +151,9 @@ const GroupChatPage = () => {
     // Добавьте эту функцию в ваш код
     const handleCloseNewGroupModal = () => {
         setNewGroupModalVisible(false);
-        setNewGroupName(""); // Сбросить имя новой группы
-        setNewParticipants([]); // Сбросить выбранных участников
+        setNewGroupName("");
+        setNewGroupDescription("");
+        setNewParticipants([]);
     };
     const handleImageModalOpen = () => {
         setIsImageModalVisible(true);
@@ -528,7 +542,7 @@ const GroupChatPage = () => {
             <Modal
                 title={<span className="custom-modal-title">Create Group Chat</span>}
                 visible={newGroupModalVisible}
-                onCancel={() => setNewGroupModalVisible(false)}
+                onCancel={() => handleCloseNewGroupModal()}
                 footer={null}
                 closable={false}
             >
@@ -567,7 +581,6 @@ const GroupChatPage = () => {
                         dataSource={contacts}
                         renderItem={(contact) => (
                             <List.Item
-                                onClick={() => toggleParticipant(contact.id)}
                                 className={newParticipants.includes(contact.id) ? "selected" : ""}
                             >
                                 <Checkbox

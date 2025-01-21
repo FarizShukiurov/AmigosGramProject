@@ -1,11 +1,15 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
 import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import "./Overlay.css";
 
 function Overlay({ children }) {
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Определяем, открыты ли настройки (проверяем текущий путь)
+    const isSettings = location.pathname.includes("settings");
 
     // Закрытие модального окна по нажатию Escape
     useEffect(() => {
@@ -21,11 +25,19 @@ function Overlay({ children }) {
         };
     }, [navigate]);
 
+    // Закрытие окна через крестик
+    const handleClose = () => {
+        navigate(-1); // Вернуться на предыдущую страницу
+    };
+
     return (
-        <div className="overlay-container">
-            <div className="overlay-content">
-                {children}
-            </div>
+        <div
+            className={`overlay-container ${isSettings ? "settings-background" : ""}`}
+        >
+            <button className="overlay-close" onClick={handleClose}>
+                &times; {/* Символ крестика */}
+            </button>
+            <div className="overlay-content">{children}</div>
         </div>
     );
 }

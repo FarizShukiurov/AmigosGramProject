@@ -68,6 +68,7 @@ const GroupChatPage = () => {
                 }
                 const data = await response.json();
                 setContacts(data);
+                console.log(data);
             } catch (error) {
                 console.error("Failed to load contacts:", error);
                 antdMessage.error("Failed to load contacts.");
@@ -329,12 +330,7 @@ const GroupChatPage = () => {
     };
 
     // Добавление участника
-    const handleAddParticipant = (contactId) => {
-        setGroupSettings((prev) => ({
-            ...prev,
-            participants: [...prev.participants, contactId],
-        }));
-    };
+
 
     const handleImageChange = (info) => {
         if (info.file.status === "done") {
@@ -391,9 +387,12 @@ const GroupChatPage = () => {
         setAddParticipantsModalVisible(false);
     };
     const handleAddParticipants = () => {
+        const updatedParticipants = [
+            ...new Set([...groupSettings.participants, ...newParticipants]), // Убираем дубликаты
+        ];
         setGroupSettings((prevSettings) => ({
             ...prevSettings,
-            participants: [...prevSettings.participants, ...newParticipants],
+            participants: updatedParticipants,
         }));
         setAddParticipantsModalVisible(false);
         antdMessage.success("Participants added successfully!");
@@ -611,11 +610,11 @@ const GroupChatPage = () => {
                 visible={groupSettingsModalVisible}
                 onCancel={() => setGroupSettingsModalVisible(false)}
                 footer={null}
-                closable={false}
+                closable={true}
             >
                 <div className="group-avatar-settings">
-                    <Avatar size={50} src={groupSettings.avatarUrl}>
-                        {groupSettings.groupName[0]}
+                    <Avatar size={50} src={groupSettings?.avatarUrl || null}>
+                        {groupSettings?.groupName?.[0] || "?"}
                     </Avatar>
                     <Button
                         icon={<EditOutlined />}
@@ -633,28 +632,33 @@ const GroupChatPage = () => {
 
                 <Input
                     placeholder="Group Name"
-                    value={groupSettings.groupName}
+                    value={groupSettings?.groupName || ""}
                     onChange={(e) =>
                         setGroupSettings((prev) => ({ ...prev, groupName: e.target.value }))
                     }
                 />
+
+                <Input.TextArea
+                    placeholder="Group Description"
+                    value={groupSettings?.description || ""}
+                    onChange={(e) =>
+                        setGroupSettings((prev) => ({ ...prev, description: e.target.value }))
+                    }
+                    rows={3}
+                    style={{ marginTop: "10px" }}
+                />
+
                 <List
-                    dataSource={contacts}
+                    dataSource={contacts || []}
                     renderItem={(contact) => (
-                        <List.Item
-                            key={contact.id || contact.name} // Убедитесь, что используете уникальный key
-                            onClick={() =>
-                                setNewParticipants((prev) =>
-                                    prev.includes(contact.id)
-                                        ? prev.filter((id) => id !== contact.id)
-                                        : [...prev, contact.id]
-                                )
-                            }
-                            className={newParticipants.includes(contact.id) ? "selected" : ""}
-                        >
+                        <List.Item>
+                            <Checkbox
+                                checked={newParticipants.includes(contact.id)}
+                                onChange={() => toggleParticipant(contact.id)}
+                            />
                             <List.Item.Meta
-                                avatar={<Avatar>{contact.name[0]}</Avatar>}
-                                title={contact.name}
+                                avatar={<Avatar>{contact?.userName?.[0] || contact?.email?.[0] || "?"}</Avatar>}
+                                title={contact?.userName || contact?.email || "Unknown"}
                             />
                         </List.Item>
                     )}
@@ -675,6 +679,8 @@ const GroupChatPage = () => {
                     Save Changes
                 </Button>
             </Modal>
+
+
             {/* Модальное окно для изображений */}
             <Modal
                 title={<span className="custom-modal-title">Select Image</span>}
@@ -715,36 +721,37 @@ const GroupChatPage = () => {
                 visible={addParticipantsModalVisible}
                 onCancel={handleAddParticipantsModalClose}
                 footer={null}
-                closable={false} // Убираем крестик
+                closable={false}
             >
                 <List
-                    dataSource={contacts}
+                    dataSource={contacts || []}
                     renderItem={(contact) => (
-                        <List.Item
-                            onClick={() =>
-                                setNewParticipants((prev) =>
-                                    prev.includes(contact.id)
-                                        ? prev.filter((id) => id !== contact.id)
-                                        : [...prev, contact.id]
-                                )
-                            }
-                            className={newParticipants.includes(contact.id) ? "selected" : ""}
-                        >
+                        <List.Item className="participant-item">
+                            <Checkbox
+                                checked={newParticipants.includes(contact.id)}
+                                onChange={() => toggleParticipant(contact.id)}
+                                className="participant-checkbox" // Класс для чекбокса
+                            />
                             <List.Item.Meta
-                                avatar={<Avatar>{contact.name[0]}</Avatar>}
-                                title={contact.name}
+                                avatar={<Avatar>{contact?.userName?.[0] || contact?.email?.[0] || "?"}</Avatar>}
+                                title={contact?.userName || contact?.email || "Unknown"}
                             />
                         </List.Item>
+
                     )}
                 />
+
+
                 <Button
                     type="primary"
-                    onClick={handleAddParticipants}  // Функция для добавления участников
+                    onClick={handleAddParticipants}
                     style={{ marginTop: "10px" }}
                 >
                     Add Participants
                 </Button>
             </Modal>
+
+
 
         </Layout>
     );

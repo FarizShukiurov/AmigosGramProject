@@ -247,3 +247,6 @@
 .add-participants-button {
     margin-left: 10px;
 }
+.participant-checkbox {
+    margin-right: 10px; /* Отступ между чекбоксом и текстом */
+}

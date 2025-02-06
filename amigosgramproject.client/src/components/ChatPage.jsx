@@ -21,9 +21,10 @@ import {
     PictureOutlined,
     AudioOutlined,
     SearchOutlined,
+    CameraOutlined, // Добавляем иконку для камеры
 } from "@ant-design/icons";
 import format from "date-fns/format";
-import Picker from "emoji-picker-react"
+import Picker from "emoji-picker-react";
 import "./ChatPage.css";
 
 const { Sider, Content } = Layout;
@@ -44,10 +45,10 @@ function ChatPage() {
     const [isRecording, setIsRecording] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState(null);
     const audioChunks = useRef([]);
-    const timerRef = useRef(null); // Счетчик времени запис
+    const timerRef = useRef(null); // Счетчик времени записи
     const [recordingTime, setRecordingTime] = useState(0);
     const messagesEndRef = useRef(null);
-    const [previousChatId, setPreviousChatId] = useState(null); 
+    const [previousChatId, setPreviousChatId] = useState(null);
     ///
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -59,6 +60,14 @@ function ChatPage() {
     const [fileModalKey, setFileModalKey] = useState(0);
 
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
+
+    // ★★★ Новые состояния для работы с камерой ★★★
+    const [isCameraModalVisible, setIsCameraModalVisible] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const videoRef = useRef(null);
+    const [isVideoRecording, setIsVideoRecording] = useState(false);
+    const videoRecorderRef = useRef(null);
+    const videoChunks = useRef([]);
 
     const handleEmojiClick = (emojiObject) => {
         if (emojiObject?.emoji) {
@@ -102,8 +111,6 @@ function ChatPage() {
         switchGroup();
     }, [hubConnection, selectedChatId, currentUserId]);
 
-
-
     const handleContextMenu = (event, message) => {
         if (message.senderId !== currentUserId) return; // Только для своих сообщений
         event.preventDefault(); // Отключить стандартное меню браузера
@@ -113,7 +120,6 @@ function ChatPage() {
         setMenuPosition({ x: event.clientX - OFFSET_X, y: event.clientY });
         setContextMenuVisible(true);
     };
-
 
     const handleCloseContextMenu = () => {
         setContextMenuVisible(false);
@@ -198,7 +204,6 @@ function ChatPage() {
         }
     };
 
-
     const handleDeleteMessage = async (message) => {
         try {
             console.log("Message object:", message);
@@ -220,7 +225,6 @@ function ChatPage() {
                 ? await decryptMessage(message.audioUrlForSender)
                 : null;
             console.log(decryptedAudioUrl ? "Decrypted Audio URL:" : "No Audio URL to decrypt.", decryptedAudioUrl);
-
 
             // Формируем DTO с расшифрованными ссылками
             const payload = {
@@ -249,7 +253,6 @@ function ChatPage() {
             antdMessage.error("Ошибка при удалении сообщения.");
         }
     };
-
 
     useEffect(() => {
         if (!hubConnection || !currentUserId) return;
@@ -281,7 +284,6 @@ function ChatPage() {
 
     ///
 
-
     // Scroll to the bottom of the message list whenever messages update
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
@@ -298,7 +300,7 @@ function ChatPage() {
             .withUrl("https://localhost:7015/chat")
             .build();
 
-        newConnection.on("UpdateLastMessage",async (chatId, lastMessage) => {
+        newConnection.on("UpdateLastMessage", async (chatId, lastMessage) => {
             try {
                 const currentUserPrivateKey = localStorage.getItem("privateKey");
                 if (!currentUserPrivateKey) {
@@ -495,7 +497,6 @@ function ChatPage() {
             }
         });
 
-
         newConnection
             .start()
             .then(() => {
@@ -510,7 +511,6 @@ function ChatPage() {
             }
         };
     }, [currentUserId]);
-
 
     useEffect(() => {
         fetchCurrentUserId();
@@ -547,21 +547,16 @@ function ChatPage() {
                                     ? lastMessage.encryptedForSender
                                     : lastMessage.encryptedForReceiver;
                             var decryptedContent;
-                            console.log(lastMessage.mediaUrlsForReceiver)
+                            console.log(lastMessage.mediaUrlsForReceiver);
                             if (encryptedContent != null) {
                                 decryptedContent = await decryptMessage(encryptedContent);
+                            } else if (lastMessage.audioUrlForReceiver != null) {
+                                decryptedContent = "Audio";
+                            } else if (lastMessage.mediaUrlsForReceiver != null && lastMessage.mediaUrlsForReceiver.length > 0) {
+                                decryptedContent = "Media";
+                            } else if (lastMessage.fileUrlsForReceiver != null && lastMessage.fileUrlsForReceiver.length > 0) {
+                                decryptedContent = "File";
                             }
-                            else if (lastMessage.audioUrlForReceiver != null) {
-                                decryptedContent = "Audio"
-                            }
-                            else if (lastMessage.mediaUrlsForReceiver != null && lastMessage.mediaUrlsForReceiver.length > 0) {
-                                decryptedContent = "Media"
-                            }
-                            else if (lastMessage.fileUrlsForReceiver != null && lastMessage.fileUrlsForReceiver.length > 0) {
-                                decryptedContent = "File"
-                            }
-
-
 
                             setLastMessages((prev) => ({
                                 ...prev,
@@ -685,9 +680,6 @@ function ChatPage() {
         }
     };
 
-
-
-
     const fetchCurrentUserId = async () => {
         try {
             const response = await fetch("/Account/GetCurrentUserId", {
@@ -722,8 +714,6 @@ function ChatPage() {
         }
     };
 
-
-
     const handleImageChange = (info) => {
         if (info.file.status === "done") {
             const uploadedUrl = info.file.response.url; // Предполагается, что сервер возвращает URL
@@ -731,7 +721,6 @@ function ChatPage() {
             console.log("Image uploaded:", uploadedUrl);
         }
     };
-
 
     const handleImageRemove = async (file) => {
         try {
@@ -761,7 +750,6 @@ function ChatPage() {
             console.log("File uploaded:", uploadedUrl);
         }
     };
-
 
     const handleFileRemove = async (file) => {
         try {
@@ -986,9 +974,6 @@ function ChatPage() {
         }
     };
 
-
-
-
     const sendAudioMessage = async (audioBlob) => {
         const formData = new FormData();
 
@@ -1051,7 +1036,6 @@ function ChatPage() {
         }
     };
 
-
     const startRecording = async () => {
         try {
             // Запрос на доступ к микрофону
@@ -1087,13 +1071,117 @@ function ChatPage() {
         }
     };
 
-
     const stopRecording = () => {
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
         }
         setIsRecording(false);
         clearInterval(timerRef.current);
+    };
+
+    // ★★★ Функции для работы с камерой ★★★
+
+    const openCameraModal = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            setCameraStream(stream);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setIsCameraModalVisible(true);
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+        }
+    };
+
+    const closeCameraModal = () => {
+        setIsCameraModalVisible(false);
+        if (cameraStream) {
+            cameraStream.getTracks().forEach((track) => track.stop());
+            setCameraStream(null);
+        }
+    };
+
+    const capturePhoto = () => {
+        if (!videoRef.current) return;
+        const video = videoRef.current;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+            if (blob) {
+                await sendCapturedImage(blob);
+                closeCameraModal();
+            }
+        }, "image/jpeg");
+    };
+
+    const startVideoRecording = () => {
+        if (!cameraStream) return;
+        videoChunks.current = [];
+        const recorder = new MediaRecorder(cameraStream, { mimeType: "video/webm" });
+        videoRecorderRef.current = recorder;
+        recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                videoChunks.current.push(event.data);
+            }
+        };
+        recorder.onstop = async () => {
+            const videoBlob = new Blob(videoChunks.current, { type: "video/webm" });
+            await sendCapturedVideo(videoBlob);
+            closeCameraModal();
+        };
+        recorder.start();
+        setIsVideoRecording(true);
+    };
+
+    const stopVideoRecording = () => {
+        if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
+            videoRecorderRef.current.stop();
+            setIsVideoRecording(false);
+        }
+    };
+
+    const sendCapturedImage = async (imageBlob) => {
+        try {
+            const formData = new FormData();
+            formData.append("imageFile", imageBlob, "photo.jpg");
+            const uploadResponse = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!uploadResponse.ok) {
+                console.error("Image upload failed:", uploadResponse.status);
+                return;
+            }
+            const { url: imageUrl } = await uploadResponse.json();
+            console.log("Captured image uploaded. URL:", imageUrl);
+            // Здесь можно создать сообщение с изображением, если необходимо.
+        } catch (error) {
+            console.error("Error sending captured image:", error);
+        }
+    };
+
+    const sendCapturedVideo = async (videoBlob) => {
+        try {
+            const formData = new FormData();
+            formData.append("videoFile", videoBlob, "video.webm");
+            const uploadResponse = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!uploadResponse.ok) {
+                console.error("Video upload failed:", uploadResponse.status);
+                return;
+            }
+            const { url: videoUrl } = await uploadResponse.json();
+            console.log("Captured video uploaded. URL:", videoUrl);
+            // Здесь можно создать сообщение с видео, если необходимо.
+        } catch (error) {
+            console.error("Error sending captured video:", error);
+        }
     };
 
     const renderMessage = (msg) => {
@@ -1230,11 +1318,9 @@ function ChatPage() {
                         </div>
                     </div>
                 )}
-
             </div>
         );
     };
-
 
     const renderMessagesOrPlaceholder = () => {
         if (!messages || messages.length === 0) {
@@ -1274,14 +1360,12 @@ function ChatPage() {
         return renderMessagesOrPlaceholder();
     };
 
-
     const handleImageModalOpen = () => setIsImageModalVisible(true);
     const handleFileModalOpen = () => setIsFileModalVisible(true);
     const handleModalClose = () => {
         setIsImageModalVisible(false);
         setIsFileModalVisible(false);
     };
-
 
     return (
         <Layout className="chat-page">
@@ -1355,7 +1439,6 @@ function ChatPage() {
                                             type={isRecording ? "danger" : "default"}
                                         />
                                     </Tooltip>
-
                                     {isRecording && (
                                         <div className="recording-indicator">
                                             <span>Recording: {recordingTime}s</span>
@@ -1364,6 +1447,9 @@ function ChatPage() {
                                             </Button>
                                         </div>
                                     )}
+                                    <Tooltip title="Open Camera">
+                                        <Button icon={<CameraOutlined />} shape="circle" onClick={openCameraModal} />
+                                    </Tooltip>
                                     <Button
                                         icon={<SmileOutlined />}
                                         onClick={() => setIsEmojiPickerVisible(!isEmojiPickerVisible)}
@@ -1376,7 +1462,7 @@ function ChatPage() {
                 </Content>
             </Layout>
 
-            {/* Модальные окна */}
+            {/* Модальное окно для Image Upload */}
             <Modal
                 title={<span className="custom-modal-title">Select Image</span>}
                 visible={isImageModalVisible}
@@ -1395,6 +1481,7 @@ function ChatPage() {
                 </Upload>
             </Modal>
 
+            {/* Модальное окно для File Upload */}
             <Modal
                 title={<span className="custom-modal-title">Select File</span>}
                 visible={isFileModalVisible}
@@ -1412,10 +1499,35 @@ function ChatPage() {
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
+
+            {/* ★★★ Новое модальное окно для камеры ★★★ */}
+            <Modal
+                title={<span className="custom-modal-title">Camera</span>}
+                visible={isCameraModalVisible}
+                onCancel={closeCameraModal}
+                closable={true}
+                footer={null}
+            >
+                <div className="camera-container" style={{ textAlign: "center" }}>
+                    <video ref={videoRef} autoPlay playsInline style={{ width: "100%", maxHeight: "400px" }} />
+                    <div style={{ marginTop: "16px" }}>
+                        <Button onClick={capturePhoto} style={{ marginRight: "8px" }}>
+                            Take Photo
+                        </Button>
+                        {isVideoRecording ? (
+                            <Button onClick={stopVideoRecording} type="primary" danger>
+                                Stop Recording
+                            </Button>
+                        ) : (
+                            <Button onClick={startVideoRecording} type="primary">
+                                Record Video
+                            </Button>
+                        )}
+                    </div>
+                </div>
+            </Modal>
         </Layout>
-
     );
-
 }
 
 export default ChatPage;

@@ -1,4 +1,4 @@
-    using AmigosGramProject.Server.Models;
+using AmigosGramProject.Server.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Azure.Storage.Blobs;
@@ -23,6 +23,7 @@ namespace AmigosGramProject.Server
             // Настройка CORS
             builder.Services.AddCors(options =>
             {
+
                 options.AddDefaultPolicy(policy =>
                 {
                     policy.WithOrigins("https://localhost:5173")

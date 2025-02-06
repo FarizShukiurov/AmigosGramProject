@@ -31,6 +31,7 @@ import { Checkbox } from "antd";
 const { Sider, Content } = Layout;
 
 const GroupChatPage = () => {
+    const [groupParticipants, setGroupParticipants] = useState([]);
     const [groupChats, setGroupChats] = useState([]);
     const [selectedGroupChatId, setSelectedGroupChatId] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -58,6 +59,11 @@ const GroupChatPage = () => {
     useEffect(() => {
         console.log("Current groupChats state:", groupChats); // Логируйте состояние
     }, [groupChats]);
+    useEffect(() => {
+        fetchGroupParticipants(selectedGroupChatId).then((participants) => {
+            setGroupParticipants(participants);
+        });
+    }, [selectedGroupChatId]);
 
     useEffect(() => {
         const fetchContacts = async () => {
@@ -247,37 +253,47 @@ const GroupChatPage = () => {
 
     // шифровка груп ключа для юсера
     const encryptGroupKeyForUser = async (groupKey, userPublicKey) => {
+        if (!(groupKey instanceof ArrayBuffer)) {
+            console.error("Ошибка: Group key должен быть ArrayBuffer!", groupKey);
+            throw new Error("Group key must be an ArrayBuffer");
+        }
+
         const encryptedKey = await window.crypto.subtle.encrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            userPublicKey, // Публичный ключ участника
-            groupKey // Симметричный групповой ключ
+            { name: "RSA-OAEP" },
+            userPublicKey,
+            groupKey
         );
-        return arrayBufferToBase64(encryptedKey); // Возвращаем зашифрованный ключ в Base64
+
+        return arrayBufferToBase64(encryptedKey);
     };
+
 
     // Генерация 256-битного симметричного ключа для группы
     const generateGroupKey = () => {
-        const key = window.crypto.getRandomValues(new Uint8Array(32));
-        return key; // Uint8Array
+        const key = window.crypto.getRandomValues(new Uint8Array(32)); // 256 бит
+        return key.buffer; // Преобразуем в ArrayBuffer
     };
+
     //подготовка списка зашифрованнх ключей для участников 
     const prepareEncryptedKeysForGroup = async (groupKey, participants) => {
         const encryptedKeys = {};
 
         for (const participantId of participants) {
-            // Получаем публичный ключ участника с сервера
             const userPublicKey = await fetchUserPublicKey(participantId);
 
-            // Шифруем групповой ключ для участника
-            const encryptedKey = await encryptGroupKeyForUser(groupKey, userPublicKey);
+            console.log(`Шифруем ключ для ${participantId}...`);
+            console.log("Тип ключа перед шифрованием:", groupKey.constructor.name);
 
-            encryptedKeys[participantId] = encryptedKey; // Сохраняем зашифрованный ключ
+            // Если передан Uint8Array, конвертируем в ArrayBuffer
+            const keyToEncrypt = groupKey instanceof ArrayBuffer ? groupKey : groupKey.buffer;
+
+            const encryptedKey = await encryptGroupKeyForUser(keyToEncrypt, userPublicKey);
+            encryptedKeys[participantId] = encryptedKey;
         }
 
-        return encryptedKeys; // Возвращаем объект { userId: encryptedKey }
+        return encryptedKeys;
     };
+
 
     const handleCreateGroup = async () => {
         if (!newGroupName.trim() || !newParticipants.length) {
@@ -386,17 +402,50 @@ const GroupChatPage = () => {
     const handleAddParticipantsModalClose = () => {
         setAddParticipantsModalVisible(false);
     };
-    const handleAddParticipants = () => {
-        const updatedParticipants = [
-            ...new Set([...groupSettings.participants, ...newParticipants]), // Убираем дубликаты
-        ];
-        setGroupSettings((prevSettings) => ({
-            ...prevSettings,
-            participants: updatedParticipants,
-        }));
-        setAddParticipantsModalVisible(false);
-        antdMessage.success("Participants added successfully!");
+    const handleAddParticipants = async () => {
+        if (!newParticipants.length) {
+            antdMessage.warning("No new participants selected.");
+            return;
+        }
+
+        try {
+            // Получаем текущий общий ключ группы (он должен быть загружен при открытии группы)
+            const groupKey = groupSettings.encryptionKey;
+
+            // Шифруем групповой ключ для новых участников
+            const encryptedKeys = await prepareEncryptedKeysForGroup(groupKey, newParticipants);
+
+            // Формируем объект запроса
+            const requestBody = {
+                groupId: selectedGroupChatId,
+                participants: newParticipants.map((participantId) => ({
+                    userId: participantId,
+                    encryptedGroupKey: encryptedKeys[participantId],
+                })),
+            };
+
+            // Отправляем на сервер
+            const response = await fetch("/api/Group/AddParticipants", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(requestBody),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to add participants: ${await response.text()}`);
+            }
+
+            // Обновляем локальное состояние участников
+            setGroupParticipants((prev) => [...prev, ...newParticipants.map((id) => ({ userId: id }))]);
+
+            setAddParticipantsModalVisible(false);
+            antdMessage.success("Participants added successfully!");
+        } catch (error) {
+            console.error("Error adding participants:", error);
+            antdMessage.error("Failed to add participants.");
+        }
     };
+
 
     const renderGroupMenu = (group) => (
         <Menu>
@@ -413,6 +462,19 @@ const GroupChatPage = () => {
                 : [...prev, contactId]
         );
     };
+    const fetchGroupParticipants = async (groupId) => {
+        try {
+            const response = await fetch(`/api/Group/GetGroupMembers/${groupId}`);
+            if (!response.ok) {
+                throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
 
     return (
         <Layout className="group-chat-page">
@@ -716,6 +778,7 @@ const GroupChatPage = () => {
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
+
             <Modal
                 title={<span className="custom-modal-title">Add Participants</span>}
                 visible={addParticipantsModalVisible}
@@ -724,23 +787,23 @@ const GroupChatPage = () => {
                 closable={false}
             >
                 <List
-                    dataSource={contacts || []}
+                    dataSource={(contacts || []).filter(
+                        (contact) => !(groupParticipants || []).some((participant) => participant.userId === contact.id)
+                    )}
                     renderItem={(contact) => (
                         <List.Item className="participant-item">
                             <Checkbox
                                 checked={newParticipants.includes(contact.id)}
                                 onChange={() => toggleParticipant(contact.id)}
-                                className="participant-checkbox" // Класс для чекбокса
+                                className="participant-checkbox"
                             />
                             <List.Item.Meta
                                 avatar={<Avatar>{contact?.userName?.[0] || contact?.email?.[0] || "?"}</Avatar>}
                                 title={contact?.userName || contact?.email || "Unknown"}
                             />
                         </List.Item>
-
                     )}
                 />
-
 
                 <Button
                     type="primary"
@@ -750,6 +813,7 @@ const GroupChatPage = () => {
                     Add Participants
                 </Button>
             </Modal>
+
 
 
 

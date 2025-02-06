@@ -82,6 +82,56 @@ namespace AmigosGramProject.Server.Controllers
             return Ok(groups);
         }
 
+        [HttpGet("GetGroupMembers/{groupId}")]
+        public async Task<IActionResult> GetGroupMembers(Guid groupId)
+        {
+            // Проверяем, существует ли группа с данным ID
+            var group = await _context.Groups
+                .Include(g => g.Members)
+                .FirstOrDefaultAsync(g => g.Id == groupId);
+
+            if (group == null)
+            {
+                return NotFound("Group not found.");
+            }
+
+            // Формируем список участников группы
+            var members = group.Members.Select(m => new
+            {
+                m.UserId,
+                m.JoinedAt,
+                m.EncryptedGroupKey
+            }).ToList();
+
+            return Ok(members);
+        }
+
+        [HttpPost("AddParticipants")]
+        public async Task<IActionResult> AddParticipants([FromBody] AddParticipantsRequest request)
+        {
+            var group = await _context.Groups.Include(g => g.Members).FirstOrDefaultAsync(g => g.Id == request.GroupId);
+            if (group == null)
+            {
+                return NotFound("Group not found.");
+            }
+
+            foreach (var participant in request.Participants)
+            {
+                if (!group.Members.Any(p => p.UserId == participant.UserId))
+                {
+                    group.Members.Add(new GroupMember
+                    {
+                        GroupId = request.GroupId,
+                        UserId = participant.UserId,
+                        EncryptedGroupKey = participant.EncryptedGroupKey
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok("Participants added successfully.");
+        }
+
 
     }
 }

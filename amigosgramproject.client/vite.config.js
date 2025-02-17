@@ -217,6 +217,9 @@ export default defineConfig({
             },'/api/Group/AddParticipants': {
                 target,
                 secure: false,
+            },'/api/Group/GetGroupKey': {
+                target,
+                secure: false,
             },
         },
         port: 5173,

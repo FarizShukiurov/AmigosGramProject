@@ -109,6 +109,11 @@ namespace AmigosGramProject.Server.Controllers
         [HttpPost("AddParticipants")]
         public async Task<IActionResult> AddParticipants([FromBody] AddParticipantsRequest request)
         {
+            if (request == null || request.Participants == null || !request.Participants.Any())
+            {
+                return BadRequest("Invalid request data.");
+            }
+
             // Находим группу по request.GroupId
             var group = await _context.Groups
                 .Include(g => g.Members)
@@ -119,22 +124,21 @@ namespace AmigosGramProject.Server.Controllers
                 return NotFound("Group not found.");
             }
 
-            // Обрабатываем каждого участника из запроса
+            // Обрабатываем каждого участника из запроса: добавляем только если его ещё нет в группе
             foreach (var participant in request.Participants)
             {
-                // Если участник уже присутствует, пропускаем
                 if (!group.Members.Any(m => m.UserId == participant.UserId))
                 {
                     var member = new GroupMember
                     {
                         Id = Guid.NewGuid(),
                         GroupId = group.Id,
-                        GroupObj = group,
+                        GroupObj = group, 
                         UserId = participant.UserId,
                         EncryptedGroupKey = participant.EncryptedGroupKey,
                         JoinedAt = DateTime.UtcNow
                     };
-                    group.Members.Add(member);
+                    _context.GroupMembers.Add(member);
                 }
             }
 
@@ -143,34 +147,25 @@ namespace AmigosGramProject.Server.Controllers
             return Ok("Participants added successfully.");
         }
 
-        // Пример метода генерации нового группового ключа (можно использовать более надёжный алгоритм)
-        private string GenerateNewGroupKey()
+
+
+        [HttpGet("GetGroupKey/{groupId}/{userId}")]
+        public async Task<IActionResult> GetGroupKey(Guid groupId, string userId)
         {
-            return Guid.NewGuid().ToString("N");
+            // Находим запись участника в группе по groupId и userId
+            var member = await _context.GroupMembers
+                .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId);
+
+            if (member == null)
+            {
+                return NotFound("Group member not found.");
+            }
+
+            // Возвращаем зашифрованный групповой ключ участника
+            return Ok(new {member.EncryptedGroupKey });
         }
 
-        // Метод для получения публичного ключа пользователя (предполагается, что такая информация хранится в таблице Users)
-        private async Task<string> GetUserPublicKeyAsync(string userId)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null || string.IsNullOrEmpty(user.PublicKey))
-            {
-                throw new Exception($"Public key not found for user {userId}");
-            }
-            return user.PublicKey;
-        }
 
-        // Метод для шифрования группового ключа с использованием публичного ключа (RSA-OAEP с SHA-256)
-        private string EncryptGroupKey(string groupKey, string publicKeyBase64)
-        {
-            var publicKeyBuffer = Convert.FromBase64String(publicKeyBase64);
-            using (var rsa = new System.Security.Cryptography.RSACryptoServiceProvider())
-            {
-                rsa.ImportSubjectPublicKeyInfo(publicKeyBuffer, out _);
-                var groupKeyBytes = System.Text.Encoding.UTF8.GetBytes(groupKey);
-                var encryptedBytes = rsa.Encrypt(groupKeyBytes, System.Security.Cryptography.RSAEncryptionPadding.OaepSHA256);
-                return Convert.ToBase64String(encryptedBytes);
-            }
-        }
+
     }
 }

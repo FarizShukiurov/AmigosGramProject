@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+﻿import { useState, useEffect, useRef } from "react";
 import {
     Layout,
     Input,
@@ -58,7 +58,7 @@ const GroupChatPage = () => {
     const [newParticipants, setNewParticipants] = useState([]);
     const messagesEndRef = useRef(null);
 
-    // ����������� ��� �������
+    // Логирование для отладки
     useEffect(() => {
         console.log("GroupChats:", groupChats);
     }, [groupChats]);
@@ -193,7 +193,7 @@ const GroupChatPage = () => {
         antdMessage.success("Group deleted successfully!");
     };
 
-    // ������� ��� ��������� ���������� ����� ������������
+    // Функция для получения публичного ключа пользователя
     const fetchUserPublicKey = async (userId) => {
         try {
             const response = await fetch(`/api/Keys/getPublicKey/${userId}`);
@@ -218,16 +218,26 @@ const GroupChatPage = () => {
             throw error;
         }
     };
+    function ensureBase64Padding(base64) {
+        // Убираем пробелы, если они есть
+        base64 = base64.replace(/\s+/g, "");
+        // Добавляем "=" до кратности 4
+        while (base64.length % 4 !== 0) {
+            base64 += "=";
+        }
+        return base64;
+    }
 
-    const base64ToArrayBuffer = (base64) => {
-        const binaryString = atob(base64);
+    function base64ToArrayBuffer(base64) {
+        const padded = ensureBase64Padding(base64);
+        const binaryString = atob(padded);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
             bytes[i] = binaryString.charCodeAt(i);
         }
         return bytes.buffer;
-    };
+    }
 
     const arrayBufferToBase64 = (buffer) => {
         let binary = "";
@@ -361,21 +371,69 @@ const GroupChatPage = () => {
     const handleAddParticipantsModalClose = () => {
         setAddParticipantsModalVisible(false);
     };
+    async function decryptGroupKey(encryptedGroupKey, privateKeyString) {
+        // Предполагается, что privateKeyString уже является чистой base64 строкой (без PEM‑заголовков)
+        const cleanedPrivateKey = ensureBase64Padding(privateKeyString);
+        const privateKeyBuffer = base64ToArrayBuffer(cleanedPrivateKey);
 
-    // ================== ���������� ���������� ==================
+        // Импортируем приватный ключ в формате PKCS#8
+        const privateKey = await window.crypto.subtle.importKey(
+            "pkcs8",
+            privateKeyBuffer,
+            {
+                name: "RSA-OAEP",
+                hash: "SHA-256",
+            },
+            true,
+            ["decrypt"]
+        );
+
+        // Конвертируем зашифрованный групповой ключ в ArrayBuffer
+        const encryptedKeyBuffer = base64ToArrayBuffer(encryptedGroupKey);
+
+        // Расшифровываем групповой ключ
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            { name: "RSA-OAEP" },
+            privateKey,
+            encryptedKeyBuffer
+        );
+
+        // Возвращаем расшифрованный ключ как ArrayBuffer (при необходимости можно преобразовать его в строку или другой формат)
+        return decryptedBuffer;
+    };
+    // ================== Добавление участников ==================
     const handleAddParticipants = async () => {
         if (!newParticipants.length) {
             antdMessage.warning("No new participants selected.");
             return;
         }
         try {
-            // ���������: ���� � groupSettings ��� encryptionKey, ���������� ����� ���� � ��������� ���
-            let groupKey = groupSettings.encryptionKey;
-            if (!groupKey) {
-                groupKey = generateGroupKey();
-                setGroupSettings((prev) => ({ ...prev, encryptionKey: groupKey }));
+            // Получаем приватный ключ из localStorage (он должен быть сохранён как чистая base64 строка)
+            const currentUserPrivateKeyString = localStorage.getItem("privateKey");
+            if (!currentUserPrivateKeyString) {
+                throw new Error("Private key not found in localStorage.");
             }
+
+            // Запрашиваем зашифрованный групповой ключ с сервера
+            const keyResponse = await fetch(`/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`);
+            if (!keyResponse.ok) {
+                throw new Error(`HTTP error! Status: ${keyResponse.status}`);
+            }
+            console.log("Key Response:", keyResponse);
+            const keyData = await keyResponse.json();
+            console.log("Key Data:", keyData);
+            const encryptedGroupKey = keyData.encryptedGroupKey;
+            console.log("Encrypted Group Key:", encryptedGroupKey);
+
+            // Расшифровываем групповой ключ с использованием приватного ключа
+            const groupKey = await decryptGroupKey(encryptedGroupKey, currentUserPrivateKeyString);
+            console.log("Decrypted Group Key (ArrayBuffer):", groupKey);
+
+            // Подготавливаем зашифрованные ключи для новых участников на основе расшифрованного groupKey
             const encryptedKeys = await prepareEncryptedKeysForGroup(groupKey, newParticipants);
+            console.log("Prepared Encrypted Keys:", encryptedKeys);
+
+            // Формируем тело запроса для добавления участников
             const requestBody = {
                 groupId: selectedGroupChatId,
                 participants: newParticipants.map((participantId) => ({
@@ -383,6 +441,7 @@ const GroupChatPage = () => {
                     encryptedGroupKey: encryptedKeys[participantId],
                 })),
             };
+
             console.log("Request body for adding participants:", requestBody);
             const response = await fetch("/api/Group/AddParticipants", {
                 method: "POST",
@@ -392,7 +451,7 @@ const GroupChatPage = () => {
             if (!response.ok) {
                 throw new Error(`Failed to add participants: ${await response.text()}`);
             }
-            // ��������� ��������� ��������� ����������
+            // Обновляем локальное состояние участников
             const newParticipantsData = newParticipants.map((id) => ({ userId: id }));
             setGroupParticipants((prev) => [...prev, ...newParticipantsData]);
             setNewParticipants([]);
@@ -404,7 +463,7 @@ const GroupChatPage = () => {
         }
     };
 
-    // ����� ������ ���������� ��� ��������, ��� ����������
+    // Здесь просто отображаем все контакты, без фильтрации
     const renderContactsForModal = () => {
         return (
             <List
@@ -447,7 +506,7 @@ const GroupChatPage = () => {
         try {
             const response = await fetch(`/api/Group/GetGroupMembers/${groupId}`);
             if (!response.ok) {
-                throw new Error(`������ ${response.status}: ${response.statusText}`);
+                throw new Error(`Ошибка ${response.status}: ${response.statusText}`);
             }
             const data = await response.json();
             console.log("Data from fetchGroupParticipants:", data);

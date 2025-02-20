@@ -39,6 +39,8 @@ const GroupChatPage = () => {
     const [search, setSearch] = useState("");
     const [newGroupModalVisible, setNewGroupModalVisible] = useState(false);
     const [groupSettingsModalVisible, setGroupSettingsModalVisible] = useState(false);
+    const [removeParticipantsModalVisible, setRemoveParticipantsModalVisible] = useState(false);
+    const [participantsToRemove, setParticipantsToRemove] = useState([]);
     const [addParticipantsModalVisible, setAddParticipantsModalVisible] = useState(false);
     const [isImageModalVisible, setIsImageModalVisible] = useState(false);
     const [isFileModalVisible, setIsFileModalVisible] = useState(false);
@@ -465,9 +467,22 @@ const GroupChatPage = () => {
 
     // Здесь просто отображаем все контакты, без фильтрации
     const renderContactsForModal = () => {
+        // Фильтруем контакты, исключая тех, кто уже присутствует в группе.
+        const filteredContacts = contacts.filter(
+            (contact) =>
+                !groupParticipants.some(
+                    (participant) =>
+                        participant.userId.trim().toLowerCase() === contact.id.trim().toLowerCase()
+                )
+        );
+
+        if (filteredContacts.length === 0) {
+            return <div>No users to add.</div>;
+        }
+
         return (
             <List
-                dataSource={contacts}
+                dataSource={filteredContacts}
                 renderItem={(contact) => (
                     <List.Item key={contact.id} className="participant-item">
                         <Checkbox
@@ -477,13 +492,17 @@ const GroupChatPage = () => {
                         />
                         <List.Item.Meta
                             avatar={
-                                <Avatar>
-                                    {contact.userName
-                                        ? contact.userName[0]
-                                        : contact.email
-                                            ? contact.email[0]
-                                            : "?"}
-                                </Avatar>
+                                contact.avatarUrl ? (
+                                    <Avatar src={contact.avatarUrl} />
+                                ) : (
+                                    <Avatar>
+                                        {contact.userName
+                                            ? contact.userName[0]
+                                            : contact.email
+                                                ? contact.email[0]
+                                                : "?"}
+                                    </Avatar>
+                                )
                             }
                             title={contact.userName || contact.email || "Unknown"}
                         />
@@ -493,12 +512,131 @@ const GroupChatPage = () => {
         );
     };
 
+    const renderRemoveContactsForModal = () => {
+        if (!groupParticipants || groupParticipants.length === 0) {
+            return <div>No participants available to remove.</div>;
+        }
+
+        // Исключаем текущего пользователя из списка участников
+        const participantsToRender = groupParticipants.filter(
+            (participant) => participant.userId !== currentUserId
+        );
+
+        if (participantsToRender.length === 0) {
+            return <div>No participants available to remove.</div>;
+        }
+
+        return (
+            <List
+                dataSource={participantsToRender}
+                renderItem={(participant) => {
+                    // Ищем данные участника в контактах
+                    const contact = contacts.find((c) => c.id === participant.userId);
+                    const displayName = contact
+                        ? (contact.userName || contact.nickname || participant.userId)
+                        : (participant.userName || participant.userId);
+                    const avatarSrc = contact ? contact.avatarUrl : participant.avatarUrl;
+
+                    return (
+                        <List.Item key={participant.userId} className="participant-item">
+                            <Checkbox
+                                checked={participantsToRemove.includes(participant.userId)}
+                                onChange={() => toggleParticipantRemoval(participant.userId)}
+                                className="participant-checkbox"
+                            />
+                            <List.Item.Meta
+                                avatar={
+                                    avatarSrc ? (
+                                        <Avatar src={avatarSrc} />
+                                    ) : (
+                                        <Avatar>{displayName[0]}</Avatar>
+                                    )
+                                }
+                                title={displayName}
+                            />
+                        </List.Item>
+                    );
+                }}
+            />
+        );
+    };
+
+    // Handle для удаления пользователей
+
+    const handleRemoveParticipants = async () => {
+        if (participantsToRemove.length === 0) {
+            antdMessage.warning("Please select at least one participant to remove.");
+            return;
+        }
+
+        // Вычисляем список оставшихся участников (исключая удаляемых)
+        const remainingParticipants = groupParticipants.filter(
+            (participant) => !participantsToRemove.includes(participant.userId)
+        );
+        const remainingUserIds = remainingParticipants.map((participant) => participant.userId);
+
+        try {
+            // Генерируем новый групповой ключ (например, ArrayBuffer)
+            const newGroupKey = generateGroupKey();
+
+            // Шифруем новый ключ для каждого оставшегося участника
+            // Функция prepareEncryptedKeysForGroup возвращает объект вида: { [userId]: encryptedKey }
+            const encryptedKeys = await prepareEncryptedKeysForGroup(newGroupKey, remainingUserIds);
+
+            // Формируем массив обновлённых данных участников
+            const updatedParticipants = remainingUserIds.map((userId) => ({
+                UserId: userId,
+                EncryptedGroupKey: encryptedKeys[userId],
+            }));
+
+            // Формируем тело запроса согласно RemoveParticipantsRequest
+            const removeRequest = {
+                GroupId: selectedGroupChatId,         // Идентификатор группы
+                SenderId: currentUserId,                // Идентификатор отправителя (админа)
+                ParticipantIds: participantsToRemove,   // Массив id участников для удаления
+                UpdatedParticipants: updatedParticipants,
+            };
+
+            // Отправляем DELETE-запрос на сервер
+            const response = await fetch("/api/Group/RemoveParticipants", {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(removeRequest),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            antdMessage.success("Participants removed successfully and group key updated!");
+
+            // Обновляем локальное состояние: удаляем участников из списка группы
+            setGroupParticipants(remainingParticipants);
+            setParticipantsToRemove([]);
+        } catch (error) {
+            console.error("Error removing participants:", error);
+            antdMessage.error("Failed to remove participants.");
+        }
+    };
+
+
     const toggleParticipant = (contactId) => {
         console.log("Toggling participant:", contactId);
         setNewParticipants((prev) =>
             prev.includes(contactId)
                 ? prev.filter((id) => id !== contactId)
                 : [...prev, contactId]
+        );
+    };
+
+    const toggleParticipantRemoval = (participantId) => {
+        setParticipantsToRemove((prev) =>
+            prev.includes(participantId)
+                ? prev.filter((id) => id !== participantId)
+                : [...prev, participantId]
         );
     };
 
@@ -582,14 +720,24 @@ const GroupChatPage = () => {
                                     {groupSettings.groupName?.[0]}
                                 </Avatar>
                                 <h3 className="group-name">{groupSettings.groupName}</h3>
-                                <Tooltip title="Add Participants">
-                                    <Button
-                                        type="default"
-                                        icon={<UserAddOutlined />}
-                                        onClick={handleAddParticipantsModalOpen}
-                                        className="add-participants-button"
-                                    />
-                                </Tooltip>
+                                <div className="header-buttons">
+                                    <Tooltip title="Add Participants">
+                                        <Button
+                                            type="default"
+                                            icon={<UserAddOutlined />}
+                                            onClick={handleAddParticipantsModalOpen}
+                                            className="add-participants-button"
+                                        />
+                                    </Tooltip>
+                                    <Tooltip title="Remove Participants">
+                                        <Button
+                                            type="default"
+                                            icon={<DeleteOutlined />}
+                                            onClick={() => setRemoveParticipantsModalVisible(true)}
+                                            className="remove-participants-button"
+                                        />
+                                    </Tooltip>
+                                </div>
                             </div>
                             <div className="chat-messages">
                                 {messages.map((msg) => (
@@ -681,7 +829,7 @@ const GroupChatPage = () => {
                                     style={{ marginRight: "10px" }}
                                 />
                                 <List.Item.Meta
-                                    avatar={<Avatar>{contact.userName?.[0]}</Avatar>}
+                                    avatar={<Avatar src={contact.avatarUrl}></Avatar>}
                                     title={contact.userName}
                                 />
                             </List.Item>
@@ -726,21 +874,6 @@ const GroupChatPage = () => {
                     onChange={(e) => setGroupSettings((prev) => ({ ...prev, description: e.target.value }))}
                     rows={3}
                     style={{ marginTop: "10px" }}
-                />
-                <List
-                    dataSource={contacts || []}
-                    renderItem={(contact) => (
-                        <List.Item key={contact.id}>
-                            <Checkbox
-                                checked={newParticipants.includes(contact.id)}
-                                onChange={() => toggleParticipant(contact.id)}
-                            />
-                            <List.Item.Meta
-                                avatar={<Avatar>{contact.userName?.[0] || contact.email?.[0] || "?"}</Avatar>}
-                                title={contact.userName || contact.email || "Unknown"}
-                            />
-                        </List.Item>
-                    )}
                 />
                 <div style={{ marginTop: "10px" }}>
                     <Button type="danger" onClick={handleDeleteGroup}>
@@ -787,7 +920,6 @@ const GroupChatPage = () => {
                     <Button icon={<FileOutlined />}>Click to Upload</Button>
                 </Upload>
             </Modal>
-
             {/* Modal: Add Participants */}
             <Modal
                 title={<span className="custom-modal-title">Add Participants</span>}
@@ -799,6 +931,24 @@ const GroupChatPage = () => {
                 {renderContactsForModal()}
                 <Button type="primary" onClick={handleAddParticipants} style={{ marginTop: "10px" }}>
                     Add Participants
+                </Button>
+            </Modal>
+            <Modal
+                title={<span className="custom-modal-title">Remove Participants</span>}
+                visible={removeParticipantsModalVisible}
+                onCancel={() => setRemoveParticipantsModalVisible(false)}
+                footer={null}
+                closable={false}
+                className="remove-participants-modal" // Класс для переопределения стилей
+            >
+                {renderRemoveContactsForModal()}
+                <Button
+                    type="primary"
+                    icon={<DeleteOutlined />}
+                    onClick={handleRemoveParticipants}
+                    style={{ marginTop: "10px" }}
+                >
+                    Remove Participants
                 </Button>
             </Modal>
         </Layout>

@@ -221,6 +221,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '/api/Group/RemoveParticipants': {
+                target,
+                secure: false,
+            },
         },
         port: 5173,
         https: {

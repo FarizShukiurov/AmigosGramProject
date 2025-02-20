@@ -147,10 +147,10 @@ namespace AmigosGramProject.Server.Controllers
             return Ok("Participants added successfully.");
         }
 
-        [HttpDelete("RemoveParticipant")]
-        public async Task<IActionResult> RemoveParticipant([FromBody] RemoveParticipantRequest request)
+        [HttpDelete("RemoveParticipants")]
+        public async Task<IActionResult> RemoveParticipants([FromBody] RemoveParticipantsRequest request)
         {
-            if (request == null)
+            if (request == null || request.ParticipantIds == null || !request.ParticipantIds.Any())
             {
                 return BadRequest("Invalid request data.");
             }
@@ -166,42 +166,38 @@ namespace AmigosGramProject.Server.Controllers
             }
 
             // Проверяем, что отправитель является администратором группы
-            // Предполагается, что в группе есть поле AdminId
             if (group.AdminId != request.SenderId)
             {
-                return Forbid("Only admin can remove a participant.");
+                return Forbid();
             }
 
-            // Находим участника, которого необходимо удалить
-            var memberToRemove = group.Members.FirstOrDefault(m => m.UserId == request.ParticipantId);
-            if (memberToRemove == null)
+            // Для каждого участника из списка удаляем его, если он найден
+            foreach (var participantId in request.ParticipantIds)
             {
-                return NotFound("Participant not found in group.");
+                var memberToRemove = group.Members.FirstOrDefault(m => m.UserId == participantId);
+                if (memberToRemove != null)
+                {
+                    _context.GroupMembers.Remove(memberToRemove);
+                }
             }
 
-            // Удаляем участника через контекст
-            _context.GroupMembers.Remove(memberToRemove);
-
-            // Если передан список обновлённых ключей, обновляем их для оставшихся участников через контекст
+            // Если передан список обновлённых ключей, обновляем их через контекст
             if (request.UpdatedParticipants != null && request.UpdatedParticipants.Any())
             {
                 foreach (var participantDto in request.UpdatedParticipants)
                 {
-                    // Загружаем участника из контекста для обновления
                     var groupMember = await _context.GroupMembers
                         .FirstOrDefaultAsync(m => m.UserId == participantDto.UserId && m.GroupId == request.GroupId);
-
                     if (groupMember != null)
                     {
                         groupMember.EncryptedGroupKey = participantDto.EncryptedGroupKey;
-                        // Явно обновляем запись через контекст
                         _context.GroupMembers.Update(groupMember);
                     }
                 }
             }
 
             await _context.SaveChangesAsync();
-            return Ok("Participant removed successfully.");
+            return Ok("Participants removed successfully.");
         }
 
 

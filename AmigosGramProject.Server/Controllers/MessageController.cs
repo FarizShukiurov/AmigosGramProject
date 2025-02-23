@@ -101,6 +101,39 @@ namespace AmigosGramProject.Server.Controllers
 
             return Ok(message);
         }
+        [HttpPost("createGroupMessage")]
+        public async Task<IActionResult> CreateGroupMessage([FromBody] GroupMessageDTO groupMessageDto)
+        {
+            var groupMessage = new GroupMessage
+            {
+                GroupId = groupMessageDto.GroupId,
+                SenderId = groupMessageDto.SenderId,
+                EncryptedContent = groupMessageDto.EncryptedContent,
+                MessageType = groupMessageDto.MessageType,
+                Timestamp = DateTime.Now,
+                EncryptedMediaUrls = groupMessageDto.EncryptedMediaUrls,
+                EncryptedFileUrls = groupMessageDto.EncryptedFileUrls,
+                EncryptedAudioUrl = groupMessageDto.EncryptedAudioUrl
+            };
+
+            _context.GroupMessages.Add(groupMessage);
+            await _context.SaveChangesAsync();
+
+            try
+            {
+                // Отправка группового сообщения всем участникам через SignalR.
+                // Здесь формируется название группы, например "Group_{GroupId}".
+                await _hubContext.Clients.Group($"Group_{groupMessage.GroupId}")
+                                     .SendAsync("ReceiveGroupMessage", groupMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR error: {ex.Message}");
+                return StatusCode(500, $"SignalR error: {ex.Message}");
+            }
+
+            return Ok(groupMessage);
+        }
 
 
         [HttpGet("getAllMessages")]
@@ -154,6 +187,33 @@ namespace AmigosGramProject.Server.Controllers
                 lastMessage.AudioUrlForReceiver,
                 lastMessage.FileUrlsForReceiver,
                 lastMessage.MediaUrlsForReceiver,
+            });
+        }
+
+        [HttpGet("getLastGroupMessage/{groupId}")]
+        public async Task<IActionResult> GetLastGroupMessage(int groupId)
+        {
+            var lastMessage = await _context.GroupMessages
+                .Where(m => m.GroupId == groupId)
+                .OrderByDescending(m => m.Timestamp)
+                .FirstOrDefaultAsync();
+
+            if (lastMessage == null)
+            {
+                return Ok(null);
+            }
+
+            return Ok(new
+            {
+                lastMessage.Id,
+                lastMessage.GroupId,
+                lastMessage.SenderId,
+                lastMessage.Timestamp,
+                lastMessage.EncryptedContent,
+                lastMessage.MessageType,
+                lastMessage.EncryptedMediaUrls,
+                lastMessage.EncryptedFileUrls,
+                lastMessage.EncryptedAudioUrl
             });
         }
 
@@ -291,13 +351,5 @@ namespace AmigosGramProject.Server.Controllers
                 return StatusCode(500, "An error occurred while updating the message.");
             }
         }
-
-
-
-
-
-
-
-
     }
 }

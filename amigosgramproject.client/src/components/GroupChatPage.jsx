@@ -36,6 +36,11 @@ const GroupChatPage = () => {
     const [selectedGroupChatId, setSelectedGroupChatId] = useState(null);
     const [messages, setMessages] = useState([]);
     const [currentMessage, setCurrentMessage] = useState("");
+    const [lastMessages, setLastMessages] = useState({});
+    const [imageModalKey, setImageModalKey] = useState(0);
+    const [fileModalKey, setFileModalKey] = useState(0);
+    const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
+    const [uploadedFileUrls, setUploadedFileUrls] = useState([]);
     const [search, setSearch] = useState("");
     const [newGroupModalVisible, setNewGroupModalVisible] = useState(false);
     const [groupSettingsModalVisible, setGroupSettingsModalVisible] = useState(false);
@@ -654,6 +659,249 @@ const GroupChatPage = () => {
             return [];
         }
     };
+    // Функция дешифровки группового сообщения
+    const decryptMessage = async (encryptedMessageBase64, groupId, currentUserId) => {
+        try {
+            console.log("Fetching encrypted group key...");
+            // Запрашиваем зашифрованный групповой ключ с сервера
+            const groupKeyResponse = await fetch(`/api/Group/GetGroupKey/${groupId}/${currentUserId}`);
+            if (!groupKeyResponse.ok) {
+                throw new Error("Failed to fetch group key");
+            }
+            const groupKeyJson = await groupKeyResponse.json();
+            const encryptedGroupKeyBase64 = groupKeyJson.encryptedGroupKey;
+            console.log("Encrypted group key (base64):", encryptedGroupKeyBase64);
+
+            // Дешифруем групповой ключ с помощью приватного ключа
+            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKeyBase64);
+
+            // Импортируем расшифрованный групповой ключ как симметричный ключ для AES-GCM
+            const symmetricKey = await window.crypto.subtle.importKey(
+                "raw",
+                decryptedGroupKeyBuffer,
+                { name: "AES-GCM" },
+                false,
+                ["decrypt"]
+            );
+            console.log("Symmetric group key imported successfully.");
+
+            // Преобразуем зашифрованное сообщение из base64 в Uint8Array
+            const encryptedMessageArray = Uint8Array.from(
+                atob(encryptedMessageBase64),
+                (c) => c.charCodeAt(0)
+            );
+            console.log("Encrypted message array:", encryptedMessageArray);
+
+            // Предполагаем, что первые 12 байт – это IV для AES-GCM
+            const iv = encryptedMessageArray.slice(0, 12);
+            const ciphertext = encryptedMessageArray.slice(12).buffer;
+
+            // Дешифруем сообщение с использованием AES-GCM
+            const decryptedBuffer = await window.crypto.subtle.decrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv
+                },
+                symmetricKey,
+                ciphertext
+            );
+            console.log("Decrypted message buffer:", decryptedBuffer);
+            const decoder = new TextDecoder();
+            const decryptedMessage = decoder.decode(decryptedBuffer);
+            console.log("Decrypted message:", decryptedMessage);
+            return decryptedMessage;
+        } catch (error) {
+            console.error("Error decrypting group message:", error);
+            return "[Error: Unable to decrypt message]";
+        }
+    };
+    const decryptArray = async (encryptedArray, groupId, currentUserId) => {
+        if (!encryptedArray || encryptedArray.length === 0) return [];
+        const decryptedArray = [];
+        for (const encryptedItem of encryptedArray) {
+            const decryptedItem = await decryptMessage(encryptedItem, groupId, currentUserId);
+            decryptedArray.push(decryptedItem);
+        }
+        return decryptedArray;
+    };
+    const fetchMessages = async (groupId) => {
+        try {
+            // Обращаемся к групповому endpoint для получения сообщений группы
+            const response = await fetch(`/api/GroupMessage/getMessages?groupId=${groupId}`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" }
+            });
+            if (!response.ok) {
+                console.error("Error fetching group messages:", response.status);
+                return;
+            }
+            const messagesData = response.status !== 204 ? await response.json() : [];
+            if (!messagesData || messagesData.length === 0) {
+                console.warn("No group messages to process.");
+                setMessages([]);
+                return;
+            }
+            const decryptedMessages = await Promise.all(
+                messagesData.map(async (msg) => {
+                    try {
+                        // Для групповых сообщений у нас используется единый набор полей.
+                        // Если сообщение содержит зашифрованный текст, расшифровываем его:
+                        if (msg.EncryptedContent != null) {
+                            msg.content = await decryptMessage(msg.EncryptedContent, groupId, currentUserId);
+                        }
+                        // Аналогично для изображений, файлов и аудио
+                        msg.mediaUrls = msg.EncryptedMediaUrls ? await decryptArray(msg.EncryptedMediaUrls, groupId, currentUserId) : [];
+                        msg.fileUrls = msg.EncryptedFileUrls ? await decryptArray(msg.EncryptedFileUrls, groupId, currentUserId) : [];
+                        msg.audioUrl = msg.EncryptedAudioUrl ? await decryptMessage(msg.EncryptedAudioUrl, groupId, currentUserId) : null;
+                        // Приводим время к объекту Date
+                        msg.timestamp = new Date(msg.Timestamp);
+                    } catch (error) {
+                        console.error(`Error decrypting group message with ID ${msg.Id}:`, error);
+                        msg.content = "[Error: Unable to decrypt message]";
+                        msg.mediaUrls = [];
+                        msg.fileUrls = [];
+                        msg.audioUrl = null;
+                    }
+                    return msg;
+                })
+            );
+            setMessages(decryptedMessages || []);
+        } catch (error) {
+            console.error("An error occurred while fetching group messages:", error);
+        }
+    };
+    const encryptGroupMessage = async (message, symmetricKeyBase64) => {
+        try {
+            // Преобразуем симметричный ключ из base64 в ArrayBuffer
+            const symmetricKeyBuffer = Uint8Array.from(atob(symmetricKeyBase64), c => c.charCodeAt(0)).buffer;
+            // Импортируем симметричный ключ для AES-GCM
+            const symmetricKey = await window.crypto.subtle.importKey(
+                "raw",
+                symmetricKeyBuffer,
+                { name: "AES-GCM" },
+                false,
+                ["encrypt"]
+            );
+            // Генерируем случайный IV (рекомендуется 12 байт для AES-GCM)
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encoder = new TextEncoder();
+            const encodedMessage = encoder.encode(message);
+            const encryptedBuffer = await window.crypto.subtle.encrypt(
+                {
+                    name: "AES-GCM",
+                    iv: iv,
+                },
+                symmetricKey,
+                encodedMessage
+            );
+            // Объединяем IV и зашифрованные данные, чтобы IV можно было использовать при дешифровке
+            const combined = new Uint8Array(iv.byteLength + encryptedBuffer.byteLength);
+            combined.set(iv, 0);
+            combined.set(new Uint8Array(encryptedBuffer), iv.byteLength);
+            return btoa(String.fromCharCode(...combined));
+        } catch (error) {
+            console.error("Error encrypting group message:", error);
+            throw error;
+        }
+    };
+    const encryptArray = async (array, symmetricKeyBase64) => {
+        if (!array || array.length === 0) return [];
+        const encryptedArray = [];
+        for (const item of array) {
+            const encryptedItem = await encryptGroupMessage(item, symmetricKeyBase64);
+            encryptedArray.push(encryptedItem);
+        }
+        return encryptedArray;
+    };
+
+    // Вспомогательная функция для преобразования ArrayBuffer в base64-строку
+
+    const sendMessage = async () => {
+        if (!currentMessage && uploadedImageUrls.length === 0 && uploadedFileUrls.length === 0) {
+            console.warn("No content to send");
+            return;
+        }
+        console.log("Message content:", currentMessage || "No text");
+        console.log("Uploaded image URLs:", uploadedImageUrls);
+        console.log("Uploaded file URLs:", uploadedFileUrls);
+        try {
+            // Получаем зашифрованный групповой ключ для текущего пользователя
+            const groupKeyResponse = await fetch(`/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`);
+            if (!groupKeyResponse.ok) {
+                throw new Error("Failed to fetch group key");
+            }
+            const groupKeyJson = await groupKeyResponse.json();
+            const encryptedGroupKey = groupKeyJson.encryptedGroupKey; // Например, "dptcwMxSWl..."
+            console.log("Encrypted group key:", encryptedGroupKey);
+
+            // Получаем приватный ключ пользователя из localStorage
+            const privateKeyString = localStorage.getItem("privateKey");
+            if (!privateKeyString) {
+                throw new Error("Private key not found in localStorage");
+            }
+
+            // Расшифровываем групповой ключ с помощью функции decryptGroupKey
+            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKey, privateKeyString);
+            // Преобразуем полученный симметричный ключ в base64-строку
+            const symmetricKeyBase64 = arrayBufferToBase64(decryptedGroupKeyBuffer);
+            console.log("Decrypted symmetric key (base64):", symmetricKeyBase64);
+
+            // Шифруем сообщение, если оно есть, с использованием симметричного ключа
+            const encryptedContent = currentMessage
+                ? await encryptGroupMessage(currentMessage, symmetricKeyBase64)
+                : null;
+            // Шифруем ссылки на изображения и файлы
+            const encryptedMediaUrls = uploadedImageUrls.length > 0
+                ? await encryptArray(uploadedImageUrls, symmetricKeyBase64)
+                : [];
+            const encryptedFileUrls = uploadedFileUrls.length > 0
+                ? await encryptArray(uploadedFileUrls, symmetricKeyBase64)
+                : [];
+            // Определяем тип сообщения: 1 - изображение, 2 - файл, 0 - текстовое
+            const messageType = uploadedImageUrls.length > 0
+                ? 1
+                : uploadedFileUrls.length > 0
+                    ? 2
+                    : 0;
+
+            // Формируем DTO для группового сообщения
+            const groupMessageDto = {
+                senderId: currentUserId,
+                groupId: selectedGroupChatId, // Идентификатор группы
+                encryptedContent: encryptedContent,
+                messageType: messageType,
+                encryptedMediaUrls: encryptedMediaUrls,
+                encryptedFileUrls: encryptedFileUrls,
+            };
+
+            console.log("Sending group message DTO:", groupMessageDto);
+            // Отправляем запрос на создание группового сообщения
+            const response = await fetch("/api/GroupMessage/createMessage", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(groupMessageDto),
+            });
+            if (response.ok) {
+                // Обновляем список сообщений для выбранной группы
+                fetchMessages(selectedGroupChatId);
+                setLastMessages((prevLastMessages) => ({
+                    ...prevLastMessages,
+                    [selectedGroupChatId]: currentMessage || "",
+                }));
+                // Сбрасываем состояние после успешной отправки
+                setCurrentMessage(null);
+                setUploadedImageUrls([]);
+                setUploadedFileUrls([]);
+                setImageModalKey((prev) => prev + 1);
+                setFileModalKey((prev) => prev + 1);
+            } else {
+                console.error("Error sending group message:", response.status);
+            }
+        } catch (error) {
+            console.error("Error sending group message:", error);
+        }
+    };
+
 
     const renderGroupMenu = (group) => (
         <Menu>

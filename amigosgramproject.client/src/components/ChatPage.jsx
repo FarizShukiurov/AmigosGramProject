@@ -225,6 +225,18 @@ function ChatPage() {
         }
     };
 
+
+    // Прокрутка вниз при изменении сообщений
+    const scrollToBottom = () => {
+        if (messagesEndRef.current) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    };
+
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
     useEffect(() => {
         if (!hubConnection || !currentUserId) return;
         const switchGroup = async () => {
@@ -245,17 +257,6 @@ function ChatPage() {
         };
         switchGroup();
     }, [hubConnection, selectedChatId, currentUserId]);
-
-    // Прокрутка вниз при изменении сообщений
-    const scrollToBottom = () => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
-    };
-
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
 
     useEffect(() => {
         const newConnection = new signalR.HubConnectionBuilder()

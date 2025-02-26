@@ -143,6 +143,24 @@ namespace AmigosGramProject.Server.Controllers
             return Ok(messages);
         }
 
+        [HttpGet("getGroupMessages")]
+        public async Task<IActionResult> GetGroupMessages([FromQuery] string groupId)
+        {
+            // Получаем сообщения группы, сортируя по времени (от старых к новым)
+            var messages = await _context.GroupMessages
+                                         .Where(m => m.GroupId == groupId)
+                                         .OrderBy(m => m.Timestamp)
+                                         .ToListAsync();
+
+            // Если сообщений нет, можно вернуть NoContent или пустой список
+            if (messages == null || messages.Count == 0)
+            {
+                return NoContent();
+            }
+
+            return Ok(messages);
+        }
+
         [HttpGet("getMessagesBetweenUsers")]
         public async Task<IActionResult> GetMessagesBetweenUsers(string userId1, string userId2)
         {
@@ -191,7 +209,7 @@ namespace AmigosGramProject.Server.Controllers
         }
 
         [HttpGet("getLastGroupMessage/{groupId}")]
-        public async Task<IActionResult> GetLastGroupMessage(int groupId)
+        public async Task<IActionResult> GetLastGroupMessage(string groupId)
         {
             var lastMessage = await _context.GroupMessages
                 .Where(m => m.GroupId == groupId)
@@ -216,6 +234,7 @@ namespace AmigosGramProject.Server.Controllers
                 lastMessage.EncryptedAudioUrl
             });
         }
+
 
         [HttpDelete("deleteMessageById/{id}")]
         public async Task<IActionResult> DeleteMessageById(int id, [FromBody] DeleteMessageDto dto)

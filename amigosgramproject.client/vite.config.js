@@ -225,6 +225,18 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '^/api/Message/createGroupMessage': {
+                target,
+                secure: false,
+            },
+            '^/api/Message/getLastGroupMessage': {
+                target,
+                secure: false,
+            },
+            '^/api/Message/getGroupMessages': {
+                target,
+                secure: false,
+            },
         },
         port: 5173,
         https: {

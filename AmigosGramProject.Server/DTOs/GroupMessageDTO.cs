@@ -4,7 +4,7 @@ namespace AmigosGramProject.Server.DTOs
 {
     public class GroupMessageDTO
     {
-        public int GroupId { get; set; }
+        public string GroupId { get; set; }  // изменено с int на string
         public string SenderId { get; set; }
         public string? EncryptedContent { get; set; }
         public MessageType MessageType { get; set; }
@@ -12,5 +12,6 @@ namespace AmigosGramProject.Server.DTOs
         public List<string>? EncryptedFileUrls { get; set; } = null;
         public string? EncryptedAudioUrl { get; set; } = null;
     }
+
 
 }

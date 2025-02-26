@@ -10,6 +10,7 @@ import {
     Space,
     Dropdown,
     Menu,
+    Image,
     message as antdMessage,
     Upload,
     Checkbox,
@@ -25,9 +26,12 @@ import {
     StopOutlined,
     EditOutlined,
     DeleteOutlined,
+    CameraOutlined, // Иконка для камеры
+    SmileOutlined,
 } from "@ant-design/icons";
 import "./GroupChatPage.css";
-
+import format from "date-fns/format";
+import Picker from "emoji-picker-react";
 const { Sider, Content } = Layout;
 
 const GroupChatPage = () => {
@@ -41,6 +45,7 @@ const GroupChatPage = () => {
     const [fileModalKey, setFileModalKey] = useState(0);
     const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
     const [uploadedFileUrls, setUploadedFileUrls] = useState([]);
+    const [uploadedAudioUrl, setUploadedAudioUrl] = useState(null); // если используется аудио
     const [search, setSearch] = useState("");
     const [newGroupModalVisible, setNewGroupModalVisible] = useState(false);
     const [groupSettingsModalVisible, setGroupSettingsModalVisible] = useState(false);
@@ -61,9 +66,30 @@ const GroupChatPage = () => {
         participants: [],
         encryptionKey: null,
     });
+    const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [newParticipants, setNewParticipants] = useState([]);
     const messagesEndRef = useRef(null);
+
+    const [contextMenuVisible, setContextMenuVisible] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+    const [selectedMessage, setSelectedMessage] = useState(null);
+    const [editedText, setEditedText] = useState("");
+    const [editingMessage, setEditingMessage] = useState(null);
+    const [mediaRecorder, setMediaRecorder] = useState(null);
+    const audioChunks = useRef([]);
+    const timerRef = useRef(null); // Счетчик времени записи
+    const [recordingTime, setRecordingTime] = useState(0);
+
+
+    const [isCameraModalVisible, setIsCameraModalVisible] = useState(false);
+    const [cameraStream, setCameraStream] = useState(null);
+    const videoRef = useRef(null);
+    const [isVideoRecording, setIsVideoRecording] = useState(false);
+    const videoRecorderRef = useRef(null);
+    const videoChunks = useRef([]);
+
+
 
     // Логирование для отладки
     useEffect(() => {
@@ -137,24 +163,23 @@ const GroupChatPage = () => {
         fetchCurrentUserId();
     }, []);
 
-    const handleSendMessage = () => {
-        if (!currentMessage.trim()) {
-            antdMessage.warning("Message cannot be empty");
-            return;
+
+    useEffect(() => {
+        if (selectedGroupChatId) {
+            fetchMessages(selectedGroupChatId);
         }
-        const newMsg = {
-            id: Date.now(),
-            senderId: currentUserId,
-            content: currentMessage,
-            timestamp: new Date().toISOString(),
-        };
-        setMessages((prev) => [...prev, newMsg]);
-        setCurrentMessage("");
-        scrollToBottom();
-    };
+    }, [selectedGroupChatId]);
+
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+    const handleImageChange = (info) => {
+        if (info.file.status === "done") {
+            const uploadedUrl = info.file.response.url;
+            console.log("Image uploaded:", uploadedUrl);
+            setUploadedImageUrls((prev) => [...prev, uploadedUrl]);
+        }
     };
 
     const handleOpenGroupSettings = (group) => {
@@ -199,7 +224,14 @@ const GroupChatPage = () => {
         setGroupSettingsModalVisible(false);
         antdMessage.success("Group deleted successfully!");
     };
-
+    const formatTimestamp = (timestamp) => {
+        if (!timestamp) return "";
+        const dateObj = new Date(timestamp);
+        if (isNaN(dateObj.getTime())) {
+            return "";
+        }
+        return format(dateObj, "HH:mm");
+    };
     // Функция для получения публичного ключа пользователя
     const fetchUserPublicKey = async (userId) => {
         try {
@@ -327,13 +359,14 @@ const GroupChatPage = () => {
         setNewGroupAvatar(file);
     };
 
-    const handleImageChange = (info) => {
-        if (info.file.status === "done") {
-            const uploadedUrl = info.file.response.url;
-            console.log("Image uploaded:", uploadedUrl);
+    const handleEmojiClick = (emojiObject) => {
+        if (emojiObject?.emoji) {
+            setCurrentMessage((prevMessage) => (prevMessage || "") + emojiObject.emoji);
+        } else {
+            console.error("Invalid emojiObject:", emojiObject);
         }
     };
-
+    
     const handleImageRemove = async (file) => {
         try {
             const response = await fetch(`/api/files/delete/${file.response.fileId}`, {
@@ -353,8 +386,10 @@ const GroupChatPage = () => {
         if (info.file.status === "done") {
             const uploadedUrl = info.file.response.url;
             console.log("File uploaded:", uploadedUrl);
+            setUploadedFileUrls((prev) => [...prev, uploadedUrl]);
         }
     };
+
 
     const handleFileRemove = async (file) => {
         try {
@@ -659,7 +694,6 @@ const GroupChatPage = () => {
             return [];
         }
     };
-    // Функция дешифровки группового сообщения
     const decryptMessage = async (encryptedMessageBase64, groupId, currentUserId) => {
         try {
             console.log("Fetching encrypted group key...");
@@ -672,8 +706,14 @@ const GroupChatPage = () => {
             const encryptedGroupKeyBase64 = groupKeyJson.encryptedGroupKey;
             console.log("Encrypted group key (base64):", encryptedGroupKeyBase64);
 
-            // Дешифруем групповой ключ с помощью приватного ключа
-            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKeyBase64);
+            // Получаем приватный ключ из localStorage
+            const privateKeyString = localStorage.getItem("privateKey");
+            if (!privateKeyString) {
+                throw new Error("Private key not found in localStorage");
+            }
+
+            // Передаём приватный ключ во вторым параметре в decryptGroupKey
+            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKeyBase64, privateKeyString);
 
             // Импортируем расшифрованный групповой ключ как симметричный ключ для AES-GCM
             const symmetricKey = await window.crypto.subtle.importKey(
@@ -700,7 +740,7 @@ const GroupChatPage = () => {
             const decryptedBuffer = await window.crypto.subtle.decrypt(
                 {
                     name: "AES-GCM",
-                    iv: iv
+                    iv: iv,
                 },
                 symmetricKey,
                 ciphertext
@@ -715,6 +755,7 @@ const GroupChatPage = () => {
             return "[Error: Unable to decrypt message]";
         }
     };
+
     const decryptArray = async (encryptedArray, groupId, currentUserId) => {
         if (!encryptedArray || encryptedArray.length === 0) return [];
         const decryptedArray = [];
@@ -726,8 +767,8 @@ const GroupChatPage = () => {
     };
     const fetchMessages = async (groupId) => {
         try {
-            // Обращаемся к групповому endpoint для получения сообщений группы
-            const response = await fetch(`/api/GroupMessage/getMessages?groupId=${groupId}`, {
+            // Обращаемся к эндпоинту для получения сообщений группы
+            const response = await fetch(`/api/Message/getGroupMessages?groupId=${groupId}`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" }
             });
@@ -735,7 +776,7 @@ const GroupChatPage = () => {
                 console.error("Error fetching group messages:", response.status);
                 return;
             }
-            const messagesData = response.status !== 204 ? await response.json() : [];
+            const messagesData = await response.json();
             if (!messagesData || messagesData.length === 0) {
                 console.warn("No group messages to process.");
                 setMessages([]);
@@ -744,16 +785,21 @@ const GroupChatPage = () => {
             const decryptedMessages = await Promise.all(
                 messagesData.map(async (msg) => {
                     try {
-                        // Для групповых сообщений у нас используется единый набор полей.
-                        // Если сообщение содержит зашифрованный текст, расшифровываем его:
-                        if (msg.EncryptedContent != null) {
-                            msg.content = await decryptMessage(msg.EncryptedContent, groupId, currentUserId);
+                        // Если зашифрованное содержимое присутствует, дешифруем его с помощью вашей функции
+                        if (msg.encryptedContent != null) {
+                            msg.content = await decryptMessage(msg.encryptedContent, groupId, currentUserId);
                         }
-                        // Аналогично для изображений, файлов и аудио
-                        msg.mediaUrls = msg.EncryptedMediaUrls ? await decryptArray(msg.EncryptedMediaUrls, groupId, currentUserId) : [];
-                        msg.fileUrls = msg.EncryptedFileUrls ? await decryptArray(msg.EncryptedFileUrls, groupId, currentUserId) : [];
-                        msg.audioUrl = msg.EncryptedAudioUrl ? await decryptMessage(msg.EncryptedAudioUrl, groupId, currentUserId) : null;
-                        // Приводим время к объекту Date
+                        // Аналогично дешифруем ссылки на изображения, файлы и аудио
+                        msg.mediaUrls = msg.encryptedMediaUrls
+                            ? await decryptArray(msg.encryptedMediaUrls, groupId, currentUserId)
+                            : [];
+                        msg.fileUrls = msg.encryptedFileUrls
+                            ? await decryptArray(msg.encryptedFileUrls, groupId, currentUserId)
+                            : [];
+                        msg.audioUrl = msg.encryptedAudioUrl
+                            ? await decryptMessage(msg.encryptedAudioUrl, groupId, currentUserId)
+                            : null;
+                        // Преобразуем время из строки в объект Date
                         msg.timestamp = new Date(msg.Timestamp);
                     } catch (error) {
                         console.error(`Error decrypting group message with ID ${msg.Id}:`, error);
@@ -765,11 +811,14 @@ const GroupChatPage = () => {
                     return msg;
                 })
             );
+            console.log("DecryptARRAY" , decryptedMessages)
             setMessages(decryptedMessages || []);
         } catch (error) {
             console.error("An error occurred while fetching group messages:", error);
         }
     };
+
+
     const encryptGroupMessage = async (message, symmetricKeyBase64) => {
         try {
             // Преобразуем симметричный ключ из base64 в ArrayBuffer
@@ -817,13 +866,15 @@ const GroupChatPage = () => {
     // Вспомогательная функция для преобразования ArrayBuffer в base64-строку
 
     const sendMessage = async () => {
-        if (!currentMessage && uploadedImageUrls.length === 0 && uploadedFileUrls.length === 0) {
+        // Если нет медиа, файлов и аудио — выводим предупреждение.
+        if (!currentMessage && uploadedImageUrls.length === 0 && uploadedFileUrls.length === 0 && !uploadedAudioUrl) {
             console.warn("No content to send");
             return;
         }
         console.log("Message content:", currentMessage || "No text");
         console.log("Uploaded image URLs:", uploadedImageUrls);
         console.log("Uploaded file URLs:", uploadedFileUrls);
+        console.log("Uploaded audio URL:", uploadedAudioUrl);
         try {
             // Получаем зашифрованный групповой ключ для текущего пользователя
             const groupKeyResponse = await fetch(`/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`);
@@ -831,7 +882,7 @@ const GroupChatPage = () => {
                 throw new Error("Failed to fetch group key");
             }
             const groupKeyJson = await groupKeyResponse.json();
-            const encryptedGroupKey = groupKeyJson.encryptedGroupKey; // Например, "dptcwMxSWl..."
+            const encryptedGroupKey = groupKeyJson.encryptedGroupKey;
             console.log("Encrypted group key:", encryptedGroupKey);
 
             // Получаем приватный ключ пользователя из localStorage
@@ -840,13 +891,13 @@ const GroupChatPage = () => {
                 throw new Error("Private key not found in localStorage");
             }
 
-            // Расшифровываем групповой ключ с помощью функции decryptGroupKey
+            // Расшифровываем групповой ключ
             const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKey, privateKeyString);
             // Преобразуем полученный симметричный ключ в base64-строку
             const symmetricKeyBase64 = arrayBufferToBase64(decryptedGroupKeyBuffer);
             console.log("Decrypted symmetric key (base64):", symmetricKeyBase64);
 
-            // Шифруем сообщение, если оно есть, с использованием симметричного ключа
+            // Шифруем текстовое сообщение (если оно есть)
             const encryptedContent = currentMessage
                 ? await encryptGroupMessage(currentMessage, symmetricKeyBase64)
                 : null;
@@ -857,39 +908,42 @@ const GroupChatPage = () => {
             const encryptedFileUrls = uploadedFileUrls.length > 0
                 ? await encryptArray(uploadedFileUrls, symmetricKeyBase64)
                 : [];
-            // Определяем тип сообщения: 1 - изображение, 2 - файл, 0 - текстовое
-            const messageType = uploadedImageUrls.length > 0
-                ? 1
-                : uploadedFileUrls.length > 0
-                    ? 2
-                    : 0;
+            // Определяем тип сообщения: 1 - изображение, 2 - файл, 3 - аудио, 0 - текстовое (если есть только текст)
+            const messageType = uploadedAudioUrl
+                ? 3
+                : uploadedImageUrls.length > 0
+                    ? 1
+                    : uploadedFileUrls.length > 0
+                        ? 2
+                        : 0;
 
             // Формируем DTO для группового сообщения
             const groupMessageDto = {
-                senderId: currentUserId,
-                groupId: selectedGroupChatId, // Идентификатор группы
-                encryptedContent: encryptedContent,
-                messageType: messageType,
-                encryptedMediaUrls: encryptedMediaUrls,
-                encryptedFileUrls: encryptedFileUrls,
+                SenderId: currentUserId,
+                GroupId: selectedGroupChatId,
+                EncryptedContent: encryptedContent,
+                MessageType: messageType,
+                EncryptedMediaUrls: encryptedMediaUrls,
+                EncryptedFileUrls: encryptedFileUrls,
+                EncryptedAudioUrl: null // Здесь, если требуется, можно добавить обработку аудио, например, если оно тоже прикреплено
             };
 
             console.log("Sending group message DTO:", groupMessageDto);
             // Отправляем запрос на создание группового сообщения
-            const response = await fetch("/api/GroupMessage/createMessage", {
+            const response = await fetch("/api/Message/createGroupMessage", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(groupMessageDto),
             });
             if (response.ok) {
-                // Обновляем список сообщений для выбранной группы
                 fetchMessages(selectedGroupChatId);
-                setLastMessages((prevLastMessages) => ({
-                    ...prevLastMessages,
+                // Обновляем список сообщений для выбранной группы
+                setLastMessages((prev) => ({
+                    ...prev,
                     [selectedGroupChatId]: currentMessage || "",
                 }));
                 // Сбрасываем состояние после успешной отправки
-                setCurrentMessage(null);
+                setCurrentMessage("");
                 setUploadedImageUrls([]);
                 setUploadedFileUrls([]);
                 setImageModalKey((prev) => prev + 1);
@@ -900,6 +954,305 @@ const GroupChatPage = () => {
         } catch (error) {
             console.error("Error sending group message:", error);
         }
+    };
+    const sendGroupAudioMessage = async (audioBlob) => {
+        const formData = new FormData();
+        formData.append("audioFile", audioBlob);
+
+        try {
+            console.log("Uploading audio blob:", audioBlob);
+            const uploadResponse = await fetch("/api/files/uploadAudio", {
+                method: "POST",
+                body: formData,
+            });
+            if (!uploadResponse.ok) {
+                console.error("Audio upload failed:", uploadResponse.status);
+                return;
+            }
+            const { url: audioUrl } = await uploadResponse.json();
+            console.log("Audio uploaded, URL:", audioUrl);
+
+            // Получаем зашифрованный групповой ключ для текущего пользователя
+            const groupKeyResponse = await fetch(`/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`);
+            if (!groupKeyResponse.ok) {
+                throw new Error("Failed to fetch group key");
+            }
+            const groupKeyJson = await groupKeyResponse.json();
+            const encryptedGroupKey = groupKeyJson.encryptedGroupKey;
+            console.log("Encrypted group key:", encryptedGroupKey);
+
+            // Получаем приватный ключ из localStorage
+            const privateKeyString = localStorage.getItem("privateKey");
+            if (!privateKeyString) {
+                throw new Error("Private key not found in localStorage");
+            }
+
+            // Дешифруем групповой ключ с помощью вашей функции decryptGroupKey
+            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKey, privateKeyString);
+            // Преобразуем полученный симметричный ключ в base64-строку
+            const symmetricKeyBase64 = arrayBufferToBase64(decryptedGroupKeyBuffer);
+            console.log("Decrypted symmetric key (base64):", symmetricKeyBase64);
+
+            // Шифруем аудио URL с использованием симметричного ключа
+            const encryptedAudioUrl = await encryptGroupMessage(audioUrl, symmetricKeyBase64);
+
+            // Формируем DTO для группового аудио-сообщения (MessageType = 3)
+            const groupMessageDto = {
+                SenderId: currentUserId,
+                GroupId: selectedGroupChatId,
+                EncryptedContent: null, // Нет текстового контента
+                MessageType: 3,
+                EncryptedMediaUrls: [],
+                EncryptedFileUrls: [],
+                EncryptedAudioUrl: encryptedAudioUrl,
+            };
+
+            console.log("Sending group audio message DTO:", groupMessageDto);
+            const response = await fetch("/api/Message/createGroupMessage", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(groupMessageDto),
+            });
+            if (response.ok) {
+                fetchMessages(selectedGroupChatId);
+                console.log("Group audio message sent!");
+            } else {
+                console.error("Failed to send group audio message:", response.status);
+            }
+        } catch (error) {
+            console.error("Error uploading or sending group audio:", error);
+        }
+    };
+
+    const startRecording = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const recorder = new MediaRecorder(stream);
+            setMediaRecorder(recorder);
+            recorder.ondataavailable = (event) => {
+                audioChunks.current.push(event.data);
+            };
+            recorder.onstop = () => {
+                clearInterval(timerRef.current);
+                setRecordingTime(0);
+                const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
+                audioChunks.current = [];
+                sendGroupAudioMessage(audioBlob);
+                stream.getTracks().forEach((track) => track.stop());
+            };
+            recorder.start();
+            setIsRecording(true);
+            timerRef.current = setInterval(() => {
+                setRecordingTime((prev) => prev + 1);
+            }, 1000);
+        } catch (error) {
+            console.error("Error starting audio recording:", error);
+        }
+    };
+
+    const stopRecording = () => {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+            mediaRecorder.stop();
+        }
+        setIsRecording(false);
+        clearInterval(timerRef.current);
+    };
+
+    const handleContextMenu = (event, message) => {
+        if (message.senderId !== currentUserId) return;
+        event.preventDefault();
+        const OFFSET_X = 200;
+        setSelectedMessage(message);
+        setMenuPosition({ x: event.clientX - OFFSET_X, y: event.clientY });
+        setContextMenuVisible(true);
+    };
+
+    const openCameraModal = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            setCameraStream(stream);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
+            setIsCameraModalVisible(true);
+        } catch (error) {
+            console.error("Error accessing camera:", error);
+        }
+    };
+
+    const closeCameraModal = () => {
+        setIsCameraModalVisible(false);
+        if (cameraStream) {
+            cameraStream.getTracks().forEach((track) => track.stop());
+            setCameraStream(null);
+        }
+    };
+
+    // Вместо немедленной отправки, после съемки фото добавляем URL в uploadedImageUrls
+    const sendCapturedImage = async (imageBlob) => {
+        try {
+            const formData = new FormData();
+            // Передаем имя поля "file" (путь теперь "/api/files/upload")
+            formData.append("file", imageBlob, "photo.jpg");
+            const uploadResponse = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!uploadResponse.ok) {
+                console.error("Image upload failed:", uploadResponse.status);
+                return;
+            }
+            const { url: imageUrl } = await uploadResponse.json();
+            console.log("Captured image uploaded. URL:", imageUrl);
+            // Добавляем URL в массив изображений, чтобы они шифровались вместе с остальными медиа при отправке
+            setUploadedImageUrls((prev) => [...prev, imageUrl]);
+        } catch (error) {
+            console.error("Error sending captured image:", error);
+        }
+    };
+    const capturePhoto = () => {
+        if (!videoRef.current) return;
+        const video = videoRef.current;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(async (blob) => {
+            if (blob) {
+                await sendCapturedImage(blob);
+                closeCameraModal();
+            }
+        }, "image/jpeg");
+    };
+    // Аналогично для видео: после записи видео обновляем uploadedFileUrls
+    const sendCapturedVideo = async (videoBlob) => {
+        try {
+            const formData = new FormData();
+            formData.append("file", videoBlob, "video.webm");
+            const uploadResponse = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!uploadResponse.ok) {
+                console.error("Video upload failed:", uploadResponse.status);
+                return;
+            }
+            const { url: videoUrl } = await uploadResponse.json();
+            console.log("Captured video uploaded. URL:", videoUrl);
+            setUploadedFileUrls((prev) => [...prev, videoUrl]);
+        } catch (error) {
+            console.error("Error sending captured video:", error);
+        }
+    };
+    const startVideoRecording = () => {
+        if (!cameraStream) return;
+        videoChunks.current = [];
+        const recorder = new MediaRecorder(cameraStream, { mimeType: "video/webm" });
+        videoRecorderRef.current = recorder;
+        recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                videoChunks.current.push(event.data);
+            }
+        };
+        recorder.onstop = async () => {
+            const videoBlob = new Blob(videoChunks.current, { type: "video/webm" });
+            await sendCapturedVideo(videoBlob);
+            closeCameraModal();
+        };
+        recorder.start();
+        setIsVideoRecording(true);
+    };
+
+    const stopVideoRecording = () => {
+        if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
+            videoRecorderRef.current.stop();
+            setIsVideoRecording(false);
+        }
+    };
+    const renderGroupMessage = (msg) => {
+        const isCurrentUserSender = msg.senderId === currentUserId;
+        return (
+            <div
+                key={msg.id}
+                className={`message ${isCurrentUserSender ? "sent" : "received"}`}
+                onContextMenu={(e) => handleContextMenu(e, msg)}
+            >
+                {editingMessage && editingMessage.id === msg.id ? (
+                    <div className="edit-message-container">
+                        <Input.TextArea
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            rows={3}
+                            style={{ marginBottom: "8px" }}
+                        />
+                        <Space>
+                            <Button type="primary" onClick={handleSaveEdit}>
+                                Сохранить
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setEditingMessage(null);
+                                    setEditedText("");
+                                }}
+                            >
+                                Отменить
+                            </Button>
+                        </Space>
+                    </div>
+                ) : (
+                    <>
+                        <div className="message-bubble">
+                            {msg.content && <p className="message-content">{msg.content}</p>}
+
+                            {/* Если есть изображения, отображаем их */}
+                            {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                                <div className="image-gallery">
+                                    {msg.mediaUrls.map((url, index) => (
+                                        <Image
+                                            key={index}
+                                            width={200}
+                                            src={url}
+                                            alt={`Uploaded media ${index + 1}`}
+                                            style={{ margin: "8px 0" }}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Если есть файлы, отображаем ссылки для загрузки */}
+                            {msg.fileUrls && msg.fileUrls.length > 0 && (
+                                <div className="file-list">
+                                    {msg.fileUrls.map((url, index) => (
+                                        <Button
+                                            key={index}
+                                            type="link"
+                                            href={url}
+                                            target="_blank"
+                                            icon={<FileOutlined />}
+                                            style={{ display: "block", margin: "4px 0" }}
+                                        >
+                                            Download File {index + 1}
+                                        </Button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Если есть аудио, отображаем плеер */}
+                            {msg.audioUrl && (
+                                <div className="audio-player">
+                                    <audio controls>
+                                        <source src={msg.audioUrl} type="audio/mpeg" />
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                </div>
+                            )}
+                        </div>
+                        <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
+                    </>
+                )}
+            </div>
+        );
     };
 
 
@@ -988,16 +1341,21 @@ const GroupChatPage = () => {
                                 </div>
                             </div>
                             <div className="chat-messages">
-                                {messages.map((msg) => (
-                                    <div
-                                        key={msg.id}
-                                        className={`message ${msg.senderId === currentUserId ? "sent" : "received"}`}
-                                    >
-                                        <p>{msg.content}</p>
-                                    </div>
-                                ))}
+                                {messages.length > 0
+                                    ? messages.map((msg) => renderGroupMessage(msg))
+                                    : <div className="no-messages-placeholder">Напишите свое первое сообщение!</div>}
                                 <div ref={messagesEndRef} />
                             </div>
+                            {isEmojiPickerVisible && (
+                                <div className="emoji-picker">
+                                    <Picker
+                                        onEmojiClick={(emojiObject) => {
+                                            console.log("Emoji selected:", emojiObject);
+                                            handleEmojiClick(emojiObject);
+                                        }}
+                                    />
+                                </div>
+                            )}
                             <div className="chat-input">
                                 <Input
                                     placeholder="Type your message..."
@@ -1006,15 +1364,51 @@ const GroupChatPage = () => {
                                     suffix={
                                         <Space>
                                             <Tooltip title="Send Image">
-                                                <Button icon={<PictureOutlined />} shape="circle" onClick={handleImageModalOpen} />
+                                                <Button
+                                                    icon={<PictureOutlined />}
+                                                    shape="circle"
+                                                    onClick={handleImageModalOpen}
+                                                />
                                             </Tooltip>
                                             <Tooltip title="Send File">
-                                                <Button icon={<FileOutlined />} shape="circle" onClick={handleFileModalOpen} />
+                                                <Button
+                                                    icon={<FileOutlined />}
+                                                    shape="circle"
+                                                    onClick={handleFileModalOpen}
+                                                />
                                             </Tooltip>
-                                            <Tooltip title={isRecording ? "Stop Recording" : "Start Recording"}>
-                                                <Button icon={isRecording ? <StopOutlined /> : <AudioOutlined />} shape="circle" type={isRecording ? "danger" : "default"} />
+                                            <Tooltip title={isRecording ? `Cancel Recording (${recordingTime}s)` : "Start Recording"}>
+                                                <Button
+                                                    icon={isRecording ? <StopOutlined /> : <AudioOutlined />}
+                                                    shape="circle"
+                                                    onClick={isRecording ? stopRecording : startRecording}
+                                                    type={isRecording ? "danger" : "default"}
+                                                />
                                             </Tooltip>
-                                            <Button type="primary" icon={<SendOutlined />} onClick={handleSendMessage} />
+                                            {isRecording && (
+                                                <div className="recording-indicator">
+                                                    <span>Recording: {recordingTime}s</span>
+                                                    <Button type="link" danger onClick={stopRecording}>
+                                                        Stop
+                                                    </Button>
+                                                </div>
+                                            )}
+                                            <Tooltip title="Open Camera">
+                                                <Button
+                                                    icon={<CameraOutlined />}
+                                                    shape="circle"
+                                                    onClick={openCameraModal}
+                                                />
+                                            </Tooltip>
+                                            <Button
+                                                icon={<SmileOutlined />}
+                                                onClick={() => setIsEmojiPickerVisible(!isEmojiPickerVisible)}
+                                            />
+                                            <Button
+                                                type="primary"
+                                                icon={<SendOutlined />}
+                                                onClick={sendMessage}
+                                            />
                                         </Space>
                                     }
                                 />
@@ -1142,6 +1536,8 @@ const GroupChatPage = () => {
                 closable={false}
             >
                 <Upload
+                    key={imageModalKey}
+                    name="file"
                     accept="image/*"
                     action="/api/files/upload"
                     onChange={handleImageChange}
@@ -1160,6 +1556,8 @@ const GroupChatPage = () => {
                 closable={false}
             >
                 <Upload
+                    key={fileModalKey}
+                    name="file"
                     accept=".txt, .pdf, .doc, .docx, .zip, .rar, .7z"
                     action="/api/files/upload"
                     onChange={handleFileChange}
@@ -1198,6 +1596,31 @@ const GroupChatPage = () => {
                 >
                     Remove Participants
                 </Button>
+            </Modal>
+            <Modal
+                title={<span className="custom-modal-title">Camera</span>}
+                visible={isCameraModalVisible}
+                onCancel={closeCameraModal}
+                closable={true}
+                footer={null}
+            >
+                <div className="camera-container" style={{ textAlign: "center" }}>
+                    <video ref={videoRef} autoPlay playsInline style={{ width: "100%", maxHeight: "400px" }} />
+                    <div style={{ marginTop: "16px" }}>
+                        <Button onClick={capturePhoto} style={{ marginRight: "8px" }}>
+                            Take Photo
+                        </Button>
+                        {isVideoRecording ? (
+                            <Button onClick={stopVideoRecording} type="primary" danger>
+                                Stop Recording
+                            </Button>
+                        ) : (
+                            <Button onClick={startVideoRecording} type="primary">
+                                Record Video
+                            </Button>
+                        )}
+                    </div>
+                </div>
             </Modal>
         </Layout>
     );

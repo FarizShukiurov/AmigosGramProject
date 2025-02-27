@@ -84,28 +84,6 @@ function ChatPage() {
             ? `${senderId}-${receiverId}`
             : `${receiverId}-${senderId}`;
     };
-
-    useEffect(() => {
-        if (!hubConnection || !currentUserId) return;
-        const switchGroup = async () => {
-            try {
-                if (previousChatId) {
-                    await hubConnection.invoke("LeaveGroup", previousChatId);
-                    console.log(`Left group: ${previousChatId}`);
-                }
-                if (selectedChatId) {
-                    const newGroupId = getChatGroupId(currentUserId, selectedChatId);
-                    await hubConnection.invoke("JoinGroup", newGroupId);
-                    console.log(`Joined group: ${newGroupId}`);
-                    setPreviousChatId(newGroupId);
-                }
-            } catch (error) {
-                console.error("Error switching groups:", error);
-            }
-        };
-        switchGroup();
-    }, [hubConnection, selectedChatId, currentUserId]);
-
     const handleContextMenu = (event, message) => {
         if (message.senderId !== currentUserId) return;
         event.preventDefault();

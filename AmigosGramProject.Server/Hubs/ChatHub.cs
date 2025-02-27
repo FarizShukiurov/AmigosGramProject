@@ -26,10 +26,11 @@ namespace AmigosGramProject.Server.Hubs
             }
             await base.OnDisconnectedAsync(exception);
         }
+
+        // Личный чат
         public async Task SendMessageToUserAsync(MessageDTO message, string chatId, string receiverId)
         {
             await Clients.Group(chatId).SendAsync("ReceiveMessage", message);
-
             await Clients.Group($"User_{receiverId}").SendAsync("UpdateLastMessage", chatId, message);
         }
         public async Task JoinGroup(string chatId)
@@ -37,7 +38,6 @@ namespace AmigosGramProject.Server.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, chatId);
             Console.WriteLine($"Client joined group {chatId}");
         }
-
         public async Task LeaveGroup(string chatId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, chatId);
@@ -52,6 +52,47 @@ namespace AmigosGramProject.Server.Hubs
             Console.WriteLine($"Message deleted in group {groupId}");
         }
 
+        // ================= Групповые чаты =================
 
+        // Отправка группового сообщения
+        public async Task SendGroupMessageAsync(MessageDTO message, string groupId)
+        {
+            // Используем имя группы в формате "Group_{groupId}"
+            string groupName = $"Group_{groupId}";
+            await Clients.Group(groupName).SendAsync("ReceiveGroupMessage", message);
+            // При необходимости можно уведомить всех участников о последнем сообщении
+            await Clients.Group(groupName).SendAsync("UpdateLastGroupMessage", groupName, message);
+        }
+
+        // Присоединение к групповому чату
+        public async Task JoinGroupChat(string groupId)
+        {
+            string groupName = $"Group_{groupId}";
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            Console.WriteLine($"Client joined group chat {groupName}");
+        }
+
+        // Покидание группового чата
+        public async Task LeaveGroupChat(string groupId)
+        {
+            string groupName = $"Group_{groupId}";
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+            Console.WriteLine($"Client left group chat {groupName}");
+        }
+
+        // Обновление группового сообщения
+        public async Task UpdateGroupMessage(string groupId, MessageDTO updatedMessage)
+        {
+            string groupName = $"Group_{groupId}";
+            await Clients.Group(groupName).SendAsync("UpdateGroupMessage", updatedMessage);
+        }
+
+        // Удаление группового сообщения
+        public async Task DeleteGroupMessage(string groupId, int messageId)
+        {
+            string groupName = $"Group_{groupId}";
+            await Clients.Group(groupName).SendAsync("GroupMessageDeleted", messageId);
+            Console.WriteLine($"Group message deleted in group {groupName}");
+        }
     }
 }

@@ -181,6 +181,9 @@ export default defineConfig({
             '^/api/Message/editMessageById': {
                 target,
                 secure: false,
+            },'^/api/Message/UpdateGroupMessages': {
+                target,
+                secure: false,
             },
             '^/api/Contacts/SendContactRequest': {
                 target,

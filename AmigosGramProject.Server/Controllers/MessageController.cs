@@ -134,6 +134,34 @@ namespace AmigosGramProject.Server.Controllers
 
             return Ok(groupMessage);
         }
+        [HttpPut("UpdateGroupMessages")]
+        public async Task<IActionResult> UpdateGroupMessages([FromBody] UpdateGroupMessagesRequest request)
+        {
+            if (request == null || string.IsNullOrEmpty(request.GroupId) || request.Messages == null)
+            {
+                return BadRequest("Invalid request");
+            }
+
+            // Если GroupId в модели GroupMessage имеет тип int, приводим строку к int:
+
+            foreach (var msgDto in request.Messages)
+            {
+                // Ищем существующее сообщение по ID и GroupId
+                var existingMessage = await _context.GroupMessages
+                    .FirstOrDefaultAsync(m => m.Id == msgDto.Id && m.GroupId == request.GroupId);
+                if (existingMessage != null)
+                {
+                    existingMessage.EncryptedContent = msgDto.EncryptedContent;
+                    existingMessage.MessageType = msgDto.MessageType;
+                    existingMessage.EncryptedMediaUrls = msgDto.EncryptedMediaUrls;
+                    existingMessage.EncryptedFileUrls = msgDto.EncryptedFileUrls;
+                    existingMessage.EncryptedAudioUrl = msgDto.EncryptedAudioUrl;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok("Messages updated");
+        }
 
 
         [HttpGet("getAllMessages")]

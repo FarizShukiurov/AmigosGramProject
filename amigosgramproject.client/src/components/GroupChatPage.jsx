@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useRef } from "react";
+import * as signalR from "@microsoft/signalr";
 import {
     Layout,
     Input,
@@ -89,12 +90,171 @@ const GroupChatPage = () => {
     const videoRecorderRef = useRef(null);
     const videoChunks = useRef([]);
 
-
-
+    const [previousGroupId, setPreviousGroupId] = useState(null);
+    const [hubConnection, setHubConnection] = useState(null);
     // Логирование для отладки
     useEffect(() => {
         console.log("GroupChats:", groupChats);
     }, [groupChats]);
+
+    //SignalR
+    
+
+    // Переключение группы (подписка на группу в SignalR)
+    // Переключение группы (подписка на группу в SignalR)
+    useEffect(() => {
+        if (!hubConnection || !currentUserId) return;
+        const switchGroup = async () => {
+            try {
+                // Если уже была подписка на предыдущую группу, покидаем её
+                if (previousGroupId) {
+                    await hubConnection.invoke("LeaveGroupChat", previousGroupId);
+                    console.log(`Left group: Group_${previousGroupId}`);
+                }
+                // Если выбрана новая группа, присоединяемся к ней
+                if (selectedGroupChatId) {
+                    await hubConnection.invoke("JoinGroupChat", selectedGroupChatId);
+                    console.log(`Joined group: Group_${selectedGroupChatId}`);
+                    setPreviousGroupId(selectedGroupChatId);
+                }
+            } catch (error) {
+                console.error("Error switching groups:", error);
+            }
+        };
+        switchGroup();
+    }, [hubConnection, selectedGroupChatId, currentUserId]);
+
+    // Создание подключения SignalR
+    useEffect(() => {
+        const newConnection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7015/chat")
+            .build();
+
+        // Обработчик обновления последнего сообщения в группе
+        newConnection.on("UpdateLastGroupMessage", async (groupId, lastMessage) => {
+            try {
+                let contentTemp;
+                if (lastMessage.encryptedContent != null) {
+                    lastMessage.content = await decryptMessage(lastMessage.encryptedContent, groupId, currentUserId);
+                    contentTemp = lastMessage.content;
+                } else if (lastMessage.encryptedAudioUrl != null) {
+                    contentTemp = "Audio";
+                } else if (lastMessage.encryptedMediaUrls != null && lastMessage.encryptedMediaUrls.length > 0) {
+                    contentTemp = "Media";
+                } else if (lastMessage.encryptedFileUrls != null && lastMessage.encryptedFileUrls.length > 0) {
+                    contentTemp = "File";
+                } else {
+                    lastMessage.content = lastMessage.content || "[Unable to decrypt message]";
+                    contentTemp = lastMessage.content;
+                }
+                lastMessage.mediaUrls = lastMessage.encryptedMediaUrls
+                    ? await decryptArray(lastMessage.encryptedMediaUrls, groupId, currentUserId)
+                    : [];
+                lastMessage.fileUrls = lastMessage.encryptedFileUrls
+                    ? await decryptArray(lastMessage.encryptedFileUrls, groupId, currentUserId)
+                    : [];
+                lastMessage.audioUrl = lastMessage.encryptedAudioUrl
+                    ? await decryptMessage(lastMessage.encryptedAudioUrl, groupId, currentUserId)
+                    : null;
+                setLastMessages((prev) => ({
+                    ...prev,
+                    [groupId]: contentTemp,
+                }));
+            } catch (error) {
+                console.error("Error decrypting group message in UpdateLastGroupMessage:", error);
+            }
+        });
+
+        // Обработчик получения нового сообщения в группе
+        newConnection.on("ReceiveGroupMessage", async (receivedMessage) => {
+            try {
+                let contentTemp;
+                if (receivedMessage.encryptedContent != null) {
+                    receivedMessage.content = await decryptMessage(receivedMessage.encryptedContent, selectedGroupChatId, currentUserId);
+                    contentTemp = receivedMessage.content;
+                } else if (receivedMessage.encryptedAudioUrl != null) {
+                    contentTemp = "Audio";
+                } else if (receivedMessage.encryptedMediaUrls != null && receivedMessage.encryptedMediaUrls.length > 0) {
+                    contentTemp = "Media";
+                } else if (receivedMessage.encryptedFileUrls != null && receivedMessage.encryptedFileUrls.length > 0) {
+                    contentTemp = "File";
+                } else {
+                    receivedMessage.content = receivedMessage.content || "[Unable to decrypt message]";
+                    contentTemp = receivedMessage.content;
+                }
+                receivedMessage.mediaUrls = receivedMessage.encryptedMediaUrls
+                    ? await decryptArray(receivedMessage.encryptedMediaUrls, selectedGroupChatId, currentUserId)
+                    : [];
+                receivedMessage.fileUrls = receivedMessage.encryptedFileUrls
+                    ? await decryptArray(receivedMessage.encryptedFileUrls, selectedGroupChatId, currentUserId)
+                    : [];
+                receivedMessage.audioUrl = receivedMessage.encryptedAudioUrl
+                    ? await decryptMessage(receivedMessage.encryptedAudioUrl, selectedGroupChatId, currentUserId)
+                    : null;
+                console.log("Received group message:", receivedMessage.content);
+                setMessages((prev) => [...prev, receivedMessage]);
+                setLastMessages((prev) => ({
+                    ...prev,
+                    [selectedGroupChatId]: contentTemp,
+                }));
+            } catch (error) {
+                console.error("Error decrypting group message in ReceiveGroupMessage:", error);
+            }
+        });
+
+        // Обработчик обновления сообщения
+        newConnection.on("UpdateGroupMessage", async (updatedMessage) => {
+            console.log("Received updated group message via SignalR:", updatedMessage);
+            if (updatedMessage.encryptedContent) {
+                updatedMessage.content = await decryptMessage(updatedMessage.encryptedContent, selectedGroupChatId, currentUserId);
+            }
+            if (updatedMessage.encryptedMediaUrls) {
+                updatedMessage.mediaUrls = await decryptArray(updatedMessage.encryptedMediaUrls, selectedGroupChatId, currentUserId);
+            }
+            if (updatedMessage.encryptedFileUrls) {
+                updatedMessage.fileUrls = await decryptArray(updatedMessage.encryptedFileUrls, selectedGroupChatId, currentUserId);
+            }
+            if (updatedMessage.encryptedAudioUrl) {
+                updatedMessage.audioUrl = await decryptMessage(updatedMessage.encryptedAudioUrl, selectedGroupChatId, currentUserId);
+            }
+            setMessages((prev) =>
+                prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+            );
+        });
+
+        // Обработчик удаления сообщения
+        newConnection.on("GroupMessageDeleted", (messageId) => {
+            console.log("Group message deleted:", messageId);
+            setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+        });
+
+        newConnection.onclose(async () => {
+            console.warn("SignalR connection lost. Reconnecting...");
+            try {
+                await hubConnection.start();
+                console.log("SignalR reconnected.");
+            } catch (err) {
+                console.error("Failed to reconnect to SignalR:", err);
+            }
+        });
+
+        newConnection
+            .start()
+            .then(() => {
+                console.log("Group SignalR connection completed");
+                setHubConnection(newConnection);
+            })
+            .catch((err) => console.error("Error establishing SignalR connection:", err));
+
+        return () => {
+            if (newConnection) {
+                newConnection.stop();
+            }
+        };
+    }, [currentUserId, selectedGroupChatId]);
+
+
+    //SignalR=------------------
 
     useEffect(() => {
         if (selectedGroupChatId) {
@@ -601,7 +761,153 @@ const GroupChatPage = () => {
         );
     };
 
-    // Handle для удаления пользователей
+    // Функции decryptGroupMessage, encryptGroupMessage, decryptArray, encryptArray,
+    // arrayBufferToBase64 – должны быть определены или импортированы
+    const decryptUsingSymmetricKey = async (encryptedMessageBase64, symmetricKeyBase64) => {
+        // Преобразуем симметричный ключ из base64 в ArrayBuffer
+        const symmetricKeyBuffer = Uint8Array.from(atob(symmetricKeyBase64), c => c.charCodeAt(0)).buffer;
+        // Импортируем симметричный ключ для AES-GCM
+        const symmetricKey = await window.crypto.subtle.importKey(
+            "raw",
+            symmetricKeyBuffer,
+            { name: "AES-GCM" },
+            false,
+            ["decrypt"]
+        );
+        // Декодируем зашифрованное сообщение из base64 в Uint8Array
+        const encryptedMessageArray = Uint8Array.from(
+            atob(encryptedMessageBase64),
+            c => c.charCodeAt(0)
+        );
+        // Первые 12 байт – IV
+        const iv = encryptedMessageArray.slice(0, 12);
+        const ciphertext = encryptedMessageArray.slice(12).buffer;
+        // Дешифруем сообщение
+        const decryptedBuffer = await window.crypto.subtle.decrypt(
+            { name: "AES-GCM", iv: iv },
+            symmetricKey,
+            ciphertext
+        );
+        const decoder = new TextDecoder();
+        return decoder.decode(decryptedBuffer);
+    };
+
+    // Функция для шифрования с использованием заданного симметричного ключа (в base64)
+    const encryptUsingSymmetricKey = async (plainText, symmetricKeyBase64) => {
+        // Преобразуем симметричный ключ из base64 в ArrayBuffer
+        const symmetricKeyBuffer = Uint8Array.from(atob(symmetricKeyBase64), c => c.charCodeAt(0)).buffer;
+        // Импортируем симметричный ключ для AES-GCM
+        const symmetricKey = await window.crypto.subtle.importKey(
+            "raw",
+            symmetricKeyBuffer,
+            { name: "AES-GCM" },
+            false,
+            ["encrypt"]
+        );
+        // Генерируем случайный IV (12 байт)
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encoder = new TextEncoder();
+        const encodedMessage = encoder.encode(plainText);
+        const encryptedBuffer = await window.crypto.subtle.encrypt(
+            { name: "AES-GCM", iv: iv },
+            symmetricKey,
+            encodedMessage
+        );
+        // Объединяем IV и зашифрованные данные
+        const combined = new Uint8Array(iv.byteLength + encryptedBuffer.byteLength);
+        combined.set(iv, 0);
+        combined.set(new Uint8Array(encryptedBuffer), iv.byteLength);
+        return btoa(String.fromCharCode(...combined));
+    };
+
+    const reEncryptGroupMessages = async (oldSymmetricKeyBase64, newSymmetricKeyBase64) => {
+        try {
+            const updatedMessages = await Promise.all(
+                messages.map(async (msg) => {
+                    // Дешифруем текстовое сообщение с использованием старого ключа (если оно есть)
+                    const plainContent = msg.encryptedContent
+                        ? await decryptUsingSymmetricKey(msg.encryptedContent, oldSymmetricKeyBase64)
+                        : null;
+                    // Затем заново шифруем его новым ключом
+                    const newEncryptedContent = plainContent
+                        ? await encryptUsingSymmetricKey(plainContent, newSymmetricKeyBase64)
+                        : null;
+
+                    // Обработка изображений
+                    const plainMediaUrls =
+                        msg.encryptedMediaUrls && msg.encryptedMediaUrls.length > 0
+                            ? await Promise.all(
+                                msg.encryptedMediaUrls.map(async (encryptedUrl) =>
+                                    await decryptUsingSymmetricKey(encryptedUrl, oldSymmetricKeyBase64)
+                                )
+                            )
+                            : [];
+                    const newEncryptedMediaUrls =
+                        plainMediaUrls.length > 0
+                            ? await Promise.all(
+                                plainMediaUrls.map(async (plainUrl) =>
+                                    await encryptUsingSymmetricKey(plainUrl, newSymmetricKeyBase64)
+                                )
+                            )
+                            : [];
+
+                    // Обработка файлов
+                    const plainFileUrls =
+                        msg.encryptedFileUrls && msg.encryptedFileUrls.length > 0
+                            ? await Promise.all(
+                                msg.encryptedFileUrls.map(async (encryptedUrl) =>
+                                    await decryptUsingSymmetricKey(encryptedUrl, oldSymmetricKeyBase64)
+                                )
+                            )
+                            : [];
+                    const newEncryptedFileUrls =
+                        plainFileUrls.length > 0
+                            ? await Promise.all(
+                                plainFileUrls.map(async (plainUrl) =>
+                                    await encryptUsingSymmetricKey(plainUrl, newSymmetricKeyBase64)
+                                )
+                            )
+                            : [];
+
+                    // Обработка аудио
+                    const plainAudioUrl = msg.encryptedAudioUrl
+                        ? await decryptUsingSymmetricKey(msg.encryptedAudioUrl, oldSymmetricKeyBase64)
+                        : null;
+                    const newEncryptedAudioUrl = plainAudioUrl
+                        ? await encryptUsingSymmetricKey(plainAudioUrl, newSymmetricKeyBase64)
+                        : null;
+
+                    return {
+                        id: msg.id,
+                        senderId: msg.senderId,
+                        groupId: msg.groupId,
+                        encryptedContent: newEncryptedContent,
+                        messageType: msg.messageType,
+                        encryptedMediaUrls: newEncryptedMediaUrls,
+                        encryptedFileUrls: newEncryptedFileUrls,
+                        encryptedAudioUrl: newEncryptedAudioUrl,
+                    };
+                })
+            );
+
+            const response = await fetch("/api/Message/UpdateGroupMessages", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ groupId: selectedGroupChatId, messages: updatedMessages }),
+            });
+            if (response.ok) {
+                antdMessage.success("Group messages re-encrypted successfully");
+                fetchMessages(selectedGroupChatId);
+            } else {
+                antdMessage.error("Failed to update group messages");
+            }
+        } catch (error) {
+            console.error("Error re-encrypting group messages:", error);
+            antdMessage.error("Error re-encrypting group messages");
+        }
+    };
+
+
 
     const handleRemoveParticipants = async () => {
         if (participantsToRemove.length === 0) {
@@ -609,40 +915,56 @@ const GroupChatPage = () => {
             return;
         }
 
-        // Вычисляем список оставшихся участников (исключая удаляемых)
+        // Вычисляем оставшихся участников
         const remainingParticipants = groupParticipants.filter(
             (participant) => !participantsToRemove.includes(participant.userId)
         );
         const remainingUserIds = remainingParticipants.map((participant) => participant.userId);
 
         try {
-            // Генерируем новый групповой ключ (например, ArrayBuffer)
+
+            const currentUserPrivateKeyString = localStorage.getItem("privateKey");
+            if (!currentUserPrivateKeyString) {
+                throw new Error("Private key not found in localStorage.");
+            }
+
+            // Запрашиваем зашифрованный групповой ключ с сервера
+            const keyResponse = await fetch(`/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`);
+            if (!keyResponse.ok) {
+                throw new Error(`HTTP error! Status: ${keyResponse.status}`);
+            }
+            const keyData = await keyResponse.json();
+
+            const encryptedGroupKey = keyData.encryptedGroupKey;
+
+
+            // Расшифровываем групповой ключ с использованием приватного ключа
+            const oldSymmetricKeyArrayBuffer = await decryptGroupKey(encryptedGroupKey, currentUserPrivateKeyString);
+            const oldSymmetricKeyBase64 = arrayBufferToBase64(oldSymmetricKeyArrayBuffer);
+
+            // Генерируем новый групповой ключ (старый ключ нужно сохранить до удаления, если он уже используется)
             const newGroupKey = generateGroupKey();
 
-            // Шифруем новый ключ для каждого оставшегося участника
-            // Функция prepareEncryptedKeysForGroup возвращает объект вида: { [userId]: encryptedKey }
+            // Шифруем новый ключ для оставшихся участников
             const encryptedKeys = await prepareEncryptedKeysForGroup(newGroupKey, remainingUserIds);
 
-            // Формируем массив обновлённых данных участников
+            // Формируем обновлённые данные участников
             const updatedParticipants = remainingUserIds.map((userId) => ({
                 UserId: userId,
                 EncryptedGroupKey: encryptedKeys[userId],
             }));
 
-            // Формируем тело запроса согласно RemoveParticipantsRequest
+            // Формируем тело запроса для удаления участников
             const removeRequest = {
-                GroupId: selectedGroupChatId,         // Идентификатор группы
-                SenderId: currentUserId,                // Идентификатор отправителя (админа)
-                ParticipantIds: participantsToRemove,   // Массив id участников для удаления
+                GroupId: selectedGroupChatId,
+                SenderId: currentUserId,
+                ParticipantIds: participantsToRemove,
                 UpdatedParticipants: updatedParticipants,
             };
 
-            // Отправляем DELETE-запрос на сервер
             const response = await fetch("/api/Group/RemoveParticipants", {
                 method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(removeRequest),
             });
 
@@ -653,14 +975,23 @@ const GroupChatPage = () => {
 
             antdMessage.success("Participants removed successfully and group key updated!");
 
-            // Обновляем локальное состояние: удаляем участников из списка группы
+            // Обновляем локальное состояние участников
             setGroupParticipants(remainingParticipants);
             setParticipantsToRemove([]);
+
+            // Преобразуем новый групповой ключ в base64
+            const newSymmetricKeyBase64 = arrayBufferToBase64(newGroupKey);
+            // Здесь oldSymmetricKeyBase64 – это тот ключ, который использовался ранее для шифрования сообщений.
+            // Его вы должны сохранить где-то до вызова handleRemoveParticipants.
+            await reEncryptGroupMessages(oldSymmetricKeyBase64, newSymmetricKeyBase64);
         } catch (error) {
             console.error("Error removing participants:", error);
             antdMessage.error("Failed to remove participants.");
         }
     };
+
+
+
 
 
     const toggleParticipant = (contactId) => {
@@ -814,6 +1145,7 @@ const GroupChatPage = () => {
             console.log("DecryptARRAY" , decryptedMessages)
             setMessages(decryptedMessages || []);
         } catch (error) {
+            setMessages([]);
             console.error("An error occurred while fetching group messages:", error);
         }
     };

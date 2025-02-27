@@ -4,6 +4,7 @@ namespace AmigosGramProject.Server.DTOs
 {
     public class GroupMessageDTO
     {
+        public int Id { get; set; }
         public string GroupId { get; set; }  // изменено с int на string
         public string SenderId { get; set; }
         public string? EncryptedContent { get; set; }

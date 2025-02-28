@@ -250,3 +250,86 @@
 .participant-checkbox {
     margin-right: 10px; /* Отступ между чекбоксом и текстом */
 }
+/* Общий контейнер для каждого сообщения */
+.message-row {
+  display: flex;
+  margin: 8px 0;
+  /* По умолчанию сообщения будут «полученными» (слева) */
+  justify-content: flex-start;
+  align-items: flex-end; /* Аватарка и bubble выровнены по нижней границе */
+}
+
+/* Для «отправленных» сообщений меняем направление выравнивания */
+.message-row.sent {
+  justify-content: flex-end; /* Прижимаем к правому краю */
+}
+
+/* Обёртка под аватарку */
+.avatar-wrap {
+  margin: 0 8px;
+}
+
+/* Сам bubble */
+.message-bubble {
+    background: #f0f0f0;
+    border-radius: 8px;
+    padding: 8px 12px;
+    max-width: 85%; /* Увеличили ширину */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+
+/* Имя отправителя чуть выше текста */
+.sender-name {
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #333;
+}
+
+/* Текст сообщения */
+.message-text {
+  margin: 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* Время отправки (внизу bubble) */
+.message-time {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 4px;
+  text-align: right;
+}
+
+.file-list {
+    display: flex;
+    flex-direction: column; /* Располагаем кнопки вертикально */
+    gap: 4px; /* Отступ между кнопками */
+}
+
+    /* Применяем стили к кнопкам Ant Design внутри .file-list */
+    .file-list .ant-btn,
+    .file-list .ant-btn-link {
+        background-color: #fff;
+        border-radius: 4px;
+        color: #555;
+        text-align: left;
+        padding: 4px 8px;
+        margin: 0;
+        box-shadow: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px; /* Отступ между иконкой и текстом */
+    }
+
+        .file-list .ant-btn:hover,
+        .file-list .ant-btn-link:hover {
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+    .file-list .anticon {
+        font-size: 16px;
+    }

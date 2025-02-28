@@ -216,8 +216,37 @@ namespace AmigosGramProject.Server.Controllers
             // Возвращаем зашифрованный групповой ключ участника
             return Ok(new {member.EncryptedGroupKey });
         }
+        [HttpPut("updateGroup")]
+        public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupDto updateGroupDto)
+        {
+            if (updateGroupDto == null)
+            {
+                return BadRequest("Update data is required.");
+            }
 
+            var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == updateGroupDto.GroupId);
+            if (group == null)
+            {
+                return NotFound("Group not found.");
+            }
 
+            // Проверяем, что только администратор может обновлять настройки
+            if (group.AdminId != updateGroupDto.AdminId)
+            {
+                return Forbid("Only group admin can update settings.");
+            }
 
+            group.Name = updateGroupDto.Name;
+            group.Description = updateGroupDto.Description;
+            group.AvatarUrl = updateGroupDto.AvatarUrl;
+
+            _context.Groups.Update(group);
+            await _context.SaveChangesAsync();
+
+            return Ok(group);
+        }
     }
+
+
 }
+

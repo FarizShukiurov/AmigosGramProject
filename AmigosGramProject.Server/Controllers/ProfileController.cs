@@ -2,6 +2,7 @@
 using Azure.Storage.Blobs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -29,6 +30,29 @@ namespace AmigosGramProject.Server.Controllers
                 return null;
 
             return _dbContext.Users.FirstOrDefault(u => u.Id == userIdClaim);
+        }
+
+        [HttpGet("get-user-data-by-id")]
+        public async Task<IActionResult> GetUserDataById([FromQuery] string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest("UserId is required.");
+            }
+
+            // Предполагается, что у вас есть сущность User с полями UserName и AvatarUrl.
+            var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return NotFound("User not found.");
+            }
+
+            // Возвращаем необходимые данные (поля можно расширять по необходимости)
+            return Ok(new
+            {
+                userName = user.UserName,
+                avatarUrl = user.AvatarUrl
+            });
         }
 
         // Загрузка аватара

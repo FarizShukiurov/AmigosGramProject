@@ -114,6 +114,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '^/api/Profile/get-user-data-by-id': {
+                target,
+                secure: false,
+            },
             '^/api/Profile/set-avatar-url': {
                 target,
                 secure: false,
@@ -221,6 +225,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },'/api/Group/GetGroupKey': {
+                target,
+                secure: false,
+            },
+            '/api/Group/updateGroup': {
                 target,
                 secure: false,
             },

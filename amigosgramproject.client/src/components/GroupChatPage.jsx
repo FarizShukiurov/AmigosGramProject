@@ -92,6 +92,9 @@ const GroupChatPage = () => {
 
     const [previousGroupId, setPreviousGroupId] = useState(null);
     const [hubConnection, setHubConnection] = useState(null);
+
+    const [userProfiles, setUserProfiles] = useState({});
+
     // Логирование для отладки
     useEffect(() => {
         console.log("GroupChats:", groupChats);
@@ -341,6 +344,41 @@ const GroupChatPage = () => {
             setUploadedImageUrls((prev) => [...prev, uploadedUrl]);
         }
     };
+    const handleUpdateGroup = async () => {
+        // Формируем объект DTO для обновления
+        const updateData = {
+            GroupId: groupSettings.id,      // тип Guid (строка)
+            AdminId: currentUserId,           // текущий пользователь должен быть админом
+            Name: groupSettings.groupName,    // новое имя
+            Description: groupSettings.description, // новое описание
+            AvatarUrl: groupSettings.avatarUrl,     // новый URL аватарки (если обновлён)
+        };
+
+        try {
+            const response = await fetch("/api/Group/updateGroup", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updateData),
+            });
+            if (response.ok) {
+                const updatedGroup = await response.json();
+                // Обновляем состояние групп, например, через setGroupChats:
+                setGroupChats((prev) =>
+                    prev.map((group) =>
+                        group.id === updatedGroup.id ? updatedGroup : group
+                    )
+                );
+                setGroupSettingsModalVisible(false);
+                antdMessage.success("Group updated successfully!");
+            } else {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+        } catch (error) {
+            console.error("Error updating group:", error);
+            antdMessage.error("Failed to update group.");
+        }
+    };
 
     const handleOpenGroupSettings = (group) => {
         setGroupSettings(group);
@@ -385,13 +423,10 @@ const GroupChatPage = () => {
         antdMessage.success("Group deleted successfully!");
     };
     const formatTimestamp = (timestamp) => {
-        if (!timestamp) return "";
-        const dateObj = new Date(timestamp);
-        if (isNaN(dateObj.getTime())) {
-            return "";
-        }
-        return format(dateObj, "HH:mm");
+        const date = new Date(timestamp);
+        return isNaN(date.getTime()) ? "" : format(date, "HH:mm");
     };
+
     // Функция для получения публичного ключа пользователя
     const fetchUserPublicKey = async (userId) => {
         try {
@@ -1027,6 +1062,7 @@ const GroupChatPage = () => {
     };
     const decryptMessage = async (encryptedMessageBase64, groupId, currentUserId) => {
         try {
+
             console.log("Fetching encrypted group key...");
             // Запрашиваем зашифрованный групповой ключ с сервера
             const groupKeyResponse = await fetch(`/api/Group/GetGroupKey/${groupId}/${currentUserId}`);
@@ -1131,7 +1167,7 @@ const GroupChatPage = () => {
                             ? await decryptMessage(msg.encryptedAudioUrl, groupId, currentUserId)
                             : null;
                         // Преобразуем время из строки в объект Date
-                        msg.timestamp = new Date(msg.Timestamp);
+                        msg.timestamp = new Date(msg.timestamp || msg.Timestamp);
                     } catch (error) {
                         console.error(`Error decrypting group message with ID ${msg.Id}:`, error);
                         msg.content = "[Error: Unable to decrypt message]";
@@ -1502,90 +1538,100 @@ const GroupChatPage = () => {
             setIsVideoRecording(false);
         }
     };
+    const fetchUserProfile = async (senderId) => {
+        try {
+            const response = await fetch(`/api/Profile/get-user-data-by-id?userId=${senderId}`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch user profile");
+            }
+            const data = await response.json();
+            // Сохраняем данные с полями userName и avatarUrl
+            setUserProfiles((prev) => ({ ...prev, [senderId]: data }));
+            return data;
+        } catch (error) {
+            console.error("Error fetching user profile:", error);
+            return { userName: senderId, avatarUrl: "/default-avatar.png" };
+        }
+    };
+
+
+
+    // В функции renderGroupMessage можно сделать так:
     const renderGroupMessage = (msg) => {
         const isCurrentUserSender = msg.senderId === currentUserId;
+        const profile = userProfiles[msg.senderId] || { username: msg.senderId, avatarUrl: "/default-avatar.png" };
+        const senderName = profile.userName;
+        const avatarSrc = profile.avatarUrl;
+
+        // Если профиль не найден, запускаем запрос
+        if (!userProfiles[msg.senderId]) {
+            fetchUserProfile(msg.senderId);
+        }
+
         return (
             <div
                 key={msg.id}
-                className={`message ${isCurrentUserSender ? "sent" : "received"}`}
-                onContextMenu={(e) => handleContextMenu(e, msg)}
+                className={`message-row ${isCurrentUserSender ? "sent" : "received"}`}
             >
-                {editingMessage && editingMessage.id === msg.id ? (
-                    <div className="edit-message-container">
-                        <Input.TextArea
-                            value={editedText}
-                            onChange={(e) => setEditedText(e.target.value)}
-                            rows={3}
-                            style={{ marginBottom: "8px" }}
-                        />
-                        <Space>
-                            <Button type="primary" onClick={handleSaveEdit}>
-                                Сохранить
-                            </Button>
-                            <Button
-                                onClick={() => {
-                                    setEditingMessage(null);
-                                    setEditedText("");
-                                }}
-                            >
-                                Отменить
-                            </Button>
-                        </Space>
-                    </div>
-                ) : (
-                    <>
-                        <div className="message-bubble">
-                            {msg.content && <p className="message-content">{msg.content}</p>}
+                {/* Аватарка и «обёртка» содержимого */}
+                <div className="avatar-wrap">
+                    <Avatar size={32} src={avatarSrc}>
+                        {!avatarSrc && senderName.charAt(0)}
+                    </Avatar>
+                </div>
 
-                            {/* Если есть изображения, отображаем их */}
-                            {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                                <div className="image-gallery">
-                                    {msg.mediaUrls.map((url, index) => (
-                                        <Image
-                                            key={index}
-                                            width={200}
-                                            src={url}
-                                            alt={`Uploaded media ${index + 1}`}
-                                            style={{ margin: "8px 0" }}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                <div className="message-bubble">
+                    <div className="sender-name">{senderName}</div>
+                    {msg.content && <p className="message-text">{msg.content}</p>}
 
-                            {/* Если есть файлы, отображаем ссылки для загрузки */}
-                            {msg.fileUrls && msg.fileUrls.length > 0 && (
-                                <div className="file-list">
-                                    {msg.fileUrls.map((url, index) => (
-                                        <Button
-                                            key={index}
-                                            type="link"
-                                            href={url}
-                                            target="_blank"
-                                            icon={<FileOutlined />}
-                                            style={{ display: "block", margin: "4px 0" }}
-                                        >
-                                            Download File {index + 1}
-                                        </Button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {/* Если есть аудио, отображаем плеер */}
-                            {msg.audioUrl && (
-                                <div className="audio-player">
-                                    <audio controls>
-                                        <source src={msg.audioUrl} type="audio/mpeg" />
-                                        Your browser does not support the audio element.
-                                    </audio>
-                                </div>
-                            )}
+                    {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                        <div className="image-gallery">
+                            {msg.mediaUrls.map((url, index) => (
+                                <Image
+                                    key={index}
+                                    width={200}
+                                    src={url}
+                                    alt={`Uploaded media ${index + 1}`}
+                                    style={{ margin: "8px 0" }}
+                                />
+                            ))}
                         </div>
-                        <span className="message-time">{formatTimestamp(msg.timestamp)}</span>
-                    </>
-                )}
+                    )}
+
+                    {msg.fileUrls && msg.fileUrls.length > 0 && (
+                        <div className="file-list">
+                            {msg.fileUrls.map((url, index) => (
+                                <Button
+                                    key={index}
+                                    type="link"
+                                    href={url}
+                                    target="_blank"
+                                    icon={<FileOutlined />}
+                                    style={{ display: "block", margin: "4px 0" }}
+                                >
+                                    Download File {index + 1}
+                                </Button>
+                            ))}
+                        </div>
+                    )}
+
+                    {msg.audioUrl && (
+                        <div className="audio-player">
+                            <audio controls>
+                                <source src={msg.audioUrl} type="audio/mpeg" />
+                                Your browser does not support the audio element.
+                            </audio>
+                        </div>
+                    )}
+                    <div className="message-time">
+                        {formatTimestamp(msg.timestamp || msg.Timestamp)}
+                    </div>
+                </div>
             </div>
         );
     };
+
+
 
 
     const renderGroupMenu = (group) => (

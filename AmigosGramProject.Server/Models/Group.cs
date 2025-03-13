@@ -6,6 +6,7 @@
         public string Name { get; set; }
         public string Description { get; set; }
         public string AdminId { get; set; }
+        //public string? AvatarUrl { get; set; }
         public DateTime CreatedDate { get; set; }
         public ICollection<GroupMember> Members { get; set; } = new List<GroupMember>();
     }

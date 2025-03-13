@@ -392,6 +392,10 @@ function ChatPage() {
             );
         });
 
+        newConnection.on("FetchUserContacts", () => {
+            fetchContacts();
+        });
+
         newConnection.on("MessageDeleted", (messageId) => {
             console.log("Message deleted:", messageId);
             setMessages((prevMessages) =>
@@ -430,6 +434,8 @@ function ChatPage() {
             fetchContacts();
         }
     }, [currentUserId]);
+
+
 
     const fetchContacts = async () => {
         try {

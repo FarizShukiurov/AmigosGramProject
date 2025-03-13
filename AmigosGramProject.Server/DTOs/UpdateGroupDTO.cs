@@ -6,6 +6,6 @@
         public string AdminId { get; set; }      // Идентификатор администратора (тот, кто меняет настройки)
         public string Name { get; set; }         // Новое имя группы
         public string Description { get; set; }  // Новое описание
-        public string AvatarUrl { get; set; }    // Новый URL аватарки (можно обновлять)
+        public string? AvatarUrl { get; set; }    // Новый URL аватарки (можно обновлять)
     }
 }

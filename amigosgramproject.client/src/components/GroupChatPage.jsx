@@ -167,6 +167,9 @@ const GroupChatPage = () => {
                 console.error("Error decrypting group message in UpdateLastGroupMessage:", error);
             }
         });
+        newConnection.on("FetchUserGroups", () => {
+            fetchUserGroups();
+        });
 
         // Обработчик получения нового сообщения в группе
         newConnection.on("ReceiveGroupMessage", async (receivedMessage) => {
@@ -286,21 +289,7 @@ const GroupChatPage = () => {
             }
         };
 
-        const fetchUserGroups = async () => {
-            if (!currentUserId) return;
-            try {
-                const response = await fetch(`/api/Group/GetUserGroups?userId=${currentUserId}`);
-                if (!response.ok) {
-                    throw new Error("Failed to fetch user groups.");
-                }
-                const groups = await response.json();
-                console.log("Fetched groups:", groups);
-                setGroupChats(groups);
-            } catch (error) {
-                console.error("Failed to load user groups:", error);
-                antdMessage.error("Failed to load user groups.");
-            }
-        };
+        
 
         fetchContacts();
         fetchUserGroups();
@@ -333,7 +322,21 @@ const GroupChatPage = () => {
         }
     }, [selectedGroupChatId]);
 
-
+    const fetchUserGroups = async () => {
+        if (!currentUserId) return;
+        try {
+            const response = await fetch(`/api/Group/GetUserGroups?userId=${currentUserId}`);
+            if (!response.ok) {
+                throw new Error("Failed to fetch user groups.");
+            }
+            const groups = await response.json();
+            console.log("Fetched groups:", groups);
+            setGroupChats(groups);
+        } catch (error) {
+            console.error("Failed to load user groups:", error);
+            antdMessage.error("Failed to load user groups.");
+        }
+    };
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };

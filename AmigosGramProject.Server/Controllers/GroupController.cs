@@ -1,7 +1,9 @@
 ﻿using AmigosGramProject.Server.DTOs;
+using AmigosGramProject.Server.Hubs;
 using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace AmigosGramProject.Server.Controllers
@@ -11,10 +13,11 @@ namespace AmigosGramProject.Server.Controllers
     public class GroupController : ControllerBase
     {
         private readonly ChatDbContext _context;
-
-        public GroupController(ChatDbContext context)
+        private readonly IHubContext<ChatHub> _hubContext;
+        public GroupController(ChatDbContext context, IHubContext<ChatHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // 1. Создание группы
@@ -54,6 +57,12 @@ namespace AmigosGramProject.Server.Controllers
             // Сохраняем группу и участников
             _context.Groups.Add(group);
             await _context.SaveChangesAsync();
+
+            foreach (var member in group.Members)
+            {
+                await _hubContext.Clients.User(member.UserId.ToString())
+                    .SendAsync("FetchUserGroups");
+            }
 
             return Ok(new { groupId = group.Id });
         }

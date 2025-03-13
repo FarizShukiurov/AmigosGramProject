@@ -1,0 +1,197 @@
+/* Основной контейнер с тёмным фоном и белым текстом */
+.contacts-mobile {
+    background-color: #1e1e2f;
+    color: #fff;
+    min-height: 100vh;
+    padding: 10px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    box-sizing: border-box;
+}
+
+/* Хедер с заголовком */
+.contacts-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #333;
+}
+
+.header-title {
+    font-size: 24px;
+    margin: 0;
+}
+
+/* Стили для вкладок */
+.contacts-tabs .ant-tabs-nav {
+    margin: 0;
+    border-bottom: 1px solid #333;
+}
+
+.contacts-tabs .ant-tabs-nav-list {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+}
+
+.contacts-tabs .ant-tabs-tab {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    padding: 10px 0;
+    margin: 0;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.contacts-tabs .ant-tabs-tab-active {
+    border-bottom: 3px solid #1890ff;
+    font-weight: bold;
+}
+
+/* Стили для поиска */
+.contacts-search {
+    width: 100%;
+    margin-bottom: 10px;
+    background-color: #2a2a3d;
+    border: 1px solid #444;
+    color: #fff;
+}
+
+    .contacts-search input {
+        background-color: #2a2a3d;
+        color: #fff;
+    }
+
+/* Стили для элементов списка */
+.contact-item {
+    background-color: #2a2a3d;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+    .contact-item .ant-list-item-meta {
+        display: flex;
+        align-items: center;
+    }
+
+    .contact-item .ant-avatar {
+        margin-right: 10px;
+    }
+
+/* Текст контакта */
+.contact-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.contact-email {
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* Блок действий с кнопками */
+.contact-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.vertical-actions {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.action-btn {
+    font-size: 12px;
+    padding: 4px 8px;
+    background-color: #1890ff;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+}
+
+    .action-btn:hover {
+        background-color: #40a9ff;
+    }
+
+/* Спиннер */
+.contacts-spin {
+    display: block;
+    margin: 20px auto;
+}
+
+/* Модальное окно */
+.profile-modal-mobile .ant-modal-content {
+    background-color: #2a2a3d;
+    border-radius: 8px;
+}
+
+.profile-modal-mobile .ant-modal-close {
+    right: auto;
+    left: 15px;
+}
+
+.profile-modal-mobile .ant-modal-close-x {
+    color: #fff;
+}
+
+.profile-modal-mobile .ant-modal-body {
+    padding: 15px;
+}
+
+.profile-content-mobile {
+    text-align: center;
+}
+
+.profile-name-mobile {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0 5px;
+}
+
+.profile-email-mobile,
+.profile-bio-mobile {
+    font-size: 14px;
+    color: #ccc;
+}
+
+/* Адаптивные стили для маленьких экранов */
+@media (max-width: 480px) {
+    .header-title {
+        font-size: 20px;
+    }
+
+    .contacts-tabs .ant-tabs-tab {
+        font-size: 12px;
+        padding: 8px 0;
+    }
+
+    .contact-name {
+        font-size: 14px;
+    }
+
+    .contact-email {
+        font-size: 12px;
+    }
+
+    .action-btn {
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .profile-name-mobile {
+        font-size: 18px;
+    }
+
+    .profile-email-mobile,
+    .profile-bio-mobile {
+        font-size: 12px;
+    }
+}

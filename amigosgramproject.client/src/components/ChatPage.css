@@ -255,16 +255,18 @@
 
 
 .message {
-    max-width: 60%;
+    max-width: 100%;
     padding: 10px;
     font-size: 1.2rem;
     line-height: 1.6;
     word-wrap: break-word;
+    word-wrap: break-word;
     overflow-wrap: break-word;
+    white-space: normal;
 }
 .message-bubble {
     background: rgba(0, 0, 0, 0.7); /* Серый цвет для сообщений */
-    color: white; /* Белый цвет текста */
+    color: #333; 
     padding: 12px 15px; /* Внутренние отступы */
     border-radius: 10px; /* Закругленные углы */
     position: relative; /* Относительное позиционирование */
@@ -286,6 +288,10 @@
     align-self: flex-end;
     color: white;
 }
+    .sent .message-bubble {
+        background: #333; /* синий цвет */
+        color: white;
+    }
 
 .received {
     align-self: flex-start;

@@ -238,7 +238,7 @@ namespace AmigosGramProject.Server.Controllers
 
             group.Name = updateGroupDto.Name;
             group.Description = updateGroupDto.Description;
-            group.AvatarUrl = updateGroupDto.AvatarUrl;
+            //group.AvatarUrl = updateGroupDto.AvatarUrl;
 
             _context.Groups.Update(group);
             await _context.SaveChangesAsync();

@@ -66,10 +66,12 @@ html, body {
         transform: translateX(50%);
         opacity: 0;
     }
+
     75% {
         transform: translateX(-5%);
         opacity: 1;
     }
+
     100% {
         transform: translateX(0);
         opacity: 1;
@@ -81,6 +83,7 @@ html, body {
         transform: translateX(0);
         opacity: 1;
     }
+
     100% {
         transform: translateX(-50%);
         opacity: 0;
@@ -93,9 +96,9 @@ html, body {
     color: #fff;
 }
 
-.switch-form a {
-    color: black;
-}
+    .switch-form a {
+        color: black;
+    }
 
 /* Стили для полей ввода */
 .panel input {
@@ -105,22 +108,22 @@ html, body {
     transition: all 0.3s ease;
 }
 
-/* Поле пароля */
-.panel input[type="password"] {
-    color: black !important; /* Черный текст для поля пароля */
-}
+    /* Поле пароля */
+    .panel input[type="password"] {
+        color: black !important;
+    }
 
-/* Поле пароля в режиме текста (показ пароля) */
-.panel input[type="text"].password-visible {
-    color: black !important; /* Черный текст, когда пароль отображается */
-}
+    /* Поле пароля в режиме текста (показ пароля) */
+    .panel input[type="text"].password-visible {
+        color: black !important;
+    }
 
-/* Фокус на любом поле */
-.panel input:focus {
-    outline: none;
-    border-color: white;
-    background-color: rgba(255, 255, 255, 0.1);
-}
+    /* Фокус на любом поле */
+    .panel input:focus {
+        outline: none;
+        border-color: white;
+        background-color: rgba(255, 255, 255, 0.1);
+    }
 
 /* Стили для кнопок */
 .custom-button {
@@ -129,21 +132,22 @@ html, body {
     border: 1px solid #d9d9d9 !important;
 }
 
-.custom-button:hover {
-    background-color: #f0f0f0 !important;
-    transition: 0.5s;
-    border: 1px solid darkgray !important;
-    color: darkgray !important;
-}
+    .custom-button:hover {
+        background-color: #f0f0f0 !important;
+        transition: 0.5s;
+        border: 1px solid darkgray !important;
+        color: darkgray !important;
+    }
+
 /* Стили только для полей email и username */
 input[name="username"]:hover,
 input[name="username"]:focus,
 input[name="email"]:hover,
 input[name="email"]:focus {
-    background-color: #141414 !important; /* Тёмный фон */
-    border-color: #555 !important; /* Цвет рамки */
-    color: white !important; /* Белый текст */
-    box-shadow: none !important; /* Убираем тень */
+    background-color: #141414 !important;
+    border-color: #555 !important;
+    color: white !important;
+    box-shadow: none !important;
 }
 
 /* Общие стили для этих полей */
@@ -167,4 +171,51 @@ input[name="email"] {
 .panel p,
 .panel a {
     color: white !important;
+}
+
+/* АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column; /* Вертикальное расположение */
+        align-items: center;
+        justify-content: center;
+    }
+
+    .info-section {
+        width: 100%;
+        text-align: center;
+        align-items: center;
+        padding: 30px;
+    }
+
+    .logo {
+        width: 100px;
+        margin-bottom: 10px;
+    }
+
+    .info-title {
+        font-size: 1.8rem;
+    }
+
+    .panel {
+        width: 100%;
+        padding: 30px;
+        border-radius: 0;
+        min-height: 69vh; /* Растягивает панель на всю высоту экрана */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+        .panel input {
+            width: 100%;
+            font-size: 1rem;
+            padding: 12px;
+        }
+
+    .custom-button {
+        width: 100%;
+        font-size: 1rem;
+        padding: 14px;
+    }
 }

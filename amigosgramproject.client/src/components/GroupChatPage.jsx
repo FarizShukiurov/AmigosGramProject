@@ -405,17 +405,6 @@ const GroupChatPage = () => {
         setIsFileModalVisible(false);
     };
 
-    const handleUpdateGroup = () => {
-        setGroupChats((prev) =>
-            prev.map((chat) =>
-                chat.id === groupSettings.id
-                    ? { ...chat, groupName: groupSettings.groupName, avatarUrl: groupSettings.avatarUrl }
-                    : chat
-            )
-        );
-        setGroupSettingsModalVisible(false);
-        antdMessage.success("Group updated successfully!");
-    };
 
     const handleDeleteGroup = () => {
         setGroupChats((prev) => prev.filter((chat) => chat.id !== groupSettings.id));

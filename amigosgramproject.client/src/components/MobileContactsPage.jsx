@@ -1,11 +1,13 @@
-﻿import { useState, useEffect } from 'react';
-import { Input, List, Avatar, Button, Spin, Tabs, Modal, Popconfirm, Tooltip } from 'antd';
-import { UserOutlined, DeleteOutlined } from '@ant-design/icons'; // Добавляем иконку корзины
-import './Contacts.css';
+﻿import { motion } from "framer-motion";
+import { Tabs, List, Avatar, Button, Input, Spin, Modal, Tooltip, Popconfirm } from "antd";
+import { UserOutlined, DeleteOutlined, SearchOutlined, ArrowLeftOutlined, PlusOutlined } from "@ant-design/icons";
+import { LeftOutlined } from "@ant-design/icons";
+import { useState, useEffect } from 'react';
+import './MobileContactsPage.css';
 
 const { TabPane } = Tabs;
 
-const Contacts = () => {
+const ContactsMobile = () => {
     const [activeTab, setActiveTab] = useState('contacts');
     const [contacts, setContacts] = useState([]);
     const [incomingRequests, setIncomingRequests] = useState([]);
@@ -16,6 +18,9 @@ const Contacts = () => {
     const [loading, setLoading] = useState(false);
     const [profileModalVisible, setProfileModalVisible] = useState(false);
     const [selectedProfile, setSelectedProfile] = useState(null);
+    const [blockedModalVisible, setBlockedModalVisible] = useState(false);
+    const openBlockedModal = () => setBlockedModalVisible(true);
+    const closeBlockedModal = () => setBlockedModalVisible(false);
 
     useEffect(() => {
         console.log("Incoming Requests:", incomingRequests);
@@ -131,8 +136,9 @@ const Contacts = () => {
             }
 
             const data = await response.json();
+            console.log("Search data received:", data);
 
-            // Проверяем, чтобы исключить дублирование
+            // Исключаем дублирование и добавляем флаги по запросам
             const updatedResults = data.map((contact) => {
                 const isRequestSent = outgoingRequests.some((req) => req.contactId === contact.contactId);
                 const isIncomingRequest = incomingRequests.some((req) => req.contactId === contact.contactId);
@@ -147,6 +153,7 @@ const Contacts = () => {
             });
 
             setSearchResults(updatedResults);
+            console.log("Updated search results:", updatedResults);
         } catch (error) {
             console.error('Error searching accounts:', error);
             alert('There was an issue with the search. Please try again later.');
@@ -154,6 +161,7 @@ const Contacts = () => {
             setLoading(false);
         }
     };
+
 
     const handleRespondToRequest = async (requestId, action) => {
         setLoading(true);
@@ -382,7 +390,7 @@ const Contacts = () => {
                             description={<span style={{ color: 'white' }}>{contact.email}</span>}
                         />
                         <div className="actions">
-                            <Button onClick={() => viewProfile(contact)}>View Profile</Button>  
+                            <Button onClick={() => viewProfile(contact)}>View Profile</Button>
                             {isBlocked ? (
                                 // Блокированные пользователи
                                 <Tooltip title="Unblock user">
@@ -418,19 +426,7 @@ const Contacts = () => {
                                         okText="Yes"
                                         cancelText="No"
                                     >
-                                            <Button
-                                                icon={<DeleteOutlined />}
-                                                danger
-                                                onClick={() => {
-                                                    const contactId = contact.id || contact.ContactId;
-                                                    if (contactId) {
-                                                        handleDeleteContact(contactId);
-                                                    } else {
-                                                        console.error("No contactId available for this contact:", contact);
-                                                    }
-                                                }}
-                                            >
-                                            </Button>
+                                        <Button icon={<DeleteOutlined />} danger />
                                     </Popconfirm>
                                 </Tooltip>
                             ) : isIncomingRequest ? (
@@ -509,144 +505,48 @@ const Contacts = () => {
             }}
         />
     );
-
-
     return (
-        <div className="contacts-page">
-            <h1 className="page-title">Contacts</h1>
-            <Tabs activeKey={activeTab} onChange={setActiveTab} className="tabs-container">
+        <div
+            className="mobile-contacts-page"
+            style={{
+                backgroundColor: '#222',
+                minHeight: '100vh',
+                color: 'white',
+            }}
+        >
+            <div className="mobile-search-bar" style={{ padding: '10px' }}>
+                <Input.Search
+                    placeholder="Search for users..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    onSearch={handleSearch}
+                    enterButton="Search"  // Добавляем кнопку поиска
+                    prefix={<SearchOutlined style={{ color: 'white' }} />}
+                    style={{
+                        borderRadius: '20px',
+                        backgroundColor: '#333',
+                        color: 'white',
+                        border: 'none',
+                    }}
+                />
+            </div>
+
+
+            {/* Вкладки для секций */}
+            <Tabs
+                activeKey={activeTab}
+                onChange={setActiveTab}
+                tabBarStyle={{ backgroundColor: '#333', color: 'white' }}
+                tabPosition="top"
+            >
                 <TabPane tab="Contacts" key="contacts">
-                    {loading ? <Spin size="large" /> : renderList(contacts, true)}
-                </TabPane>
-                <TabPane tab="Search" key="search">
-                    <Input.Search
-                        placeholder="Search for users..."
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        onSearch={handleSearch}
-                        className="search-input"
-                    />
-                    {loading ? (
-                        <Spin size="large" />
-                    ) : (
-                        <List
-                            dataSource={searchResults}
-                            renderItem={(contact) => {
-                                console.log("Rendering contact:", contact);
-
-                                const contactId = contact.contactId || contact.id; // Óíèâåðñàëüíàÿ ïðîâåðêà êëþ÷à ID
-
-                                // Ïðîâåðÿåì, íàõîäèòñÿ ëè ïîëüçîâàòåëü â ñïèñêå êîíòàêòîâ
-                                if (contacts.some((c) => c.contactId === contactId || c.id === contactId)) {
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
-                                            />
-                                            <div className="actions">
-                                                <Button disabled>Already in Contacts</Button>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                }
-
-                                // Ïðîâåðÿåì, íàõîäèòñÿ ëè ïîëüçîâàòåëü â ñïèñêå áëîêèðîâàííûõ
-                                if (blockedUsers.some((blocked) => blocked.contactId === contactId || blocked.id === contactId)) {
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
-                                            />
-                                            <div className="actions">
-                                                <Tooltip title="Unblock user">
-                                                    <Popconfirm
-                                                        title="Are you sure you want to unblock this user?"
-                                                        onConfirm={() => handleUnblockUser(contactId)}
-                                                        okText="Yes"
-                                                        cancelText="No"
-                                                    >
-                                                        <Button>Unblock</Button>
-                                                    </Popconfirm>
-                                                </Tooltip>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                }
-
-                                // Ïðîâåðÿåì, åñëè ïîëüçîâàòåëü îòïðàâèë âõîäÿùèé çàïðîñ
-                                if (incomingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
-                                            />
-                                            <div className="actions">
-                                                <Button
-                                                    onClick={() => handleRespondToRequest(contactId, "Accept")}
-                                                >
-                                                    Accept
-                                                </Button>
-                                                <Button
-                                                    onClick={() => handleRespondToRequest(contactId, "Decline")}
-                                                >
-                                                    Decline
-                                                </Button>
-                                                <Button
-                                                    onClick={() => handleRespondToRequest(contactId, "Block")}
-                                                >
-                                                    Block
-                                                </Button>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                }
-
-                                // Ïðîâåðÿåì, åñëè ýòî èñõîäÿùèé çàïðîñ
-                                if (outgoingRequests.some((req) => req.contactId === contactId || req.id === contactId)) {
-                                    return (
-                                        <List.Item className="list-item">
-                                            <List.Item.Meta
-                                                avatar={
-                                                    <Avatar
-                                                        src={contact.avatarUrl}
-                                                        icon={!contact.avatarUrl && <UserOutlined />}
-                                                    />
-                                                }
-                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                                description={<span style={{ color: 'white' }}>{contact.email}</span>}
-                                            />
-                                            <div className="actions">
-                                                <Button onClick={() => handleDeleteRequest(contactId)}>
-                                                    Delete Request
-                                                </Button>
-                                            </div>
-                                        </List.Item>
-                                    );
-                                }
-
-                                // Åñëè ïîëüçîâàòåëü íîâûé (íå â ñïèñêàõ)
-                                return (
+                    <div style={{ padding: '10px' }}>
+                        {loading ? (
+                            <Spin size="large" />
+                        ) : (
+                            <List
+                                dataSource={contacts}
+                                renderItem={(contact) => (
                                     <List.Item className="list-item">
                                         <List.Item.Meta
                                             avatar={
@@ -656,39 +556,226 @@ const Contacts = () => {
                                                 />
                                             }
                                             title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                            description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                            description={
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                    <Button
+                                                        onClick={() => viewProfile(contact)}
+                                                        size="small"
+                                                        style={{ marginTop: '5px' }}
+                                                    >
+                                                        View Profile
+                                                    </Button>
+                                                </div>
+                                            }
+                                        />
+                                        <div className="actions">
+                                            <Tooltip title="Delete contact">
+                                                <Popconfirm
+                                                    title="Are you sure you want to delete this contact?"
+                                                    onConfirm={() => {
+                                                        if (contact.id) {
+                                                            handleDeleteContact(contact.id);
+                                                        } else {
+                                                            console.error("No contactId available for this contact:", contact);
+                                                        }
+                                                    }}
+                                                    okText="Yes"
+                                                    cancelText="No"
+                                                >
+                                                    <Button
+                                                        icon={<DeleteOutlined />}
+                                                        danger
+                                                        onClick={() => {
+                                                            const contactId = contact.id || contact.ContactId;
+                                                            if (contactId) {
+                                                                handleDeleteContact(contactId);
+                                                            } else {
+                                                                console.error("No contactId available for this contact:", contact);
+                                                            }
+                                                        }}
+                                                    >
+                                                    </Button>
+                                                </Popconfirm>
+                                            </Tooltip>
+                                        </div>
+                                    </List.Item>
+                                )}
+                            />
+                        )}
+                    </div>
+                </TabPane>
+                <TabPane tab="Incoming" key="incoming">
+                    <div style={{ padding: '10px' }}>
+                        {loading ? (
+                            <Spin size="large" />
+                        ) : (
+                            <List
+                                dataSource={incomingRequests}
+                                renderItem={(contact) => (
+                                    <List.Item className="list-item">
+                                        <List.Item.Meta
+                                            avatar={
+                                                <Avatar
+                                                    src={contact.avatarUrl}
+                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                                                />
+                                            }
+                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                            description={
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                    <Button
+                                                        onClick={() => viewProfile(contact)}
+                                                        size="small"
+                                                        style={{ marginTop: '5px' }}
+                                                    >
+                                                        View Profile
+                                                    </Button>
+                                                </div>
+                                            }
                                         />
                                         <div className="actions">
                                             <Button
-                                                onClick={() =>
-                                                    sendContactRequest({
-                                                        ContactId: contactId,
-                                                        UserName: contact.userName,
-                                                        AvatarUrl: contact.avatarUrl,
-                                                    })
-                                                }
+                                                onClick={() => {
+                                                    if (contact.contactId) {
+                                                        handleRespondToRequest(contact.contactId, "Accept");
+                                                    }
+                                                }}
+                                                size="small"
                                             >
-                                                Send Request
+                                                Accept
+                                            </Button>
+                                            <Button
+                                                onClick={() => {
+                                                    if (contact.contactId) {
+                                                        handleRespondToRequest(contact.contactId, "Decline");
+                                                    }
+                                                }}
+                                                size="small"
+                                            >
+                                                Decline
+                                            </Button>
+                                            <Button
+                                                onClick={() => {
+                                                    if (contact.contactId) {
+                                                        handleRespondToRequest(contact.contactId, "Block");
+                                                    }
+                                                }}
+                                                size="small"
+                                            >
+                                                Block
                                             </Button>
                                         </div>
                                     </List.Item>
-                                );
-                            }}
-                        />
-                    )}
+                                )}
+                            />
+                        )}
+                    </div>
                 </TabPane>
-
-                <TabPane tab="Outgoing Requests" key="outgoing">
-                    {loading ? <Spin size="large" /> : renderList(outgoingRequests)}
-                </TabPane>
-                <TabPane tab="Incoming Requests" key="incoming">
-                    {loading ? <Spin size="large" /> : renderList(incomingRequests)}
+                <TabPane tab="Outgoing" key="outgoing">
+                    <div style={{ padding: '10px' }}>
+                        {loading ? (
+                            <Spin size="large" />
+                        ) : (
+                            <List
+                                dataSource={outgoingRequests}
+                                renderItem={(contact) => (
+                                    <List.Item className="list-item">
+                                        <List.Item.Meta
+                                            avatar={
+                                                <Avatar
+                                                    src={contact.avatarUrl}
+                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                                                />
+                                            }
+                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                            description={
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                    <Button
+                                                        onClick={() => viewProfile(contact)}
+                                                        size="small"
+                                                        style={{ marginTop: '5px' }}
+                                                    >
+                                                        View Profile
+                                                    </Button>
+                                                </div>
+                                            }
+                                        />
+                                        <div className="actions">
+                                            <Button
+                                                onClick={() => {
+                                                    if (contact.contactId) {
+                                                        handleDeleteRequest(contact.contactId);
+                                                    }
+                                                }}
+                                                size="small"
+                                            >
+                                                Delete Request
+                                            </Button>
+                                        </div>
+                                    </List.Item>
+                                )}
+                            />
+                        )}
+                    </div>
                 </TabPane>
                 <TabPane tab="Blocked" key="blocked">
-                    {loading ? <Spin size="large" /> : renderList(blockedUsers)}
+                    <div style={{ padding: '10px' }}>
+                        {loading ? (
+                            <Spin size="large" />
+                        ) : (
+                            <List
+                                dataSource={blockedUsers}
+                                renderItem={(contact) => (
+                                    <List.Item className="list-item">
+                                        <List.Item.Meta
+                                            avatar={
+                                                <Avatar
+                                                    src={contact.avatarUrl}
+                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                                                />
+                                            }
+                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                            description={
+                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                    <Button
+                                                        onClick={() => viewProfile(contact)}
+                                                        size="small"
+                                                        style={{ marginTop: '5px' }}
+                                                    >
+                                                        View Profile
+                                                    </Button>
+                                                </div>
+                                            }
+                                        />
+                                        <div className="actions">
+                                            <Tooltip title="Unblock user">
+                                                <Popconfirm
+                                                    title="Are you sure you want to unblock this user?"
+                                                    onConfirm={() => {
+                                                        if (contact.contactId) {
+                                                            handleUnblockUser(contact.contactId);
+                                                        }
+                                                    }}
+                                                    okText="Yes"
+                                                    cancelText="No"
+                                                >
+                                                    <Button size="small">Unblock</Button>
+                                                </Popconfirm>
+                                            </Tooltip>
+                                        </div>
+                                    </List.Item>
+                                )}
+                            />
+                        )}
+                    </div>
                 </TabPane>
             </Tabs>
 
+            {/* Модальное окно профиля */}
             <Modal
                 visible={profileModalVisible}
                 onCancel={closeProfileModal}
@@ -696,22 +783,21 @@ const Contacts = () => {
                 className="profile-modal"
             >
                 {selectedProfile && (
-                    <div className="profile-content">
+                    <div className="profile-content" style={{ textAlign: 'center' }}>
                         <Avatar
                             size={80}
                             src={selectedProfile.avatarUrl}
                             icon={!selectedProfile.avatarUrl && <UserOutlined />}
                         />
                         <h2 className="profile-name">{selectedProfile.userName}</h2>
-                        <p className="profile-email">{selectedProfile.email}</p>
-                        <p className="profile-bio">{selectedProfile.bio}</p>
+                        <div style={{ marginTop: '10px' }}>
+                            <p className="profile-email">{selectedProfile.email}</p>
+                            <p className="profile-bio">{selectedProfile.bio}</p>
+                        </div>
                     </div>
                 )}
             </Modal>
         </div>
     );
-
-
-};
-
-export default Contacts;
+}
+export default ContactsMobile;

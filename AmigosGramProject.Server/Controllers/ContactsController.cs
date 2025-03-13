@@ -1,7 +1,9 @@
 ﻿using AmigosGramProject.Server.DTOs;
+using AmigosGramProject.Server.Hubs;
 using AmigosGramProject.Server.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -13,10 +15,12 @@ namespace AmigosGramProject.Server.Controllers
     public class ContactsController : ControllerBase
     {
         private readonly ChatDbContext _context;
+        private readonly IHubContext<ChatHub> _hubContext;
 
-        public ContactsController(ChatDbContext context)
+        public ContactsController(IHubContext<ChatHub> hubContext, ChatDbContext context)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // Метод для извлечения текущего пользователя из JWT токена
@@ -152,9 +156,20 @@ namespace AmigosGramProject.Server.Controllers
             if (contactRequest == null)
                 return NotFound("Request not found.");
 
-            // Обработка действия
             if (request.Action == "Accept")
+            {
                 contactRequest.Status = ContactStatus.Accepted;
+                // Сохраняем изменения
+                await _context.SaveChangesAsync();
+
+                // Отправляем объект UserContact через SignalR обоим пользователям
+                await _hubContext.Clients.User(contactRequest.ContactId.ToString())
+                                 .SendAsync("FetchUserContacts");
+                await _hubContext.Clients.User(contactRequest.UserId.ToString())
+                                 .SendAsync("FetchUserContacts");
+
+                return Ok("Request accepted and chat created.");
+            }
             else if (request.Action == "Decline")
                 contactRequest.Status = ContactStatus.Declined;
             else if (request.Action == "Block")
@@ -267,7 +282,10 @@ namespace AmigosGramProject.Server.Controllers
             // Удаляем запись контакта
             _context.UserContacts.Remove(contact);
             await _context.SaveChangesAsync();
-
+            await _hubContext.Clients.User(contact.ContactId.ToString())
+                                 .SendAsync("FetchUserContacts");
+            await _hubContext.Clients.User(contact.UserId.ToString())
+                             .SendAsync("FetchUserContacts");
             return NoContent();
         }
 

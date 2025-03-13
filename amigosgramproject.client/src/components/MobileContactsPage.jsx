@@ -514,6 +514,7 @@ const ContactsMobile = () => {
                 color: 'white',
             }}
         >
+            {/* Поисковая строка */}
             <div className="mobile-search-bar" style={{ padding: '10px' }}>
                 <Input.Search
                     placeholder="Search for users..."
@@ -531,11 +532,11 @@ const ContactsMobile = () => {
                 />
             </div>
 
-
             {/* Вкладки для секций */}
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
+                className="tabs-container"
                 tabBarStyle={{ backgroundColor: '#333', color: 'white' }}
                 tabPosition="top"
             >
@@ -544,49 +545,188 @@ const ContactsMobile = () => {
                         {loading ? (
                             <Spin size="large" />
                         ) : (
-                            <List
-                                dataSource={contacts}
-                                renderItem={(contact) => (
-                                    <List.Item className="list-item">
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar
-                                                    src={contact.avatarUrl}
-                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                            searchText ? (
+                                <List
+                                    dataSource={searchResults}
+                                    renderItem={(contact) => {
+                                        const contactId = contact.contactId || contact.id;
+                                        // Если контакт уже в списке контактов
+                                        if (
+                                            contacts.some(
+                                                (c) => c.contactId === contactId || c.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button disabled>Already in Contacts</Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        // Если контакт заблокирован
+                                        if (
+                                            blockedUsers.some(
+                                                (blocked) =>
+                                                    blocked.contactId === contactId || blocked.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Tooltip title="Unblock user">
+                                                            <Popconfirm
+                                                                title="Are you sure you want to unblock this user?"
+                                                                onConfirm={() => handleUnblockUser(contactId)}
+                                                                okText="Yes"
+                                                                cancelText="No"
+                                                            >
+                                                                <Button>Unblock</Button>
+                                                            </Popconfirm>
+                                                        </Tooltip>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        // Если входящий запрос
+                                        if (
+                                            incomingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button onClick={() => handleRespondToRequest(contactId, "Accept")}>
+                                                            Accept
+                                                        </Button>
+                                                        <Button onClick={() => handleRespondToRequest(contactId, "Decline")}>
+                                                            Decline
+                                                        </Button>
+                                                        <Button onClick={() => handleRespondToRequest(contactId, "Block")}>
+                                                            Block
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        // Если исходящий запрос
+                                        if (
+                                            outgoingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button onClick={() => handleDeleteRequest(contactId)}>
+                                                            Delete Request
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        // Если контакт ещё не добавлен – возможность отправить запрос
+                                        return (
+                                            <List.Item className="list-item">
+                                                <List.Item.Meta
+                                                    avatar={
+                                                        <Avatar
+                                                            src={contact.avatarUrl}
+                                                            icon={!contact.avatarUrl && <UserOutlined />}
+                                                        />
+                                                    }
+                                                    title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                    description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                                 />
-                                            }
-                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                            description={
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                <div className="actions">
                                                     <Button
-                                                        onClick={() => viewProfile(contact)}
-                                                        size="small"
-                                                        style={{ marginTop: '5px' }}
+                                                        onClick={() =>
+                                                            sendContactRequest({
+                                                                ContactId: contactId,
+                                                                UserName: contact.userName,
+                                                                AvatarUrl: contact.avatarUrl,
+                                                            })
+                                                        }
                                                     >
-                                                        View Profile
+                                                        Send Request
                                                     </Button>
                                                 </div>
-                                            }
-                                        />
-                                        <div className="actions">
-                                            <Tooltip title="Delete contact">
-                                                <Popconfirm
-                                                    title="Are you sure you want to delete this contact?"
-                                                    onConfirm={() => {
-                                                        if (contact.id) {
-                                                            handleDeleteContact(contact.id);
-                                                        } else {
-                                                            console.error("No contactId available for this contact:", contact);
-                                                        }
-                                                    }}
-                                                    okText="Yes"
-                                                    cancelText="No"
-                                                >
-                                                    <Button
-                                                        icon={<DeleteOutlined />}
-                                                        danger
-                                                        onClick={() => {
+                                            </List.Item>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <List
+                                    dataSource={contacts}
+                                    renderItem={(contact) => (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ color: 'white' }}>{contact.email}</span>
+                                                        <Button
+                                                            onClick={() => viewProfile(contact)}
+                                                            size="small"
+                                                            style={{ marginTop: '5px' }}
+                                                        >
+                                                            View Profile
+                                                        </Button>
+                                                    </div>
+                                                }
+                                            />
+                                            <div className="actions">
+                                                <Tooltip title="Delete contact">
+                                                    <Popconfirm
+                                                        title="Are you sure you want to delete this contact?"
+                                                        onConfirm={() => {
                                                             const contactId = contact.id || contact.ContactId;
                                                             if (contactId) {
                                                                 handleDeleteContact(contactId);
@@ -594,182 +734,630 @@ const ContactsMobile = () => {
                                                                 console.error("No contactId available for this contact:", contact);
                                                             }
                                                         }}
+                                                        okText="Yes"
+                                                        cancelText="No"
                                                     >
-                                                    </Button>
-                                                </Popconfirm>
-                                            </Tooltip>
-                                        </div>
-                                    </List.Item>
-                                )}
-                            />
+                                                        <Button
+                                                            icon={<DeleteOutlined />}
+                                                            danger
+                                                            onClick={() => {
+                                                                const contactId = contact.id || contact.ContactId;
+                                                                if (contactId) {
+                                                                    handleDeleteContact(contactId);
+                                                                } else {
+                                                                    console.error("No contactId available for this contact:", contact);
+                                                                }
+                                                            }}
+                                                        />
+                                                    </Popconfirm>
+                                                </Tooltip>
+                                            </div>
+                                        </List.Item>
+                                    )}
+                                />
+                            )
                         )}
                     </div>
                 </TabPane>
+
                 <TabPane tab="Incoming" key="incoming">
                     <div style={{ padding: '10px' }}>
                         {loading ? (
                             <Spin size="large" />
                         ) : (
-                            <List
-                                dataSource={incomingRequests}
-                                renderItem={(contact) => (
-                                    <List.Item className="list-item">
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar
-                                                    src={contact.avatarUrl}
-                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                            searchText ? (
+                                <List
+                                    dataSource={searchResults}
+                                    renderItem={(contact) => {
+                                        const contactId = contact.contactId || contact.id;
+                                        if (
+                                            contacts.some(
+                                                (c) => c.contactId === contactId || c.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button disabled>Already in Contacts</Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            blockedUsers.some(
+                                                (blocked) =>
+                                                    blocked.contactId === contactId || blocked.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Tooltip title="Unblock user">
+                                                            <Popconfirm
+                                                                title="Are you sure you want to unblock this user?"
+                                                                onConfirm={() => handleUnblockUser(contactId)}
+                                                                okText="Yes"
+                                                                cancelText="No"
+                                                            >
+                                                                <Button>Unblock</Button>
+                                                            </Popconfirm>
+                                                        </Tooltip>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            incomingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, "Accept")}
+                                                            size="small"
+                                                        >
+                                                            Accept
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, "Decline")}
+                                                            size="small"
+                                                        >
+                                                            Decline
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, "Block")}
+                                                            size="small"
+                                                        >
+                                                            Block
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            outgoingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button onClick={() => handleDeleteRequest(contactId)}>
+                                                            Delete Request
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        return (
+                                            <List.Item className="list-item">
+                                                <List.Item.Meta
+                                                    avatar={
+                                                        <Avatar
+                                                            src={contact.avatarUrl}
+                                                            icon={!contact.avatarUrl && <UserOutlined />}
+                                                        />
+                                                    }
+                                                    title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                    description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                                 />
-                                            }
-                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                            description={
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                <div className="actions">
                                                     <Button
-                                                        onClick={() => viewProfile(contact)}
-                                                        size="small"
-                                                        style={{ marginTop: '5px' }}
+                                                        onClick={() =>
+                                                            sendContactRequest({
+                                                                ContactId: contactId,
+                                                                UserName: contact.userName,
+                                                                AvatarUrl: contact.avatarUrl,
+                                                            })
+                                                        }
                                                     >
-                                                        View Profile
+                                                        Send Request
                                                     </Button>
                                                 </div>
-                                            }
-                                        />
-                                        <div className="actions">
-                                            <Button
-                                                onClick={() => {
-                                                    if (contact.contactId) {
-                                                        handleRespondToRequest(contact.contactId, "Accept");
-                                                    }
-                                                }}
-                                                size="small"
-                                            >
-                                                Accept
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    if (contact.contactId) {
-                                                        handleRespondToRequest(contact.contactId, "Decline");
-                                                    }
-                                                }}
-                                                size="small"
-                                            >
-                                                Decline
-                                            </Button>
-                                            <Button
-                                                onClick={() => {
-                                                    if (contact.contactId) {
-                                                        handleRespondToRequest(contact.contactId, "Block");
-                                                    }
-                                                }}
-                                                size="small"
-                                            >
-                                                Block
-                                            </Button>
-                                        </div>
-                                    </List.Item>
-                                )}
-                            />
+                                            </List.Item>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <List
+                                    dataSource={incomingRequests}
+                                    renderItem={(contact) => (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ color: 'white' }}>{contact.email}</span>
+                                                        <Button
+                                                            onClick={() => viewProfile(contact)}
+                                                            size="small"
+                                                            style={{ marginTop: '5px' }}
+                                                        >
+                                                            View Profile
+                                                        </Button>
+                                                    </div>
+                                                }
+                                            />
+                                            <div className="actions">
+                                                <Button
+                                                    onClick={() => {
+                                                        if (contact.contactId) {
+                                                            handleRespondToRequest(contact.contactId, "Accept");
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                >
+                                                    Accept
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        if (contact.contactId) {
+                                                            handleRespondToRequest(contact.contactId, "Decline");
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                >
+                                                    Decline
+                                                </Button>
+                                                <Button
+                                                    onClick={() => {
+                                                        if (contact.contactId) {
+                                                            handleRespondToRequest(contact.contactId, "Block");
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                >
+                                                    Block
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    )}
+                                />
+                            )
                         )}
                     </div>
                 </TabPane>
+
                 <TabPane tab="Outgoing" key="outgoing">
                     <div style={{ padding: '10px' }}>
                         {loading ? (
                             <Spin size="large" />
                         ) : (
-                            <List
-                                dataSource={outgoingRequests}
-                                renderItem={(contact) => (
-                                    <List.Item className="list-item">
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar
-                                                    src={contact.avatarUrl}
-                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                            searchText ? (
+                                <List
+                                    dataSource={searchResults}
+                                    renderItem={(contact) => {
+                                        const contactId = contact.contactId || contact.id;
+                                        if (
+                                            contacts.some(
+                                                (c) => c.contactId === contactId || c.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button disabled>Already in Contacts</Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            blockedUsers.some(
+                                                (blocked) =>
+                                                    blocked.contactId === contactId || blocked.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Tooltip title="Unblock user">
+                                                            <Popconfirm
+                                                                title="Are you sure you want to unblock this user?"
+                                                                onConfirm={() => handleUnblockUser(contactId)}
+                                                                okText="Yes"
+                                                                cancelText="No"
+                                                            >
+                                                                <Button>Unblock</Button>
+                                                            </Popconfirm>
+                                                        </Tooltip>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            incomingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button onClick={() => handleDeleteRequest(contactId)} size="small">
+                                                            Delete Request
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        return (
+                                            <List.Item className="list-item">
+                                                <List.Item.Meta
+                                                    avatar={
+                                                        <Avatar
+                                                            src={contact.avatarUrl}
+                                                            icon={!contact.avatarUrl && <UserOutlined />}
+                                                        />
+                                                    }
+                                                    title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                    description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                                 />
-                                            }
-                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                            description={
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                <div className="actions">
                                                     <Button
-                                                        onClick={() => viewProfile(contact)}
-                                                        size="small"
-                                                        style={{ marginTop: '5px' }}
+                                                        onClick={() =>
+                                                            sendContactRequest({
+                                                                ContactId: contactId,
+                                                                UserName: contact.userName,
+                                                                AvatarUrl: contact.avatarUrl,
+                                                            })
+                                                        }
                                                     >
-                                                        View Profile
+                                                        Send Request
                                                     </Button>
                                                 </div>
-                                            }
-                                        />
-                                        <div className="actions">
-                                            <Button
-                                                onClick={() => {
-                                                    if (contact.contactId) {
-                                                        handleDeleteRequest(contact.contactId);
-                                                    }
-                                                }}
-                                                size="small"
-                                            >
-                                                Delete Request
-                                            </Button>
-                                        </div>
-                                    </List.Item>
-                                )}
-                            />
+                                            </List.Item>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <List
+                                    dataSource={outgoingRequests}
+                                    renderItem={(contact) => (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ color: 'white' }}>{contact.email}</span>
+                                                        <Button
+                                                            onClick={() => viewProfile(contact)}
+                                                            size="small"
+                                                            style={{ marginTop: '5px' }}
+                                                        >
+                                                            View Profile
+                                                        </Button>
+                                                    </div>
+                                                }
+                                            />
+                                            <div className="actions">
+                                                <Button
+                                                    onClick={() => {
+                                                        if (contact.contactId) {
+                                                            handleDeleteRequest(contact.contactId);
+                                                        }
+                                                    }}
+                                                    size="small"
+                                                >
+                                                    Delete Request
+                                                </Button>
+                                            </div>
+                                        </List.Item>
+                                    )}
+                                />
+                            )
                         )}
                     </div>
                 </TabPane>
+
                 <TabPane tab="Blocked" key="blocked">
                     <div style={{ padding: '10px' }}>
                         {loading ? (
                             <Spin size="large" />
                         ) : (
-                            <List
-                                dataSource={blockedUsers}
-                                renderItem={(contact) => (
-                                    <List.Item className="list-item">
-                                        <List.Item.Meta
-                                            avatar={
-                                                <Avatar
-                                                    src={contact.avatarUrl}
-                                                    icon={!contact.avatarUrl && <UserOutlined />}
+                            searchText ? (
+                                <List
+                                    dataSource={searchResults}
+                                    renderItem={(contact) => {
+                                        const contactId = contact.contactId || contact.id;
+                                        if (
+                                            contacts.some(
+                                                (c) => c.contactId === contactId || c.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button disabled>Already in Contacts</Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            blockedUsers.some(
+                                                (blocked) =>
+                                                    blocked.contactId === contactId || blocked.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Tooltip title="Unblock user">
+                                                            <Popconfirm
+                                                                title="Are you sure you want to unblock this user?"
+                                                                onConfirm={() => handleUnblockUser(contactId)}
+                                                                okText="Yes"
+                                                                cancelText="No"
+                                                            >
+                                                                <Button size="small">Unblock</Button>
+                                                            </Popconfirm>
+                                                        </Tooltip>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            incomingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, 'Accept')}
+                                                            size="small"
+                                                        >
+                                                            Accept
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, 'Decline')}
+                                                            size="small"
+                                                        >
+                                                            Decline
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleRespondToRequest(contactId, 'Block')}
+                                                            size="small"
+                                                        >
+                                                            Block
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        if (
+                                            outgoingRequests.some(
+                                                (req) => req.contactId === contactId || req.id === contactId
+                                            )
+                                        ) {
+                                            return (
+                                                <List.Item className="list-item">
+                                                    <List.Item.Meta
+                                                        avatar={
+                                                            <Avatar
+                                                                src={contact.avatarUrl}
+                                                                icon={!contact.avatarUrl && <UserOutlined />}
+                                                            />
+                                                        }
+                                                        title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                        description={<span style={{ color: 'white' }}>{contact.email}</span>}
+                                                    />
+                                                    <div className="actions">
+                                                        <Button onClick={() => handleDeleteRequest(contactId)} size="small">
+                                                            Delete Request
+                                                        </Button>
+                                                    </div>
+                                                </List.Item>
+                                            );
+                                        }
+                                        return (
+                                            <List.Item className="list-item">
+                                                <List.Item.Meta
+                                                    avatar={
+                                                        <Avatar
+                                                            src={contact.avatarUrl}
+                                                            icon={!contact.avatarUrl && <UserOutlined />}
+                                                        />
+                                                    }
+                                                    title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                    description={<span style={{ color: 'white' }}>{contact.email}</span>}
                                                 />
-                                            }
-                                            title={<span style={{ color: 'white' }}>{contact.userName}</span>}
-                                            description={
-                                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                                    <span style={{ color: 'white' }}>{contact.email}</span>
+                                                <div className="actions">
                                                     <Button
-                                                        onClick={() => viewProfile(contact)}
-                                                        size="small"
-                                                        style={{ marginTop: '5px' }}
+                                                        onClick={() =>
+                                                            sendContactRequest({
+                                                                ContactId: contactId,
+                                                                UserName: contact.userName,
+                                                                AvatarUrl: contact.avatarUrl,
+                                                            })
+                                                        }
                                                     >
-                                                        View Profile
+                                                        Send Request
                                                     </Button>
                                                 </div>
-                                            }
-                                        />
-                                        <div className="actions">
-                                            <Tooltip title="Unblock user">
-                                                <Popconfirm
-                                                    title="Are you sure you want to unblock this user?"
-                                                    onConfirm={() => {
-                                                        if (contact.contactId) {
-                                                            handleUnblockUser(contact.contactId);
-                                                        }
-                                                    }}
-                                                    okText="Yes"
-                                                    cancelText="No"
-                                                >
-                                                    <Button size="small">Unblock</Button>
-                                                </Popconfirm>
-                                            </Tooltip>
-                                        </div>
-                                    </List.Item>
-                                )}
-                            />
+                                            </List.Item>
+                                        );
+                                    }}
+                                />
+                            ) : (
+                                <List
+                                    dataSource={blockedUsers}
+                                    renderItem={(contact) => (
+                                        <List.Item className="list-item">
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <Avatar
+                                                        src={contact.avatarUrl}
+                                                        icon={!contact.avatarUrl && <UserOutlined />}
+                                                    />
+                                                }
+                                                title={<span style={{ color: 'white' }}>{contact.userName}</span>}
+                                                description={
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span style={{ color: 'white' }}>{contact.email}</span>
+                                                        <Button
+                                                            onClick={() => viewProfile(contact)}
+                                                            size="small"
+                                                            style={{ marginTop: '5px' }}
+                                                        >
+                                                            View Profile
+                                                        </Button>
+                                                    </div>
+                                                }
+                                            />
+                                            <div className="actions">
+                                                <Tooltip title="Unblock user">
+                                                    <Popconfirm
+                                                        title="Are you sure you want to unblock this user?"
+                                                        onConfirm={() => {
+                                                            if (contact.contactId) {
+                                                                handleUnblockUser(contact.contactId);
+                                                            }
+                                                        }}
+                                                        okText="Yes"
+                                                        cancelText="No"
+                                                    >
+                                                        <Button size="small">Unblock</Button>
+                                                    </Popconfirm>
+                                                </Tooltip>
+                                            </div>
+                                        </List.Item>
+                                    )}
+                                />
+                            )
                         )}
                     </div>
                 </TabPane>
@@ -799,5 +1387,5 @@ const ContactsMobile = () => {
             </Modal>
         </div>
     );
-}
+}   
 export default ContactsMobile;

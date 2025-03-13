@@ -1,3 +1,4 @@
+@import url('settings.css');
 .settings-container {
     max-width: 700px;
     margin: 0 auto;
@@ -260,4 +261,36 @@
 
 .bio-input {
     margin-top: 10px; /* Small gap above the bio input field */
+}
+
+
+@media (max-width: 600px) {
+    /* ”меньшаем ширину модальных окон дл€ мобильных устройств */
+    .ant-modal {
+        width: 95% !important;
+        margin: 10px auto;
+    }
+
+    /* ”меньшаем отступы и внутренние отступы контента модала */
+    .ant-modal-content {
+        padding: 10px !important;
+    }
+
+    /* ѕодгон€ем размер заголовка */
+    .custom-modal-title {
+        font-size: 18px;
+    }
+
+    /* ≈сли используетс€ контейнер аватаров, можно сделать их более компактными */
+    .default-avatars {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .default-avatar {
+        width: 60px;
+        height: 60px;
+        margin: 5px;
+    }
 }

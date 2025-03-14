@@ -17,7 +17,7 @@ namespace AmigosGramProject.Server
             var builder = WebApplication.CreateBuilder(args);
 
             // Подключение к базе данных
-            var connectionString = builder.Configuration.GetConnectionString("ReservConnection") ?? throw new InvalidOperationException();
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException();
             builder.Services.AddDbContext<ChatDbContext>(options => options.UseSqlServer(connectionString));
 
             // Настройка CORS

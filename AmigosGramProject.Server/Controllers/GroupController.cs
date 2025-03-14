@@ -225,6 +225,44 @@ namespace AmigosGramProject.Server.Controllers
             // Возвращаем зашифрованный групповой ключ участника
             return Ok(new {member.EncryptedGroupKey });
         }
+        [HttpDelete("DeleteGroup/{groupId}")]
+        public async Task<IActionResult> DeleteGroup(Guid groupId, [FromQuery] string adminId)
+        {
+            if (string.IsNullOrEmpty(adminId))
+            {
+                return BadRequest("Admin ID is required.");
+            }
+
+            // Находим группу с участниками
+            var group = await _context.Groups
+                .Include(g => g.Members)
+                .FirstOrDefaultAsync(g => g.Id == groupId);
+
+            if (group == null)
+            {
+                return NotFound("Group not found.");
+            }
+
+            // Проверяем, что запрос исходит от администратора группы
+            if (group.AdminId != adminId)
+            {
+                return Forbid("Only the group admin can delete the group.");
+            }
+
+            // Удаляем группу (также будут удалены связанные участники, если настроено каскадное удаление)
+            _context.Groups.Remove(group);
+            await _context.SaveChangesAsync();
+
+            // Уведомляем участников о удалении группы
+            foreach (var member in group.Members)
+            {
+                await _hubContext.Clients.User(member.UserId.ToString())
+                    .SendAsync("FetchUserGroups", groupId);
+            }
+
+            return Ok("Group deleted successfully.");
+        }
+
         [HttpPut("updateGroup")]
         public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupDto updateGroupDto)
         {
@@ -247,7 +285,7 @@ namespace AmigosGramProject.Server.Controllers
 
             group.Name = updateGroupDto.Name;
             group.Description = updateGroupDto.Description;
-            //group.AvatarUrl = updateGroupDto.AvatarUrl;
+            group.AvatarUrl = updateGroupDto.AvatarUrl;
 
             _context.Groups.Update(group);
             await _context.SaveChangesAsync();

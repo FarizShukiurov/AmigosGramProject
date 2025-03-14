@@ -226,6 +226,7 @@
     margin-left: 16px;
     color: white;
 }
+
 .chat-header {
     display: flex;
     align-items: center;
@@ -247,26 +248,27 @@
 .add-participants-button {
     margin-left: 10px;
 }
+
 .participant-checkbox {
     margin-right: 10px; /* Отступ между чекбоксом и текстом */
 }
 /* Общий контейнер для каждого сообщения */
 .message-row {
-  display: flex;
-  margin: 8px 0;
-  /* По умолчанию сообщения будут «полученными» (слева) */
-  justify-content: flex-start;
-  align-items: flex-end; /* Аватарка и bubble выровнены по нижней границе */
+    display: flex;
+    margin: 8px 0;
+    /* По умолчанию сообщения будут «полученными» (слева) */
+    justify-content: flex-start;
+    align-items: flex-end; /* Аватарка и bubble выровнены по нижней границе */
 }
 
-/* Для «отправленных» сообщений меняем направление выравнивания */
-.message-row.sent {
-  justify-content: flex-end; /* Прижимаем к правому краю */
-}
+    /* Для «отправленных» сообщений меняем направление выравнивания */
+    .message-row.sent {
+        justify-content: flex-end; /* Прижимаем к правому краю */
+    }
 
 /* Обёртка под аватарку */
 .avatar-wrap {
-  margin: 0 8px;
+    margin: 0 8px;
 }
 
 /* Сам bubble */
@@ -290,17 +292,17 @@
 
 /* Текст сообщения */
 .message-text {
-  margin: 0;
-  font-size: 1rem;
-  color: #333;
+    margin: 0;
+    font-size: 1rem;
+    color: black;
 }
 
 /* Время отправки (внизу bubble) */
 .message-time {
-  font-size: 0.75rem;
-  color: #aaa;
-  margin-top: 4px;
-  text-align: right;
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-top: 4px;
+    text-align: right;
 }
 
 .file-list {

@@ -29,6 +29,7 @@ import {
     DeleteOutlined,
     CameraOutlined, // Иконка для камеры
     SmileOutlined,
+
 } from "@ant-design/icons";
 import "./GroupChatPage.css";
 import format from "date-fns/format";
@@ -39,8 +40,10 @@ const GroupChatPage = () => {
     const [groupParticipants, setGroupParticipants] = useState([]);
     const [groupChats, setGroupChats] = useState([]);
     const [selectedGroupChatId, setSelectedGroupChatId] = useState(null);
+    const [isGroupAdmin, setIsGroupAdmin] = useState(false);
     const [messages, setMessages] = useState([]);
     const [currentMessage, setCurrentMessage] = useState("");
+    const [adminGroupId, setAdminGroupId] = useState(null);
     const [lastMessages, setLastMessages] = useState({});
     const [imageModalKey, setImageModalKey] = useState(0);
     const [fileModalKey, setFileModalKey] = useState(0);
@@ -60,13 +63,7 @@ const GroupChatPage = () => {
     const [contacts, setContacts] = useState([]);
     const [currentUserId, setCurrentUserId] = useState();
     const [newGroupAvatar, setNewGroupAvatar] = useState(null);
-    const [groupSettings, setGroupSettings] = useState({
-        id: null,
-        groupName: "",
-        avatarUrl: "",
-        participants: [],
-        encryptionKey: null,
-    });
+    const [groupSettings, setGroupSettings] = useState({});
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [newParticipants, setNewParticipants] = useState([]);
@@ -274,27 +271,23 @@ const GroupChatPage = () => {
     }, [selectedGroupChatId]);
 
     useEffect(() => {
-        const fetchContacts = async () => {
-            try {
-                const response = await fetch("/api/Contacts/GetContacts");
-                if (!response.ok) {
-                    throw new Error("Failed to fetch contacts.");
-                }
-                const data = await response.json();
-                console.log("Fetched contacts:", data);
-                setContacts(data);
-            } catch (error) {
-                console.error("Failed to load contacts:", error);
-                antdMessage.error("Failed to load contacts.");
-            }
-        };
-
-        
-
         fetchContacts();
         fetchUserGroups();
     }, [currentUserId]);
-
+    const fetchContacts = async () => {
+        try {
+            const response = await fetch("/api/Contacts/GetContacts");
+            if (!response.ok) {
+                throw new Error("Failed to fetch contacts.");
+            }
+            const data = await response.json();
+            console.log("Fetched contacts:", data);
+            setContacts(data);
+        } catch (error) {
+            console.error("Failed to load contacts:", error);
+            antdMessage.error("Failed to load contacts.");
+        }
+    };
     useEffect(() => {
         const fetchCurrentUserId = async () => {
             try {
@@ -315,6 +308,13 @@ const GroupChatPage = () => {
         fetchCurrentUserId();
     }, []);
 
+    useEffect(() => {
+        if (selectedGroupChatId && adminGroupId && currentUserId) {
+            setIsGroupAdmin(adminGroupId === currentUserId);
+        } else {
+            setIsGroupAdmin(false);
+        }
+    }, [selectedGroupChatId]);
 
     useEffect(() => {
         if (selectedGroupChatId) {
@@ -337,9 +337,7 @@ const GroupChatPage = () => {
             antdMessage.error("Failed to load user groups.");
         }
     };
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+
     const handleImageChange = (info) => {
         if (info.file.status === "done") {
             const uploadedUrl = info.file.response.url;
@@ -383,8 +381,7 @@ const GroupChatPage = () => {
         }
     };
 
-    const handleOpenGroupSettings = (group) => {
-        setGroupSettings(group);
+    const handleOpenGroupSettings = () => {
         setGroupSettingsModalVisible(true);
     };
 
@@ -1524,6 +1521,29 @@ const GroupChatPage = () => {
         setIsVideoRecording(true);
     };
 
+    const handleGroupClick = async (group) => {
+        console.log("Group clicked:", group);
+        setGroupSettings(group);
+        console.log("Group settings:",groupSettings);
+        setSelectedGroupChatId(group.id);
+        // Если chat уже содержит настройки, их можно сохранить
+
+        try {
+            // Выполняем запрос к API для получения adminId группы
+            const response = await fetch(`/api/Group/GetAdminId/${group.id}`);
+            if (!response.ok) {
+                throw new Error("Ошибка при получении adminId");
+            }
+            const data = await response.json(); // Предполагаем, что API возвращает { adminId: "..." }
+            // Обновляем состояние adminGroupId
+            setAdminGroupId(data.adminId);
+            // Обновляем флаг isGroupAdmin, сравнивая полученный adminId с currentUserId
+            setIsGroupAdmin(data.adminId === currentUserId);
+        } catch (error) {
+            console.error("Ошибка получения adminId:", error);
+        }
+    };
+
     const stopVideoRecording = () => {
         if (videoRecorderRef.current && videoRecorderRef.current.state !== "inactive") {
             videoRecorderRef.current.stop();
@@ -1665,10 +1685,8 @@ const GroupChatPage = () => {
                     renderItem={(chat) => (
                         <Dropdown overlay={renderGroupMenu(chat)} trigger={["contextMenu"]}>
                             <List.Item
-                                onClick={() => {
-                                    setSelectedGroupChatId(chat.id);
-                                    setGroupSettings(chat);
-                                }}
+                                // Вызываем handleGroupClick при клике на группу
+                                onClick={() => handleGroupClick(chat)}
                                 className={`chat-item ${chat.id === selectedGroupChatId ? "active" : ""}`}
                             >
                                 <List.Item.Meta
@@ -1691,24 +1709,34 @@ const GroupChatPage = () => {
                                     {groupSettings.groupName?.[0]}
                                 </Avatar>
                                 <h3 className="group-name">{groupSettings.groupName}</h3>
-                                <div className="header-buttons">
-                                    <Tooltip title="Add Participants">
-                                        <Button
-                                            type="default"
-                                            icon={<UserAddOutlined />}
-                                            onClick={handleAddParticipantsModalOpen}
-                                            className="add-participants-button"
-                                        />
-                                    </Tooltip>
-                                    <Tooltip title="Remove Participants">
-                                        <Button
-                                            type="default"
-                                            icon={<DeleteOutlined />}
-                                            onClick={() => setRemoveParticipantsModalVisible(true)}
-                                            className="remove-participants-button"
-                                        />
-                                    </Tooltip>
-                                </div>
+                                {isGroupAdmin && (
+                                    <div className="header-buttons">
+                                        <Tooltip title="Add Participants">
+                                            <Button
+                                                type="default"
+                                                icon={<UserAddOutlined />}
+                                                onClick={handleAddParticipantsModalOpen}
+                                                className="add-participants-button"
+                                            />
+                                        </Tooltip>
+                                        <Tooltip title="Remove Participants">
+                                            <Button
+                                                type="default"
+                                                icon={<DeleteOutlined />}
+                                                onClick={() => setRemoveParticipantsModalVisible(true)}
+                                                className="remove-participants-button"
+                                            />
+                                        </Tooltip>
+                                        <Tooltip title="Edit Group">
+                                            <Button
+                                                type="default"
+                                                icon={<EditOutlined />}
+                                                onClick={handleOpenGroupSettings}
+                                                className="edit-group-button"
+                                            />
+                                        </Tooltip>
+                                    </div>
+                                )}
                             </div>
                             <div className="chat-messages">
                                 {messages.length > 0
@@ -1863,7 +1891,7 @@ const GroupChatPage = () => {
             >
                 <div className="group-avatar-settings">
                     <Avatar size={50} src={groupSettings?.avatarUrl || null}>
-                        {groupSettings?.groupName?.[0] || "?"}
+                        {groupSettings?.name?.[0] || "?"}
                     </Avatar>
                     <Button icon={<EditOutlined />} onClick={() => document.getElementById("avatar-upload").click()}>
                         Edit Avatar
@@ -1877,8 +1905,8 @@ const GroupChatPage = () => {
                 </div>
                 <Input
                     placeholder="Group Name"
-                    value={groupSettings?.groupName || ""}
-                    onChange={(e) => setGroupSettings((prev) => ({ ...prev, groupName: e.target.value }))}
+                    value={groupSettings?.name || ""}
+                    onChange={(e) => setGroupSettings((prev) => ({ ...prev, name: e.target.value }))}
                 />
                 <Input.TextArea
                     placeholder="Group Description"

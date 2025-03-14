@@ -248,6 +248,10 @@ export default defineConfig({
                 target,
                 secure: false,
             },
+            '^/api/Group/GetAdminId/': {
+                target,
+                secure: false,
+            },
         },
         port: 5173,
         https: {

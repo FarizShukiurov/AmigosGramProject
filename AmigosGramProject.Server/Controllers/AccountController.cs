@@ -45,15 +45,16 @@ namespace AmigosGramProject.Server.Controllers
 
             // Список доступных аватарок
             var avatarUrls = new List<string>
-            {
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBrown.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkBlue.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkRed.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosGreen.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosOrange.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosPurple.png",
-                    "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosRed.png"
+                {
+                    "https://amigos.blob.core.windows.net/avatars/AmigosBlack.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosBlue.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosBrown.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosDarkBlue.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosDarkRed.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosGreen.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosOrange.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosPurple.jpg",
+                    "https://amigos.blob.core.windows.net/avatars/AmigosRed.jpg"
                 };
 
             // Выбор случайной аватарки

@@ -46,15 +46,15 @@ const Settings = () => {
         fetchUserData();
     }, []);
     const DEFAULT_AVATARS = [
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlack.png", alt: "Amigos Black" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBlue.png", alt: "Amigos Blue" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosBrown.png", alt: "Amigos Brown" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkBlue.png", alt: "Amigos Dark Blue" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosDarkRed.png", alt: "Amigos Dark Red" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosGreen.png", alt: "Amigos Green" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosOrange.png", alt: "Amigos Orange" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosPurple.png", alt: "Amigos Purple" },
-        { src: "https://blobcontaineramigos.blob.core.windows.net/avatars/AmigosRed.png", alt: "Amigos Red" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosBlack.jpg", alt: "Amigos Black" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosBlue.jpg", alt: "Amigos Blue" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosBrown.jpg", alt: "Amigos Brown" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosDarkBlue.jpg", alt: "Amigos Dark Blue" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosDarkRed.jpg", alt: "Amigos Dark Red" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosGreen.jpg", alt: "Amigos Green" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosOrange.jpg", alt: "Amigos Orange" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosPurple.jpg", alt: "Amigos Purple" },
+        { src: "https://amigos.blob.core.windows.net/avatars/AmigosRed.jpg", alt: "Amigos Red" },
     ];
 
     const handleSelectDefaultAvatar = async (avatarSrc) => {

@@ -7,15 +7,16 @@
     font-size: 16px; /* Увеличиваем базовый размер текста */
 }
 
-    .chat-page .sidebar {
-        width: 300px;
-        background: rgba(255, 255, 255, 0.1);
-        display: flex;
-        flex-direction: column;
-        backdrop-filter: blur(10px);
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Добавлена легкая тень */
-        transition: width 0.3s ease;
-    }
+.chat-page .sidebar {
+    width: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* Добавлена легкая тень */
+    transition: width 0.3s ease;
+}
+
 .context-menu {
     position: absolute;
     background: rgba(0, 0, 0, 0.9);
@@ -34,17 +35,17 @@
     transition: background 0.2s;
 }
 
-.context-menu-item:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
+    .context-menu-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
 
-.context-menu-item.danger {
-    color: #e63946;
-}
+    .context-menu-item.danger {
+        color: #e63946;
+    }
 
-.context-menu-item.danger:hover {
-    background: rgba(230, 57, 70, 0.2);
-}
+        .context-menu-item.danger:hover {
+            background: rgba(230, 57, 70, 0.2);
+        }
 
 
 
@@ -72,10 +73,11 @@
     transition: background 0.3s, transform 0.2s;
     cursor: pointer;
 }
-.chat-item.active {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(1.02); /* Увеличение активного элемента */
-}
+
+    .chat-item.active {
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.02); /* Увеличение активного элемента */
+    }
 
     .chat-item:hover {
         background: rgba(255, 255, 255, 0.1);
@@ -85,7 +87,7 @@
 
 
 .chat-avatar {
-    padding:10px;
+    padding: 10px;
     margin-right: 25px;
 }
 
@@ -169,9 +171,11 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: width 0.3s ease;
 }
-.sidebar:hover {
-    width: 350px; /* Увеличение ширины при наведении */
-}
+
+    .sidebar:hover {
+        width: 350px; /* Увеличение ширины при наведении */
+    }
+
 .search-bar {
     padding: 10px;
 }
@@ -187,8 +191,8 @@
 
 .chat-item {
     padding: 10px;
-    margin-left: 10px;
-    margin-right:10px;
+    margin-left: 10;
+    margin-right: 10px;
     cursor: pointer;
     color: white !important;
 }
@@ -219,38 +223,39 @@
     z-index: 1;
 }
 
-.chat-input input {
-    flex-grow: 1;
-    padding: 15px; 
-    border-radius: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    border: none;
-    color: white;
-    margin-right: 10px;
-    outline: none;
-    font-size: 1rem; 
-    transition: background 0.3s ease;
-}
-.chat-input input:focus {
-    background: rgba(255, 255, 255, 0.3);
-    box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+    .chat-input input {
+        flex-grow: 1;
+        padding: 15px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        margin-right: 10px;
+        outline: none;
+        font-size: 1rem;
+        transition: background 0.3s ease;
     }
 
-.chat-input button {
-    padding: 10px 15px;
-    border-radius: 20px;
-    background: #3498db;
-    border: none;
-    color: white;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
+        .chat-input input:focus {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
 
-.chat-input button:hover {
-    background: #2980b9;
-    transform: scale(1.1); /* Увеличение кнопки */
-}
+    .chat-input button {
+        padding: 10px 15px;
+        border-radius: 20px;
+        background: #3498db;
+        border: none;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+        .chat-input button:hover {
+            background: #2980b9;
+            transform: scale(1.1); /* Увеличение кнопки */
+        }
 
 
 
@@ -264,19 +269,23 @@
     overflow-wrap: break-word;
     white-space: normal;
 }
+
 .message-bubble {
     background: rgba(0, 0, 0, 0.7); /* Серый цвет для сообщений */
-    color: #333; 
-    padding: 12px 15px; /* Внутренние отступы */
+    color: #333;
+    max-width: 100% !important;
+    padding: 8px 12px; /* Внутренние отступы */
     border-radius: 10px; /* Закругленные углы */
     position: relative; /* Относительное позиционирование */
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7); /* Увеличенная и более темная тень */
 }
 
+
+
 .message-time {
     color: rgba(0, 0, 0, 1);
     font-size: 13px;
-    font-weight:bold;
+    font-weight: bold;
 }
 
 .received .message-bubble {
@@ -288,6 +297,7 @@
     align-self: flex-end;
     color: white;
 }
+
     .sent .message-bubble {
         background: #333; /* синий цвет */
         color: white;
@@ -320,6 +330,7 @@
     flex-wrap: wrap;
     gap: 8px;
 }
+
 .no-messages-placeholder {
     display: flex;
     flex-direction: column;
@@ -328,18 +339,19 @@
     height: 100%;
 }
 
-.no-messages-placeholder img {
-    width: 400px !important; /* Увеличенный размер изображения с приоритетом */
-    height: auto !important; /* Сохраняем пропорции */
-    margin-bottom: 20px;
-}
+    .no-messages-placeholder img {
+        width: 400px !important; /* Увеличенный размер изображения с приоритетом */
+        height: auto !important; /* Сохраняем пропорции */
+        margin-bottom: 20px;
+    }
 
-.no-messages-placeholder p {
-    color: black !important;
-    font-size: 28px !important;/* Увеличенный размер текста */
-    text-align: center;
-    font-weight: bold;
-}
+    .no-messages-placeholder p {
+        color: black !important;
+        font-size: 28px !important; /* Увеличенный размер текста */
+        text-align: center;
+        font-weight: bold;
+    }
+
 .no-chat-placeholder {
     display: flex;
     flex-direction: column;
@@ -348,18 +360,18 @@
     height: 100%;
 }
 
-.no-chat-placeholder img {
-    width: 450px !important; /* Увеличенный размер изображения с приоритетом */
-    height: auto !important;
-    margin-bottom: 20px;
-}
+    .no-chat-placeholder img {
+        width: 450px !important; /* Увеличенный размер изображения с приоритетом */
+        height: auto !important;
+        margin-bottom: 20px;
+    }
 
-.no-chat-placeholder p {
-    color: black !important;
-    font-size: 28px !important;/* Увеличенный размер текста */
-    text-align: center;
-    font-weight: bold;
-}
+    .no-chat-placeholder p {
+        color: black !important;
+        font-size: 28px !important; /* Увеличенный размер текста */
+        text-align: center;
+        font-weight: bold;
+    }
 
 .emoji-picker {
     position: absolute; /* Абсолютное позиционирование */
@@ -378,6 +390,7 @@
     margin-left: 16px;
     color: white; /* Set the color to white */
 }
+
 .recording-indicator {
     display: flex;
     align-items: center;

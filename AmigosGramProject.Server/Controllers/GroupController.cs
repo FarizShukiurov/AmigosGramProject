@@ -263,6 +263,19 @@ namespace AmigosGramProject.Server.Controllers
             return Ok("Group deleted successfully.");
         }
 
+        [HttpGet("GetAdminId/{groupId}")]
+        public async Task<IActionResult> GetAdminId(Guid groupId)
+        {
+            // Ищем группу по переданному идентификатору
+            var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == groupId);
+            if (group == null)
+            {
+                return NotFound("Group not found.");
+            }
+            // Возвращаем adminId группы в виде JSON
+            return Ok(new { adminId = group.AdminId });
+        }
+
         [HttpPut("updateGroup")]
         public async Task<IActionResult> UpdateGroup([FromBody] UpdateGroupDto updateGroupDto)
         {

@@ -62,7 +62,8 @@ const GroupChatPage = () => {
     const [newGroupDescription, setNewGroupDescription] = useState("");
     const [contacts, setContacts] = useState([]);
     const [currentUserId, setCurrentUserId] = useState();
-    const [newGroupAvatar, setNewGroupAvatar] = useState(null);
+    const [newGroupAvatarUrl, setNewGroupAvatarUrl] = useState(null);
+    const [newGroupAvatarFileId, setNewGroupAvatarFileId] = useState(null);
     const [groupSettings, setGroupSettings] = useState({});
     const [isEmojiPickerVisible, setIsEmojiPickerVisible] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
@@ -206,23 +207,8 @@ const GroupChatPage = () => {
         });
 
         // Обработчик обновления сообщения
-        newConnection.on("UpdateGroupMessage", async (updatedMessage) => {
-            console.log("Received updated group message via SignalR:", updatedMessage);
-            if (updatedMessage.encryptedContent) {
-                updatedMessage.content = await decryptMessage(updatedMessage.encryptedContent, selectedGroupChatId, currentUserId);
-            }
-            if (updatedMessage.encryptedMediaUrls) {
-                updatedMessage.mediaUrls = await decryptArray(updatedMessage.encryptedMediaUrls, selectedGroupChatId, currentUserId);
-            }
-            if (updatedMessage.encryptedFileUrls) {
-                updatedMessage.fileUrls = await decryptArray(updatedMessage.encryptedFileUrls, selectedGroupChatId, currentUserId);
-            }
-            if (updatedMessage.encryptedAudioUrl) {
-                updatedMessage.audioUrl = await decryptMessage(updatedMessage.encryptedAudioUrl, selectedGroupChatId, currentUserId);
-            }
-            setMessages((prev) =>
-                prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
-            );
+        newConnection.on("FetchGroupMessages",() => {
+            fetchMessages(selectedGroupChatId);
         });
 
         // Обработчик удаления сообщения
@@ -350,7 +336,7 @@ const GroupChatPage = () => {
         const updateData = {
             GroupId: groupSettings.id,      // тип Guid (строка)
             AdminId: currentUserId,           // текущий пользователь должен быть админом
-            Name: groupSettings.groupName,    // новое имя
+            Name: groupSettings.name,    // новое имя
             Description: groupSettings.description, // новое описание
             AvatarUrl: groupSettings.avatarUrl,     // новый URL аватарки (если обновлён)
         };
@@ -362,13 +348,7 @@ const GroupChatPage = () => {
                 body: JSON.stringify(updateData),
             });
             if (response.ok) {
-                const updatedGroup = await response.json();
                 // Обновляем состояние групп, например, через setGroupChats:
-                setGroupChats((prev) =>
-                    prev.map((group) =>
-                        group.id === updatedGroup.id ? updatedGroup : group
-                    )
-                );
                 setGroupSettingsModalVisible(false);
                 antdMessage.success("Group updated successfully!");
             } else {
@@ -405,12 +385,34 @@ const GroupChatPage = () => {
         setIsFileModalVisible(false);
     };
 
+    const handleDeleteGroup = async () => {
+        if (!groupSettings.id || !currentUserId) {
+            antdMessage.error("Group or admin information is missing.");
+            return;
+        }
 
-    const handleDeleteGroup = () => {
-        setGroupChats((prev) => prev.filter((chat) => chat.id !== groupSettings.id));
-        setGroupSettingsModalVisible(false);
-        antdMessage.success("Group deleted successfully!");
+        try {
+            const response = await fetch(
+                `/api/Group/DeleteGroup/${groupSettings.id}?adminId=${currentUserId}`,
+                { method: "DELETE" }
+            );
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText);
+            }
+
+            setGroupChats((prev) => prev.filter((chat) => chat.id !== groupSettings.id));
+            antdMessage.success("Group deleted successfully.");
+            // Закрываем модальное окно настроек группы
+            setGroupSettingsModalVisible(false);
+            // Обновляем список групп, если есть соответствующая функция
+            fetchUserGroups();
+        } catch (error) {
+            console.error("Error deleting group:", error);
+            antdMessage.error("Failed to delete group.");
+        }
     };
+
     const formatTimestamp = (timestamp) => {
         const date = new Date(timestamp);
         return isNaN(date.getTime()) ? "" : format(date, "HH:mm");
@@ -517,6 +519,7 @@ const GroupChatPage = () => {
                     userId: participantId,
                     encryptedGroupKey: encryptedKeys[participantId],
                 })),
+                avatarUrl: newGroupAvatarUrl
             };
             const response = await fetch("/api/Group/create", {
                 method: "POST",
@@ -529,6 +532,8 @@ const GroupChatPage = () => {
             }
             const { groupId } = await response.json();
             antdMessage.success(`Group created successfully! ID: ${groupId}`);
+            setNewGroupAvatarFileId(null);
+            setNewGroupAvatarFileId(null);
             setNewGroupModalVisible(false);
             setNewGroupName("");
             setNewGroupDescription("");
@@ -538,10 +543,75 @@ const GroupChatPage = () => {
             antdMessage.error("Failed to create group.");
         }
     };
+    const handleGroupSettingsAvatarChange = async (file) => {
+        // Если уже есть загруженная аватарка (и, возможно, её идентификатор для удаления), удаляем её через API
+        if (groupSettings.avatarFileId) {
+            try {
+                await fetch(`/api/files/delete/${groupSettings.avatarFileId}`, {
+                    method: "DELETE",
+                });
+            } catch (error) {
+                console.error("Ошибка удаления предыдущей аватарки:", error);
+            }
+        }
 
-    const handleGroupAvatarChange = (file) => {
-        setNewGroupAvatar(file);
+        // Загружаем новую аватарку через API
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+            const response = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!response.ok) {
+                throw new Error("Ошибка загрузки файла");
+            }
+            const data = await response.json();
+            // Обновляем groupSettings с новым URL и идентификатором файла
+            setGroupSettings((prev) => ({
+                ...prev,
+                avatarUrl: data.url,
+                avatarFileId: data.fileId,
+            }));
+        } catch (error) {
+            console.error("Ошибка при загрузке аватарки:", error);
+        }
     };
+
+    const handleGroupAvatarChange = async (file) => {
+        // Если уже есть загруженная аватарка, удаляем её через API
+        if (newGroupAvatarFileId) {
+            try {
+                await fetch(`/api/files/delete/${newGroupAvatarFileId}`, {
+                    method: "DELETE",
+                });
+                // Можно также сбросить состояние идентификатора, если требуется
+                setNewGroupAvatarFileId(null);
+            } catch (error) {
+                console.error("Ошибка удаления предыдущей аватарки:", error);
+            }
+        }
+
+        // Загружаем новую аватарку через API
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+            const response = await fetch("/api/files/upload", {
+                method: "POST",
+                body: formData,
+            });
+            if (!response.ok) {
+                throw new Error("Ошибка загрузки файла");
+            }
+            const data = await response.json();
+            // Сохраняем URL для отображения и fileId для последующего удаления
+            setNewGroupAvatarUrl(data.url);
+            setNewGroupAvatarFileId(data.fileId);
+        } catch (error) {
+            console.error("Ошибка при загрузке аватарки:", error);
+        }
+    };
+
 
     const handleEmojiClick = (emojiObject) => {
         if (emojiObject?.emoji) {
@@ -1566,12 +1636,137 @@ const GroupChatPage = () => {
         }
     };
 
+    const handleDeleteMessage = async (message) => {
+        // Закрываем контекстное меню, если оно открыто
+        handleCloseContextMenu();
+        try {
+            // Расшифровываем ссылки для медиа
+            const decryptedMediaUrls = message.mediaUrlsForSender && message.mediaUrlsForSender.length > 0
+                ? await decryptArray(message.mediaUrlsForSender, selectedGroupChatId, currentUserId)
+                : [];
+
+            // Расшифровываем ссылки для файлов
+            const decryptedFileUrls = message.fileUrlsForSender && message.fileUrlsForSender.length > 0
+                ? await decryptArray(message.fileUrlsForSender, selectedGroupChatId, currentUserId)
+                : [];
+
+            // Расшифровываем аудио ссылку, если она есть
+            const decryptedAudioUrl = message.audioUrlForSender
+                ? await decryptMessage(message.audioUrlForSender, selectedGroupChatId, currentUserId)
+                : "";
+
+            const payload = {
+                mediaUrls: decryptedMediaUrls,
+                fileUrls: decryptedFileUrls,
+                audioUrl: decryptedAudioUrl
+            };
+
+            const response = await fetch(
+                `/api/Message/deleteGroupMessage/${message.id}`,
+                {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
+            if (!response.ok) {
+                throw new Error("Не удалось удалить сообщение.");
+            }
+            antdMessage.success("Групповое сообщение успешно удалено.");
+
+            // Обновляем локальное состояние сообщений, удаляя удалённое сообщение
+            setMessages((prevMessages) =>
+                prevMessages.filter((msg) => msg.id !== message.id)
+            );
+        } catch (error) {
+            console.error("Ошибка при удалении группового сообщения:", error);
+            antdMessage.error("Ошибка при удалении группового сообщения.");
+        }
+    };
 
 
-    // В функции renderGroupMessage можно сделать так:
+
+    const handleEditMessage = (messageId) => {
+        const messageToEdit = messages.find((msg) => msg.id === messageId);
+        if (messageToEdit) {
+            handleCloseContextMenu();
+            setEditingMessage(messageToEdit);
+            setEditedText(messageToEdit.content);
+        }
+    };
+    const handleSaveEdit = async () => {
+        const isContentEmpty = !editedText || !editedText.trim();
+        if (isContentEmpty) {
+            antdMessage.error("Сообщение не может быть пустым.");
+            return;
+        }
+
+        try {
+            // Получаем зашифрованный групповой ключ
+            const groupKeyResponse = await fetch(
+                `/api/Group/GetGroupKey/${selectedGroupChatId}/${currentUserId}`
+            );
+            if (!groupKeyResponse.ok) {
+                throw new Error("Не удалось получить групповой ключ.");
+            }
+            const groupKeyJson = await groupKeyResponse.json();
+            const encryptedGroupKey = groupKeyJson.encryptedGroupKey;
+
+            const privateKeyString = localStorage.getItem("privateKey");
+            if (!privateKeyString) {
+                throw new Error("Приватный ключ не найден в localStorage");
+            }
+
+            const decryptedGroupKeyBuffer = await decryptGroupKey(encryptedGroupKey, privateKeyString);
+            const symmetricKeyBase64 = arrayBufferToBase64(decryptedGroupKeyBuffer);
+
+            const encryptedContent = await encryptGroupMessage(editedText, symmetricKeyBase64);
+
+            // Устанавливаем значения по умолчанию для списков и строки
+            const encryptedMediaUrls = editingMessage.encryptedMediaUrls || [];
+            const encryptedFileUrls = editingMessage.encryptedFileUrls || [];
+            const encryptedAudioUrl = editingMessage.encryptedAudioUrl || "";
+
+            const payload = {
+                encryptedContent,
+                encryptedMediaUrls,
+                encryptedFileUrls,
+                encryptedAudioUrl,
+            };
+
+            console.log("Payload for editGroupMessage:", payload);
+
+            const response = await fetch(
+                `/api/Message/editGroupMessage/${editingMessage.id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Ошибка при обновлении сообщения на сервере.");
+            }
+
+            setEditingMessage(null);
+            setEditedText("");
+            antdMessage.success("Групповое сообщение успешно отредактировано.");
+        } catch (error) {
+            console.error("Ошибка редактирования группового сообщения:", error);
+            antdMessage.error("Ошибка при редактировании группового сообщения.");
+        }
+    };
+
+
+
+    const handleCloseContextMenu = () => {
+        setContextMenuVisible(false);
+    };
     const renderGroupMessage = (msg) => {
         const isCurrentUserSender = msg.senderId === currentUserId;
-        const profile = userProfiles[msg.senderId] || { username: msg.senderId, avatarUrl: "/default-avatar.png" };
+        const profile =
+            userProfiles[msg.senderId] || { userName: msg.senderId, avatarUrl: "/default-avatar.png" };
         const senderName = profile.userName;
         const avatarSrc = profile.avatarUrl;
 
@@ -1584,90 +1779,158 @@ const GroupChatPage = () => {
             <div
                 key={msg.id}
                 className={`message-row ${isCurrentUserSender ? "sent" : "received"}`}
+                onContextMenu={(e) => handleContextMenu(e, msg)}
             >
                 <div className="avatar-wrap">
                     <Avatar size={32} src={avatarSrc}>
                         {!avatarSrc && senderName.charAt(0)}
                     </Avatar>
                 </div>
-
-                <div className="message-bubble">
-                    <div
-                        className="sender-name"
-                        style={{ color: isCurrentUserSender ? "white" : "black" }}
-                    >
-                        {senderName}
+                {editingMessage && editingMessage.id === msg.id ? (
+                    // Inline блок редактирования вместо обычного сообщения
+                    <div className="edit-message-container">
+                        <Input.TextArea
+                            value={editedText}
+                            onChange={(e) => setEditedText(e.target.value)}
+                            rows={3}
+                            style={{ marginBottom: "8px" }}
+                        />
+                        <Space>
+                            <Button type="primary" onClick={handleSaveEdit}>
+                                Сохранить
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setEditingMessage(null);
+                                    setEditedText("");
+                                }}
+                            >
+                                Отменить
+                            </Button>
+                        </Space>
                     </div>
-                    {msg.content && (
-                        <p
-                            className="message-text"
-                            style={{
-                                color: isCurrentUserSender ? "white" : "black",
-                                wordBreak: "break-word",
-                                whiteSpace: "pre-wrap",
-                            }}
+                ) : (
+                    // Отображение обычного сообщения
+                    <div className="message-bubble">
+                        <div
+                            className="sender-name"
+                            style={{ color: isCurrentUserSender ? "white" : "black" }}
                         >
-                            {msg.content}
-                        </p>
-                    )}
-
-                    {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                        <div className="image-gallery">
-                            {msg.mediaUrls.map((url, index) => (
-                                <Image
-                                    key={index}
-                                    width={200}
-                                    src={url}
-                                    alt={`Uploaded media ${index + 1}`}
-                                    style={{ margin: "8px 0" }}
-                                />
-                            ))}
+                            {senderName}
                         </div>
-                    )}
-
-                    {msg.fileUrls && msg.fileUrls.length > 0 && (
-                        <div className="file-list">
-                            {msg.fileUrls.map((url, index) => (
-                                <Button
-                                    key={index}
-                                    type="link"
-                                    href={url}
-                                    target="_blank"
-                                    icon={<FileOutlined />}
-                                    style={{ display: "block", margin: "4px 0" }}
-                                >
-                                    Download File {index + 1}
-                                </Button>
-                            ))}
+                        {msg.content && (
+                            <p
+                                className="message-text"
+                                style={{
+                                    color: isCurrentUserSender ? "white" : "black",
+                                    wordBreak: "break-word",
+                                    whiteSpace: "pre-wrap",
+                                }}
+                            >
+                                {msg.content}
+                            </p>
+                        )}
+                        {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                            <div className="image-gallery">
+                                {msg.mediaUrls.map((url, index) => (
+                                    <Image
+                                        key={index}
+                                        width={200}
+                                        src={url}
+                                        alt={`Uploaded media ${index + 1}`}
+                                        style={{ margin: "8px 0" }}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                        {msg.fileUrls && msg.fileUrls.length > 0 && (
+                            <div className="file-list">
+                                {msg.fileUrls.map((url, index) => (
+                                    <Button
+                                        key={index}
+                                        type="link"
+                                        href={url}
+                                        target="_blank"
+                                        icon={<FileOutlined />}
+                                        style={{ display: "block", margin: "4px 0" }}
+                                    >
+                                        Download File {index + 1}
+                                    </Button>
+                                ))}
+                            </div>
+                        )}
+                        {msg.audioUrl && (
+                            <div className="audio-player">
+                                <audio controls>
+                                    <source src={msg.audioUrl} type="audio/mpeg" />
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        )}
+                        <div className="message-time">
+                            {formatTimestamp(msg.timestamp || msg.Timestamp)}
                         </div>
-                    )}
-
-                    {msg.audioUrl && (
-                        <div className="audio-player">
-                            <audio controls>
-                                <source src={msg.audioUrl} type="audio/mpeg" />
-                                Your browser does not support the audio element.
-                            </audio>
-                        </div>
-                    )}
-                    <div className="message-time">
-                        {formatTimestamp(msg.timestamp || msg.Timestamp)}
                     </div>
-                </div>
+                )}
+
+                {contextMenuVisible && selectedMessage?.id === msg.id && (
+                    <div
+                        className="context-menu"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            position: "absolute",
+                            top: `${menuPosition.y + 5}px`,
+                            left: `${menuPosition.x - 300}px`,
+                            zIndex: 1000,
+                            background: "#fff",
+                            border: "1px solid #ccc",
+                            boxShadow: "0 4px 8px rgba(0, 0, 0, 0.15)",
+                            padding: "8px 0",
+                            borderRadius: "8px",
+                            minWidth: "120px",
+                            fontSize: "14px",
+                        }}
+                    >
+                        <div
+                            className="context-menu-item"
+                            onClick={() => handleEditMessage(msg.id)}
+                            style={{
+                                padding: "10px 16px",
+                                cursor: "pointer",
+                                color: "#333",
+                                transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f0f0")}
+                            onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "transparent")
+                            }
+                        >
+                            ✏️ Редактировать
+                        </div>
+                        <div
+                            className="context-menu-item"
+                            onClick={() => handleDeleteMessage(msg)}
+                            style={{
+                                padding: "10px 16px",
+                                cursor: "pointer",
+                                color: "#e63946",
+                                transition: "background 0.2s",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = "#ffe5e5")}
+                            onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = "transparent")
+                            }
+                        >
+                            🗑️ Удалить
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
 
 
 
-
-    const renderGroupMenu = (group) => (
-        <Menu>
-            <Menu.Item icon={<EditOutlined />} onClick={() => handleOpenGroupSettings(group)}>
-                Edit Settings
-            </Menu.Item>
-        </Menu>
-    );
 
     return (
         <Layout className="group-chat-page">
@@ -1698,25 +1961,27 @@ const GroupChatPage = () => {
                         chat.name?.toLowerCase().includes(search.toLowerCase())
                     )}
                     renderItem={(chat) => (
-                        <Dropdown overlay={renderGroupMenu(chat)} trigger={["contextMenu"]}>
                             <List.Item
                                 // Вызываем handleGroupClick при клике на группу
                                 onClick={() => handleGroupClick(chat)}
                                 className={`chat-item ${chat.id === selectedGroupChatId ? "active" : ""}`}
                             >
                                 <List.Item.Meta
-                                    avatar={<Avatar>{chat.name?.[0]}</Avatar>}
+                                    avatar={
+                                        <Avatar src={chat.avatarUrl}>
+                                            {!chat.avatarUrl && chat.name?.[0]}
+                                        </Avatar>
+                                    }
                                     title={chat.name}
                                     description={`${chat.participantsCount} Participants`}
                                 />
                             </List.Item>
-                        </Dropdown>
                     )}
                 />
             </Sider>
 
             <Layout>
-                <Content className="chat-content">
+                <Content className="chat-content" onClick={handleCloseContextMenu}>
                     {selectedGroupChatId ? (
                         <>
                             <div className="chat-header">
@@ -1853,7 +2118,7 @@ const GroupChatPage = () => {
                         showUploadList={false}
                     >
                         <Avatar
-                            src={newGroupAvatar ? URL.createObjectURL(newGroupAvatar) : null}
+                            src={newGroupAvatarUrl}
                             size={64}
                             icon={<EditOutlined />}
                             style={{ marginRight: "10px" }}
@@ -1905,28 +2170,37 @@ const GroupChatPage = () => {
                 closable={true}
             >
                 <div className="group-avatar-settings">
-                    <Avatar size={50} src={groupSettings?.avatarUrl || null}>
-                        {groupSettings?.name?.[0] || "?"}
-                    </Avatar>
-                    <Button icon={<EditOutlined />} onClick={() => document.getElementById("avatar-upload").click()}>
-                        Edit Avatar
-                    </Button>
-                    <input
-                        id="avatar-upload"
-                        type="file"
-                        style={{ display: "none" }}
-                        onChange={(e) => handleGroupAvatarChange(e.target.files[0])}
-                    />
+                    <Upload
+                        accept="image/*"
+                        beforeUpload={(file) => {
+                            handleGroupSettingsAvatarChange(file);
+                            return false; // отменяем автоматическую загрузку Ant Design
+                        }}
+                        showUploadList={false}
+                    >
+                        <Avatar
+                            size={50}
+                            src={groupSettings?.avatarUrl || null}
+                        >
+                            {(!groupSettings?.avatarUrl && groupSettings?.name)
+                                ? groupSettings.name[0]
+                                : ""}
+                        </Avatar>
+                    </Upload>
                 </div>
                 <Input
                     placeholder="Group Name"
                     value={groupSettings?.name || ""}
-                    onChange={(e) => setGroupSettings((prev) => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                        setGroupSettings((prev) => ({ ...prev, name: e.target.value }))
+                    }
                 />
                 <Input.TextArea
                     placeholder="Group Description"
                     value={groupSettings?.description || ""}
-                    onChange={(e) => setGroupSettings((prev) => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) =>
+                        setGroupSettings((prev) => ({ ...prev, description: e.target.value }))
+                    }
                     rows={3}
                     style={{ marginTop: "10px" }}
                 />
@@ -1939,6 +2213,7 @@ const GroupChatPage = () => {
                     </Button>
                 </div>
             </Modal>
+
 
             {/* Modal: Image Upload */}
             <Modal

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AmigosGramProject.Server.Migrations
 {
     [DbContext(typeof(ChatDbContext))]
-    [Migration("20250223154201_SSSex")]
-    partial class SSSex
+    [Migration("20250314235629_YUYUYUUYUYU")]
+    partial class YUYUYUUYUYU
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -33,6 +33,9 @@ namespace AmigosGramProject.Server.Migrations
 
                     b.Property<string>("AdminId")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AvatarUrl")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedDate")

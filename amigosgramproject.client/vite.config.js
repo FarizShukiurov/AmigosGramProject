@@ -251,6 +251,15 @@ export default defineConfig({
             '^/api/Group/GetAdminId/': {
                 target,
                 secure: false,
+            },'^/api/Group/DeleteGroup/': {
+                target,
+                secure: false,
+            },'^/api/Message/editGroupMessage/': {
+                target,
+                secure: false,
+            },'^/api/Message/deleteGroupMessage/': {
+                target,
+                secure: false,
             },
         },
         port: 5173,

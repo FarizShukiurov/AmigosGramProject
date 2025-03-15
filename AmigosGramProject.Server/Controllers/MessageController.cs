@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 namespace AmigosGramProject.Server.Controllers
 {
@@ -264,20 +265,22 @@ namespace AmigosGramProject.Server.Controllers
         }
 
 
-        [HttpDelete("deleteMessageById/{id}")]
-        public async Task<IActionResult> DeleteMessageById(int id, [FromBody] DeleteMessageDto dto)
+        [HttpDelete("deleteGroupMessage/{id}")]
+        public async Task<IActionResult> DeleteGroupMessage(int id, [FromBody] DeleteMessageDto dto)
         {
-            var message = await _context.Messages.FindAsync(id);
-            if (message == null)
+            // Ищем групповое сообщение по id
+            var groupMessage = await _context.GroupMessages.FindAsync(id);
+            if (groupMessage == null)
             {
-                return NotFound("Message not found.");
+                return NotFound("Group message not found.");
             }
+
             Console.WriteLine($"ID: {id}");
             Console.WriteLine($"DTO: {JsonConvert.SerializeObject(dto)}");
 
             try
             {
-                // Удаляем переданные расшифрованные ссылки
+                // Удаляем переданные расшифрованные ссылки на медиа-файлы
                 if (dto.MediaUrls != null && dto.MediaUrls.Any())
                 {
                     foreach (var mediaUrl in dto.MediaUrls)
@@ -299,22 +302,23 @@ namespace AmigosGramProject.Server.Controllers
                     await DeleteFileFromStorage(dto.AudioUrl);
                 }
 
-                // Удаляем сообщение из базы данных
-                _context.Messages.Remove(message);
+                // Удаляем групповое сообщение из базы данных
+                _context.GroupMessages.Remove(groupMessage);
                 await _context.SaveChangesAsync();
 
-                // Уведомляем клиентов через SignalR
-                var chatGroupId = GetChatGroupId(message.SenderId, message.ReceiverId);
-                await _hubContext.Clients.Group(chatGroupId).SendAsync("MessageDeleted", id);
+                // Уведомляем участников группы через SignalR
+                await _hubContext.Clients.Group($"Group_{groupMessage.GroupId}")
+                    .SendAsync("FetchGroupMessages");
 
                 return NoContent();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting message: {ex.Message}");
-                return StatusCode(500, "An error occurred while deleting the message.");
+                Console.WriteLine($"Error deleting group message: {ex.Message}");
+                return StatusCode(500, "An error occurred while deleting the group message.");
             }
         }
+
 
 
 
@@ -398,5 +402,65 @@ namespace AmigosGramProject.Server.Controllers
                 return StatusCode(500, "An error occurred while updating the message.");
             }
         }
+        [HttpPut("editGroupMessage/{id}")]
+        public async Task<IActionResult> EditGroupMessage(int id, [FromBody] EditGroupMessageDto dto)
+        {
+            if (dto == null)
+            {
+                return BadRequest("Request body is required.");
+            }
+
+            // Находим групповое сообщение по id
+            var groupMessage = await _context.GroupMessages.FindAsync(id);
+            if (groupMessage == null)
+            {
+                return NotFound("Group message not found.");
+            }
+
+            // Обновляем зашифрованное содержимое сообщения
+            if (dto.EncryptedContent != null) // даже если текст пустой, обновляем
+            {
+                groupMessage.EncryptedContent = dto.EncryptedContent;
+            }
+            else if (dto.EncryptedContent == null)
+            {
+                groupMessage.EncryptedContent = null;
+            }
+
+            // Обновляем зашифрованные медиа-данные, если они переданы
+            if (dto.EncryptedMediaUrls != null)
+            {
+                groupMessage.EncryptedMediaUrls = dto.EncryptedMediaUrls;
+            }
+
+            if (dto.EncryptedFileUrls != null)
+            {
+                groupMessage.EncryptedFileUrls = dto.EncryptedFileUrls;
+            }
+
+            if (dto.EncryptedAudioUrl != null)
+            {
+                groupMessage.EncryptedAudioUrl = dto.EncryptedAudioUrl;
+            }
+
+            try
+            {
+                _context.GroupMessages.Update(groupMessage);
+                await _context.SaveChangesAsync();
+
+                // Уведомляем участников группы через SignalR
+                await _hubContext.Clients.Group($"Group_{groupMessage.GroupId}")
+                    .SendAsync("FetchGroupMessages");
+
+                return Ok(groupMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating group message: {ex.Message}");
+                return StatusCode(500, "An error occurred while updating the group message.");
+            }
+        }
+
+
     }
 }

@@ -36,7 +36,8 @@ namespace AmigosGramProject.Server.Controllers
                 Name = dto.Name,
                 Description = dto.Description,
                 AdminId = dto.AdminId,
-                CreatedDate = DateTime.UtcNow
+                CreatedDate = DateTime.UtcNow,
+                AvatarUrl = dto.AvatarUrl
             };
 
             // Добавление участников в коллекцию группы
@@ -83,6 +84,7 @@ namespace AmigosGramProject.Server.Controllers
                     g.Id,
                     g.Name,
                     g.Description,
+                    g.AvatarUrl,
                     ParticipantsCount = g.Members.Count
                 })
                 .ToListAsync();
@@ -249,6 +251,13 @@ namespace AmigosGramProject.Server.Controllers
                 return Forbid("Only the group admin can delete the group.");
             }
 
+            // Удаляем сообщения группы.
+            // Предполагается, что сообщения группы хранятся в DbSet<GroupMessage> и имеют свойство GroupId.
+            var groupMessages = await _context.GroupMessages
+                .Where(m => m.GroupId == groupId.ToString())
+                .ToListAsync();
+            _context.GroupMessages.RemoveRange(groupMessages);
+
             // Удаляем группу (также будут удалены связанные участники, если настроено каскадное удаление)
             _context.Groups.Remove(group);
             await _context.SaveChangesAsync();
@@ -257,11 +266,12 @@ namespace AmigosGramProject.Server.Controllers
             foreach (var member in group.Members)
             {
                 await _hubContext.Clients.User(member.UserId.ToString())
-                    .SendAsync("FetchUserGroups", groupId);
+                    .SendAsync("FetchUserGroups");
             }
 
             return Ok("Group deleted successfully.");
         }
+
 
         [HttpGet("GetAdminId/{groupId}")]
         public async Task<IActionResult> GetAdminId(Guid groupId)
@@ -303,8 +313,19 @@ namespace AmigosGramProject.Server.Controllers
             _context.Groups.Update(group);
             await _context.SaveChangesAsync();
 
+            var groupMembers = await _context.GroupMembers
+                .Where(m => m.GroupId == group.Id)
+                .ToListAsync();
+
+            foreach (var member in groupMembers)
+            {
+                await _hubContext.Clients.User(member.UserId.ToString())
+                    .SendAsync("FetchUserGroups");
+            }
+
             return Ok(group);
         }
+
     }
 
 

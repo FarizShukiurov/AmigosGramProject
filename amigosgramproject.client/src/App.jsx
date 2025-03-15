@@ -11,6 +11,7 @@ import ChatPage from './components/ChatPage';
 import ChatPageMobile from './components/ChatPageMobile'; // Импортируем мобильную версию чата
 import Overlay from './components/Overlay';
 import GroupChatPage from "./components/GroupChatPage.jsx";
+import GroupChatPageMobile from "./components/GroupChatPageMobile.jsx"
 
 function AppRoutes() {
     const location = useLocation();
@@ -30,7 +31,7 @@ function AppRoutes() {
                 <Route path="/" element={<Layout />}>
                     {/* В зависимости от устройства рендерим либо ChatPageMobile, либо стандартный ChatPage */}
                     <Route path="chats" element={isMobile ? <ChatPageMobile /> : <ChatPage />} />
-                    <Route path="group-chats" element={<GroupChatPage />} />
+                    <Route path="group-chats" element={isMobile ? <GroupChatPageMobile /> : <GroupChatPage />} />
                     <Route path="contacts" element={isMobile ? <MobileContactsPage /> : <Contacts />} />
                     <Route index element={isMobile ? <ChatPageMobile /> : <ChatPage />} />
                 </Route>

@@ -1786,7 +1786,6 @@ const GroupChatPage = () => {
                         {!avatarSrc && senderName.charAt(0)}
                     </Avatar>
                 </div>
-
                 {editingMessage && editingMessage.id === msg.id ? (
                     // Inline блок редактирования вместо обычного сообщения
                     <div className="edit-message-container">

@@ -289,22 +289,19 @@ const ContactsMobile = () => {
     const viewProfile = async (contact) => {
         setLoading(true);
         try {
-            console.log(contact)
-            console.log(contact.ContactId)
-            // Отправляем запрос на сервер для получения полного профиля
-            const response = await fetch(`/api/Contacts/GetProfile?contactId=${contact.id}`, {
+            // Правильно получаем contactId из контакта
+            const contactId = contact.contactId || contact.id;
+
+            const response = await fetch(`/api/Contacts/GetProfile?contactId=${contactId}`, {
                 method: 'GET',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch profile data');
-            }
+            if (!response.ok) throw new Error('Failed to fetch profile data');
 
             const profile = await response.json();
 
-            // Обновляем состояние с полными данными профиля
             setSelectedProfile({
                 userName: profile.userName || contact.userName || 'Unknown User',
                 avatarUrl: profile.avatarUrl || contact.avatarUrl || 'https://via.placeholder.com/120',
@@ -314,13 +311,12 @@ const ContactsMobile = () => {
 
             setProfileModalVisible(true);
         } catch (error) {
-            console.error('Error fetching profile data:', error);
-            alert('Failed to load profile. Please try again later.');
+            console.error('Error fetching profile:', error);
+            alert('Error loading profile');
         } finally {
             setLoading(false);
         }
     };
-
 
     // Закрытие модального окна профиля
     const closeProfileModal = () => {
@@ -712,13 +708,7 @@ const ContactsMobile = () => {
                                                 description={
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span style={{ color: 'white' }}>{contact.email}</span>
-                                                        <Button
-                                                            onClick={() => viewProfile(contact)}
-                                                            size="small"
-                                                            style={{ marginTop: '5px' }}
-                                                        >
-                                                            View Profile
-                                                        </Button>
+                                                        {/* Кнопка "View Profile" удалена */}
                                                     </div>
                                                 }
                                             />
@@ -936,13 +926,7 @@ const ContactsMobile = () => {
                                                 description={
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span style={{ color: 'white' }}>{contact.email}</span>
-                                                        <Button
-                                                            onClick={() => viewProfile(contact)}
-                                                            size="small"
-                                                            style={{ marginTop: '5px' }}
-                                                        >
-                                                            View Profile
-                                                        </Button>
+                                                        {/* Кнопка "View Profile" удалена */}
                                                     </div>
                                                 }
                                             />
@@ -1122,13 +1106,7 @@ const ContactsMobile = () => {
                                                 description={
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span style={{ color: 'white' }}>{contact.email}</span>
-                                                        <Button
-                                                            onClick={() => viewProfile(contact)}
-                                                            size="small"
-                                                            style={{ marginTop: '5px' }}
-                                                        >
-                                                            View Profile
-                                                        </Button>
+                                                        {/* Кнопка "View Profile" удалена */}
                                                     </div>
                                                 }
                                             />
@@ -1328,13 +1306,7 @@ const ContactsMobile = () => {
                                                 description={
                                                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                                                         <span style={{ color: 'white' }}>{contact.email}</span>
-                                                        <Button
-                                                            onClick={() => viewProfile(contact)}
-                                                            size="small"
-                                                            style={{ marginTop: '5px' }}
-                                                        >
-                                                            View Profile
-                                                        </Button>
+                                                        {/* Кнопка "View Profile" удалена */}
                                                     </div>
                                                 }
                                             />
@@ -1387,5 +1359,5 @@ const ContactsMobile = () => {
             </Modal>
         </div>
     );
-}   
+}
 export default ContactsMobile;

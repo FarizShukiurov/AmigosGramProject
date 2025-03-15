@@ -1,17 +1,17 @@
 /// <reference path="layout.jsx" />
 import React, { useState, useEffect } from "react";
 import {
-    Modal,
+    Drawer,
     Button,
     Input,
     Upload,
     notification,
     Avatar,
 } from "antd";
+import { FileOutlined } from "@ant-design/icons";
 import "./Settings.css";
 
 const Settings = () => {
-    const [file, setFile] = useState(null);
     const [avatarUrl, setAvatarUrl] = useState("");
     const [newUsername, setNewUsername] = useState("");
     const [usernameMessage, setUsernameMessage] = useState("");
@@ -19,32 +19,10 @@ const Settings = () => {
     const [currentUsername, setCurrentUsername] = useState("");
     const [email, setEmail] = useState("");
     const [showUsernameInput, setShowUsernameInput] = useState(false);
-    const [visible, setVisible] = useState(false);
+    const [drawerVisible, setDrawerVisible] = useState(false); // для выбора аватара
     const [bio, setBio] = useState("");
-    const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
-    const [resetPasswordEmail, setResetPasswordEmail] = useState("");
-    const [resetPasswordError, setResetPasswordError] = useState("");
+    const [showResetDrawer, setShowResetDrawer] = useState(false); // для сброса пароля
 
-    useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const response = await fetch("/api/Profile/get-user-data", {
-                    headers: {
-                        "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
-                    }
-                });
-                const data = await response.json();
-                setAvatarUrl(data.avatarUrl);
-                setCurrentUsername(data.username);
-                setEmail(data.email);
-                setBio(data.biography || ""); // Default to an empty string if undefined
-            } catch (error) {
-                console.error("Error fetching user data", error);
-            }
-        };
-
-        fetchUserData();
-    }, []);
     const DEFAULT_AVATARS = [
         { src: "https://amigos.blob.core.windows.net/avatars/AmigosBlack.jpg", alt: "Amigos Black" },
         { src: "https://amigos.blob.core.windows.net/avatars/AmigosBlue.jpg", alt: "Amigos Blue" },
@@ -57,29 +35,57 @@ const Settings = () => {
         { src: "https://amigos.blob.core.windows.net/avatars/AmigosRed.jpg", alt: "Amigos Red" },
     ];
 
+    useEffect(() => {
+        const fetchUserData = async () => {
+            try {
+                const response = await fetch("/api/Profile/get-user-data", {
+                    headers: {
+                        "Authorization": `Bearer ${getTokenFromCookies()}`,
+                    },
+                });
+                const data = await response.json();
+                setAvatarUrl(data.avatarUrl);
+                setCurrentUsername(data.username);
+                setEmail(data.email);
+                setBio(data.biography || "");
+            } catch (error) {
+                console.error("Error fetching user data", error);
+            }
+        };
+
+        fetchUserData();
+    }, []);
+
+    const getTokenFromCookies = () => {
+        const cookies = document.cookie.split(";");
+        for (let cookie of cookies) {
+            const [key, value] = cookie.trim().split("=");
+            if (key === "auth_token") {
+                return decodeURIComponent(value);
+            }
+        }
+        return null;
+    };
+
     const handleSelectDefaultAvatar = async (avatarSrc) => {
         try {
             let response;
-
             if (avatarSrc instanceof File) {
-                // ���� ������ ����, ��������� ��� ����� FormData
                 const formData = new FormData();
                 formData.append("file", avatarSrc);
-
                 response = await fetch("/api/Profile/upload-avatar", {
                     method: "POST",
                     headers: {
-                        "Authorization": `Bearer ${getTokenFromCookies()}`, // ��������� �����
+                        "Authorization": `Bearer ${getTokenFromCookies()}`,
                     },
                     body: formData,
                 });
             } else {
-                // ���� ������ URL �� ������, ���������� ��� JSON
                 response = await fetch("/api/Profile/set-avatar-url", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${getTokenFromCookies()}`, // ��������� �����
+                        "Authorization": `Bearer ${getTokenFromCookies()}`,
                     },
                     body: JSON.stringify({ avatarUrl: avatarSrc }),
                 });
@@ -92,7 +98,7 @@ const Settings = () => {
                     message: "Avatar Updated",
                     description: "Avatar updated successfully!",
                 });
-                setVisible(false); // ��������� �������
+                setDrawerVisible(false);
             } else {
                 notification.error({
                     message: "Avatar Update Failed",
@@ -108,18 +114,6 @@ const Settings = () => {
         }
     };
 
-
-    const getTokenFromCookies = () => {
-        const cookies = document.cookie.split(";");
-        for (let cookie of cookies) {
-            const [key, value] = cookie.trim().split("=");
-            if (key === "auth_token") {
-                return decodeURIComponent(value);
-            }
-        }
-        return null; // Return null if no token is found
-    };
-
     const handleFileChange = (info) => {
         if (info.file.status === "done") {
             setAvatarUrl(info.file.response.avatarUrl);
@@ -133,11 +127,19 @@ const Settings = () => {
 
     const toggleUsernameInput = () => {
         setShowUsernameInput((prev) => !prev);
-        if (showUsernameInput) setNewUsername(""); // Reset field on close
+        if (showUsernameInput) setNewUsername("");
     };
 
     const handleSubmitUsername = async (e) => {
         e.preventDefault();
+        // Проверка на пустой ник (игнорируя пробелы)
+        if (!newUsername.trim()) {
+            notification.error({
+                message: "Invalid Username",
+                description: "Username cannot be empty.",
+            });
+            return;
+        }
         setErrorMessage("");
         setUsernameMessage("");
 
@@ -146,7 +148,7 @@ const Settings = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
+                    "Authorization": `Bearer ${getTokenFromCookies()}`,
                 },
                 body: JSON.stringify({ newUsername }),
             });
@@ -181,6 +183,8 @@ const Settings = () => {
         }
     };
 
+
+
     const handleChangeBiography = async () => {
         const requestBody = { Biography: bio };
         try {
@@ -188,7 +192,7 @@ const Settings = () => {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${getTokenFromCookies()}`, // Attach token from cookies
+                    "Authorization": `Bearer ${getTokenFromCookies()}`,
                 },
                 body: JSON.stringify(requestBody),
             });
@@ -213,32 +217,31 @@ const Settings = () => {
         }
     };
 
-    const handleOpenOverlay = () => {
-        setVisible(true);
+    // Drawer для выбора аватара (full screen на мобиль)
+    const openAvatarDrawer = () => {
+        setDrawerVisible(true);
     };
 
-    const handleCancel = () => {
-        setVisible(false);
+    const closeAvatarDrawer = () => {
+        setDrawerVisible(false);
     };
 
     const maskEmail = (email) => {
-        if (!email) return ""; // Check if email is defined
+        if (!email) return "";
         const parts = email.split("@");
-        const maskedLocalPart = parts[0].length > 2
-            ? parts[0].slice(0, 2) + "***"
-            : parts[0];
+        const maskedLocalPart =
+            parts[0].length > 2 ? parts[0].slice(0, 2) + "***" : parts[0];
         return `${maskedLocalPart}@${parts[1]}`;
     };
 
-    // Send password reset link to user's email
     const handleSendResetPasswordLink = async () => {
         try {
             const response = await fetch("/Account/SendResetPasswordLink", {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json", // ������ ������� JSON
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ email }), // ���������� email ��� JSON-������
+                body: JSON.stringify({ email }),
             });
 
             if (response.ok) {
@@ -246,7 +249,7 @@ const Settings = () => {
                     message: "Password Reset Link Sent",
                     description: "Password reset link sent to your email!",
                 });
-                setShowResetPasswordModal(false);
+                setShowResetDrawer(false);
             } else {
                 const errorText = await response.text();
                 console.error("Error response:", errorText);
@@ -264,15 +267,13 @@ const Settings = () => {
         }
     };
 
-
-    const openResetPasswordModal = () => {
-        setShowResetPasswordModal(true);
+    // Drawer для сброса пароля (full screen на мобиль)
+    const openResetDrawer = () => {
+        setShowResetDrawer(true);
     };
 
-    const closeResetPasswordModal = () => {
-        setShowResetPasswordModal(false);
-        setResetPasswordEmail(""); // Clear email field
-        setResetPasswordError(""); // Clear error message
+    const closeResetDrawer = () => {
+        setShowResetDrawer(false);
     };
 
     return (
@@ -281,13 +282,17 @@ const Settings = () => {
 
             <div className="avatar-section">
                 <Avatar src={avatarUrl} size={100} />
-                <Button onClick={handleOpenOverlay}>Change Avatar</Button>
-                <Modal
-                    title={<span className="custom-modal-title">Choose an Avatar</span>}
-                    visible={visible}
-                    closable={false}
-                    onCancel={handleCancel}
-                    footer={null}
+                <Button onClick={openAvatarDrawer}>Change Avatar</Button>
+                <Drawer
+                    title="Choose an Avatar"
+                    placement="bottom"
+                    closable={true}
+                    onClose={closeAvatarDrawer}
+                    visible={drawerVisible}
+                    height="100%"
+                    getContainer={false}
+                    style={{ position: "fixed" }}
+                    bodyStyle={{ padding: 16 }}
                 >
                     <Upload
                         name="file"
@@ -307,8 +312,6 @@ const Settings = () => {
                     >
                         <Button>Upload New Avatar</Button>
                     </Upload>
-
-
                     <div className="default-avatars">
                         {DEFAULT_AVATARS.map((avatar) => (
                             <img
@@ -321,14 +324,16 @@ const Settings = () => {
                             />
                         ))}
                     </div>
-                </Modal>
+                </Drawer>
             </div>
 
             <div className="field-section">
                 <label className="field-label">Name</label>
                 <div className="field-content">
                     <span>{currentUsername}</span>
-                    <Button onClick={toggleUsernameInput} type="primary">Edit</Button>
+                    <Button onClick={toggleUsernameInput} type="primary">
+                        Edit
+                    </Button>
                 </div>
                 {showUsernameInput && (
                     <form onSubmit={handleSubmitUsername} className="username-form">
@@ -337,7 +342,9 @@ const Settings = () => {
                             value={newUsername}
                             onChange={(e) => setNewUsername(e.target.value)}
                         />
-                        <Button type="primary" htmlType="submit">Submit</Button>
+                        <Button type="primary" htmlType="submit">
+                            Submit
+                        </Button>
                     </form>
                 )}
                 {usernameMessage && <p className="success-message">{usernameMessage}</p>}
@@ -353,7 +360,8 @@ const Settings = () => {
 
             <div className="field-section">
                 <label className="field-label">Biography</label>
-                <Input.TextArea className="bio-input"
+                <Input.TextArea
+                    className="bio-input"
                     value={bio}
                     onChange={(e) => setBio(e.target.value)}
                     rows={4}
@@ -363,27 +371,30 @@ const Settings = () => {
                 </Button>
             </div>
 
-
             <div className="reset-password-section">
-                <Button type="link" onClick={openResetPasswordModal}>Change Password</Button>
-                <Modal
-                    title={<span className="custom-modal-title">Reset Your Password</span>}
-                    open={showResetPasswordModal}
-                    closable={false}
-                    onCancel={closeResetPasswordModal}
-                    footer={null}
+                <Button type="link" onClick={openResetDrawer}>
+                    Change Password
+                </Button>
+                <Drawer
+                    title="Reset Your Password"
+                    placement="bottom"
+                    closable={true}
+                    onClose={closeResetDrawer}
+                    visible={showResetDrawer}
+                    height="100%"
+                    getContainer={false}
+                    style={{ position: "fixed" }}
+                    bodyStyle={{ padding: 16 }}
                 >
                     <div className="reset-password-container">
-                        <p>Your registered email: <strong>{maskEmail(email)}</strong></p> {/* Masked email */}
-                        {resetPasswordError && <p className="error-message">{resetPasswordError}</p>}
-                        <Button
-                            type="primary"
-                            onClick={handleSendResetPasswordLink}
-                        >
+                        <p>
+                            Your registered email: <strong>{maskEmail(email)}</strong>
+                        </p>
+                        <Button type="primary" onClick={handleSendResetPasswordLink}>
                             Send Reset Link
                         </Button>
                     </div>
-                </Modal>
+                </Drawer>
             </div>
         </div>
     );

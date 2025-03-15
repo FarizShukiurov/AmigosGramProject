@@ -57,6 +57,7 @@ function ChatPageMobile() {
     // Найти текущий чат по selectedChatId
     const currentChat = chats.find(chat => chat.id === selectedChatId);
 
+
     // Состояния для контекстного меню
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -76,6 +77,10 @@ function ChatPageMobile() {
     const [isVideoRecording, setIsVideoRecording] = useState(false);
     const videoRecorderRef = useRef(null);
     const videoChunks = useRef([]);
+
+    const closeImageModal = () => setIsImageModalVisible(false);
+    const closeFileModal = () => setIsFileModalVisible(false);
+
 
     const handleEmojiClick = (emojiObject) => {
         if (emojiObject?.emoji) {
@@ -1298,9 +1303,13 @@ function ChatPageMobile() {
             <Modal
                 title={<span className="custom-modal-title">Select Image</span>}
                 visible={isImageModalVisible}
-                onCancel={handleImageModalOpen}
+                onCancel={closeImageModal}
                 closable={false}
-                footer={null}
+                footer={[
+                    <Button key="close" onClick={closeImageModal}>
+                        Close
+                    </Button>,
+                ]}
             >
                 <Upload
                     key={imageModalKey}
@@ -1317,9 +1326,13 @@ function ChatPageMobile() {
             <Modal
                 title={<span className="custom-modal-title">Select File</span>}
                 visible={isFileModalVisible}
-                onCancel={handleFileModalOpen}
-                closable={false}
-                footer={null}
+                onCancel={closeFileModal}
+                closable={true}
+                footer={[
+                    <Button key="close" onClick={closeFileModal}>
+                        Close
+                    </Button>,
+                ]}
             >
                 <Upload
                     key={fileModalKey}
@@ -1338,10 +1351,19 @@ function ChatPageMobile() {
                 visible={isCameraModalVisible}
                 onCancel={closeCameraModal}
                 closable={true}
-                footer={null}
+                footer={[
+                    <Button key="close" onClick={closeCameraModal}>
+                        Close
+                    </Button>,
+                ]}
             >
                 <div className="camera-container" style={{ textAlign: "center" }}>
-                    <video ref={videoRef} autoPlay playsInline style={{ width: "100%", maxHeight: "400px" }} />
+                    <video
+                        ref={videoRef}
+                        autoPlay
+                        playsInline
+                        style={{ width: "100%", maxHeight: "400px" }}
+                    />
                     <div style={{ marginTop: "16px" }}>
                         <Button onClick={capturePhoto} style={{ marginRight: "8px" }}>
                             Take Photo
@@ -1358,6 +1380,8 @@ function ChatPageMobile() {
                     </div>
                 </div>
             </Modal>
+
+
         </Layout>
     );
 }

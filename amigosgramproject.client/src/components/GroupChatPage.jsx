@@ -1585,7 +1585,6 @@ const GroupChatPage = () => {
                 key={msg.id}
                 className={`message-row ${isCurrentUserSender ? "sent" : "received"}`}
             >
-                {/* Аватарка и «обёртка» содержимого */}
                 <div className="avatar-wrap">
                     <Avatar size={32} src={avatarSrc}>
                         {!avatarSrc && senderName.charAt(0)}
@@ -1593,8 +1592,24 @@ const GroupChatPage = () => {
                 </div>
 
                 <div className="message-bubble">
-                    <div className="sender-name">{senderName}</div>
-                    {msg.content && <p className="message-text">{msg.content}</p>}
+                    <div
+                        className="sender-name"
+                        style={{ color: isCurrentUserSender ? "white" : "black" }}
+                    >
+                        {senderName}
+                    </div>
+                    {msg.content && (
+                        <p
+                            className="message-text"
+                            style={{
+                                color: isCurrentUserSender ? "white" : "black",
+                                wordBreak: "break-word",
+                                whiteSpace: "pre-wrap",
+                            }}
+                        >
+                            {msg.content}
+                        </p>
+                    )}
 
                     {msg.mediaUrls && msg.mediaUrls.length > 0 && (
                         <div className="image-gallery">

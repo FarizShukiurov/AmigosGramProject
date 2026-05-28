@@ -1,3 +1,9 @@
+---
+## ⚠️ Disclaimer
+This project was developed as a collaborative academic effort for a hackathon and graduation thesis. It was built with my brilliant partner **Exem3l** under tight deadlines. 
+
+We are fully aware of the code's limitations, edge-case bugs, and areas that require further refactoring. This repository serves as a showcase of our architectural concepts and rapid development capabilities rather than a production-grade application.
+
 # AmigosGramProject
 
 **AmigosGramProject** is a cutting-edge real-time chat application that provides a seamless and secure platform for communication. Designed with a focus on usability, speed, and security, the project enables users to exchange messages, share media, and maintain private, encrypted conversations.
